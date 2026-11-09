@@ -60,16 +60,13 @@
   </footer>
 
 <script>
-  // ===== CONFIG (AMI Lite) =====
   const FUNCTION_URL = "https://pdzhlslzwjihxklqcwus.supabase.co/functions/v1/ai";
-  const PUBLISHABLE_KEY = "sb_publishable_vHhWZVOnyl7_qQicqcYn2A_rZVvfYsd";
-  // =============================
 
   const chat = document.getElementById("chat");
   const box = document.getElementById("box");
   const send = document.getElementById("send");
   const welcome = document.getElementById("welcome");
-  let history = [];      // conversation memory
+  let history = [];
   let busy = false;
 
   box.addEventListener("input", () => {
@@ -110,7 +107,7 @@
     try {
       const res = await fetch(FUNCTION_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": PUBLISHABLE_KEY },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ messages: history })
       });
       dots.remove();
@@ -131,7 +128,6 @@
     busy = false; send.disabled = false; box.focus();
   }
 
-  // Handle whatever shape the function returns
   function extract(d){
     if (typeof d === "string") return d;
     if (d.content && Array.isArray(d.content) && d.content[0] && d.content[0].text) return d.content[0].text;
