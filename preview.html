@@ -3,133 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AMI — Home</title>
+<title>AMI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#16304F; --navy2:#1F3F66; --gold:#C79A3C; --gold2:#E4B75A;
-    --bg:#F4F6FA; --ink:#182333; --muted:#6B7482; --line:#E3E8F0; --card:#FFFFFF;
+    --bg:#0A0F1A; --bg2:#0E1524; --panel:rgba(255,255,255,.035); --panelbd:rgba(199,154,60,.18);
+    --gold:#C79A3C; --gold2:#E4B75A; --ink:#ECEFF5; --muted:#8A94A6; --line:rgba(255,255,255,.07);
+    --up:#2FB67A; --down:#E0565B;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
-  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100dvh;}
+  body{font-family:"Inter",-apple-system,sans-serif;color:var(--ink);
+    background:
+      radial-gradient(120% 70% at 50% -10%, #16233d 0%, #0b1322 55%, #080c15 100%);
+    min-height:100dvh;display:flex;flex-direction:column;}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;}
 
-  /* top bar */
-  .top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;
-    padding:20px 18px 24px;border-radius:0 0 22px 22px;}
-  .top .row{display:flex;align-items:center;gap:11px;}
-  .logo{width:40px;height:40px;border-radius:11px;background:var(--gold);color:var(--navy);
-    display:grid;place-items:center;font-weight:800;font-size:16px;flex:0 0 auto;}
-  .hi{font-size:13px;color:#AFC0DC;}
-  .name{font-size:20px;font-weight:700;line-height:1.1;}
+  .top{padding:22px 20px 14px;display:flex;align-items:center;gap:13px;}
+  .logo{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;
+    border:1px solid var(--panelbd);background:linear-gradient(135deg,rgba(199,154,60,.18),transparent);
+    font-family:"Cormorant Garamond",serif;font-weight:700;font-size:20px;color:var(--gold2);}
+  .hi{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+  .name{font-family:"Cormorant Garamond",serif;font-size:27px;font-weight:600;line-height:1;margin-top:2px;}
   .clock{margin-left:auto;text-align:right;}
-  .clock .t{font-size:20px;font-weight:700;}
-  .clock .d{font-size:11px;color:#AFC0DC;}
+  .clock .t{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:600;color:var(--gold2);line-height:1;}
+  .clock .d{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
 
-  .wrap{padding:16px 14px 90px;display:flex;flex-direction:column;gap:16px;}
+  .rule{height:1px;margin:4px 20px 0;background:linear-gradient(90deg,transparent,var(--panelbd),transparent);}
+
+  .wrap{padding:16px 16px 92px;display:flex;flex-direction:column;gap:18px;}
+
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .eyebrow .k{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);}
+  .eyebrow .ln{flex:1;height:1px;background:var(--line);}
+
+  /* ticker */
+  .ticker{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);}
+
+  /* markets grid */
+  .mkt{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .chart{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);height:150px;}
 
   /* newsroom */
-  .news{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
-    box-shadow:0 2px 10px rgba(20,40,70,.05);}
-  .news .head{display:flex;align-items:center;gap:8px;padding:12px 15px;border-bottom:1px solid var(--line);}
-  .news .head .dot{width:8px;height:8px;border-radius:50%;background:#E0484D;
-    box-shadow:0 0 0 0 rgba(224,72,77,.5);animation:pulse 1.8s infinite;}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,72,77,.5);}100%{box-shadow:0 0 0 8px rgba(224,72,77,0);}}
-  .news .head .lbl{font-weight:700;font-size:13px;letter-spacing:.5px;color:var(--navy);}
-  .news .head .time{margin-left:auto;font-size:11px;color:var(--muted);}
+  .news{border:1px solid var(--panelbd);border-radius:16px;background:var(--panel);backdrop-filter:blur(8px);overflow:hidden;}
+  .news .h{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);}
+  .news .h .dot{width:7px;height:7px;border-radius:50%;background:var(--gold2);}
+  .news .h .l{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);}
+  .news .h .tm{margin-left:auto;font-size:10.5px;color:var(--muted);}
   .news ul{list-style:none;}
-  .news li{display:flex;gap:10px;padding:11px 15px;font-size:13.5px;border-top:1px solid #F1F4F8;line-height:1.4;}
+  .news li{display:flex;gap:11px;padding:12px 16px;font-size:13px;color:#C9D0DC;border-top:1px solid var(--line);line-height:1.45;}
   .news li:first-child{border-top:none;}
-  .news li .tag{flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:5px;
-    background:var(--navy);color:#fff;height:fit-content;margin-top:1px;}
-  .news li .tag.mkt{background:#1A6B3F;} .news li .tag.oil{background:var(--gold);}
+  .news li .tg{flex:0 0 54px;font-size:9.5px;letter-spacing:.08em;color:var(--gold);padding-top:1px;}
 
-  /* grid */
+  /* section tiles */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;
-    display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:transform .12s, box-shadow .12s;
-    box-shadow:0 2px 8px rgba(20,40,70,.04);min-height:112px;}
+  .tile{border:1px solid var(--panelbd);border-radius:16px;padding:17px 15px;background:var(--panel);
+    backdrop-filter:blur(8px);cursor:pointer;transition:transform .12s, border-color .2s, background .2s;
+    display:flex;flex-direction:column;gap:12px;min-height:116px;}
   .tile:active{transform:scale(.97);}
-  .tile .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;}
-  .tile .ic svg{width:22px;height:22px;}
-  .tile .tt{font-weight:700;font-size:15px;}
-  .tile .ds{font-size:11.5px;color:var(--muted);line-height:1.35;}
-  .c1{background:linear-gradient(135deg,#16304F,#28507f);}
-  .c2{background:linear-gradient(135deg,#9C7A3C,#C79A3C);}
-  .c3{background:linear-gradient(135deg,#1A6B3F,#2a9159);}
-  .c4{background:linear-gradient(135deg,#5B3F8C,#7a57b8);}
-  .c5{background:linear-gradient(135deg,#B24A3A,#d96a53);}
-  .c6{background:linear-gradient(135deg,#2C6E8F,#3e94bd);}
+  .tile:hover{border-color:var(--gold);background:rgba(199,154,60,.06);}
+  .tile .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:var(--gold2);
+    border:1px solid var(--panelbd);}
+  .tile .ic svg{width:21px;height:21px;}
+  .tile .tt{font-family:"Cormorant Garamond",serif;font-size:19px;font-weight:600;letter-spacing:.01em;}
+  .tile .ds{font-size:11px;letter-spacing:.03em;color:var(--muted);line-height:1.4;}
+
+  .foot{text-align:center;font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
 
   /* bottom bar */
-  .bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
-    padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:9px;align-items:center;}
-  .bar input{flex:1;border:1.5px solid var(--line);border-radius:22px;padding:12px 16px;font-size:15px;outline:none;}
-  .bar .mic{width:46px;height:46px;flex:0 0 46px;border:none;border-radius:50%;
-    background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);
-    display:grid;place-items:center;cursor:pointer;}
+  .bar{position:fixed;bottom:0;left:0;right:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    display:flex;gap:10px;align-items:center;
+    background:linear-gradient(180deg,transparent,#080c15 28%);}
+  .bar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;
+    background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
+  .bar input::placeholder{color:var(--muted);}
+  .bar .mic{width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;
+    box-shadow:0 6px 18px rgba(199,154,60,.35);}
   .bar .mic svg{width:22px;height:22px;}
-  .banner{text-align:center;font-size:11px;color:var(--muted);padding:4px 0 0;}
 </style>
 </head>
 <body>
   <div class="top">
-    <div class="row">
-      <div class="logo">AI</div>
-      <div>
-        <div class="hi" id="hi">Good evening</div>
-        <div class="name">Hussein</div>
-      </div>
-      <div class="clock">
-        <div class="t" id="time">—</div>
-        <div class="d" id="date">—</div>
-      </div>
+    <div class="logo">A</div>
+    <div>
+      <div class="hi" id="hi">Good evening</div>
+      <div class="name">Hussein</div>
+    </div>
+    <div class="clock">
+      <div class="t" id="time">—</div>
+      <div class="d" id="date">—</div>
     </div>
   </div>
+  <div class="rule"></div>
 
   <div class="wrap">
-    <!-- NEWSROOM -->
-    <div class="news">
-      <div class="head">
-        <span class="dot"></span><span class="lbl">NEWSROOM</span>
-        <span class="time">updated 3×/day · sample</span>
+    <!-- LIVE TICKER -->
+    <div>
+      <div class="ticker">
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+          {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
+          </script>
+        </div>
       </div>
-      <ul>
-        <li><span class="tag">WORLD</span>US election results continue to come in across key states</li>
-        <li><span class="tag mkt">MARKETS</span>Wall Street closes higher; S&amp;P 500 up 0.8%</li>
-        <li><span class="tag oil">OIL</span>Brent crude up 2% on supply concerns</li>
-        <li><span class="tag">AFRICA</span>West African central banks hold rates steady</li>
-      </ul>
     </div>
 
-    <!-- GRID -->
-    <div class="grid">
-      <div class="tile" onclick="pick('Ask AMI')">
-        <div class="ic c1"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9H3l2.3-2.3A9 9 0 0 1 12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="8.5" cy="12" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/><circle cx="15.5" cy="12" r="1.1" fill="currentColor"/></svg></div>
-        <div class="tt">Ask AMI</div><div class="ds">Chat, questions, drafting</div>
-      </div>
-      <div class="tile" onclick="pick('Design Studio')">
-        <div class="ic c2"><svg viewBox="0 0 24 24" fill="none"><path d="M3 20l4-1 10-10-3-3L4 16l-1 4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 6l3 3" stroke="currentColor" stroke-width="1.7"/></svg></div>
-        <div class="tt">Design Studio</div><div class="ds">Renders &amp; to-scale plans</div>
-      </div>
-      <div class="tile" onclick="pick('Markets')">
-        <div class="ic c3"><svg viewBox="0 0 24 24" fill="none"><path d="M4 16l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 6h2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-        <div class="tt">Markets</div><div class="ds">Prices, news, watchlist</div>
-      </div>
-      <div class="tile" onclick="pick('Companies')">
-        <div class="ic c4"><svg viewBox="0 0 24 24" fill="none"><path d="M4 21V6l7-3 7 3v15" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 10h0M8 14h0M14 10h0M14 14h0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        <div class="tt">Companies</div><div class="ds">Your 5 entities &amp; figures</div>
-      </div>
-      <div class="tile" onclick="pick('Inbox')">
-        <div class="ic c5"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
-        <div class="tt">Inbox</div><div class="ds">Email &amp; WhatsApp</div>
-      </div>
-      <div class="tile" onclick="pick('Newsroom')">
-        <div class="ic c6"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h12v14H5a1 1 0 0 1-1-1V5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M16 9h3v8a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="1.7"/><path d="M7 9h6M7 12h6M7 15h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-        <div class="tt">Newsroom</div><div class="ds">World &amp; market headlines</div>
+    <!-- MARKETS -->
+    <div>
+      <div class="eyebrow"><span class="k">Markets</span><span class="ln"></span></div>
+      <div class="mkt">
+        <div class="chart">
+          <div class="tradingview-widget-container" style="height:100%">
+            <div class="tradingview-widget-container__widget" style="height:100%"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {"symbol":"FOREXCOM:SPXUSD","width":"100%","height":"100%","locale":"en","dateRange":"1D","colorTheme":"dark","isTransparent":true,"autosize":true,"chartOnly":false}
+            </script>
+          </div>
+        </div>
+        <div class="chart">
+          <div class="tradingview-widget-container" style="height:100%">
+            <div class="tradingview-widget-container__widget" style="height:100%"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {"symbol":"FOREXCOM:NSXUSD","width":"100%","height":"100%","locale":"en","dateRange":"1D","colorTheme":"dark","isTransparent":true,"autosize":true,"chartOnly":false}
+            </script>
+          </div>
+        </div>
+        <div class="chart">
+          <div class="tradingview-widget-container" style="height:100%">
+            <div class="tradingview-widget-container__widget" style="height:100%"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {"symbol":"TVC:GOLD","width":"100%","height":"100%","locale":"en","dateRange":"1D","colorTheme":"dark","isTransparent":true,"autosize":true,"chartOnly":false}
+            </script>
+          </div>
+        </div>
+        <div class="chart">
+          <div class="tradingview-widget-container" style="height:100%">
+            <div class="tradingview-widget-container__widget" style="height:100%"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {"symbol":"BINANCE:BTCUSDT","width":"100%","height":"100%","locale":"en","dateRange":"1D","colorTheme":"dark","isTransparent":true,"autosize":true,"chartOnly":false}
+            </script>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="banner">Preview only — buttons are placeholders for the next build</div>
+
+    <!-- NEWSROOM -->
+    <div>
+      <div class="news">
+        <div class="h"><span class="dot"></span><span class="l">Newsroom</span><span class="tm">updated 3×/day · sample</span></div>
+        <ul>
+          <li><span class="tg">WORLD</span>US election results continue across key states</li>
+          <li><span class="tg">MARKETS</span>Wall Street closes higher; S&amp;P 500 up 0.8%</li>
+          <li><span class="tg">OIL</span>Brent crude up 2% on supply concerns</li>
+          <li><span class="tg">AFRICA</span>West African central banks hold rates steady</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTIONS -->
+    <div>
+      <div class="eyebrow"><span class="k">Suite</span><span class="ln"></span></div>
+      <div class="grid">
+        <div class="tile" onclick="pick('Ask AMI')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9H3l2.3-2.3A9 9 0 0 1 12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Ask AMI</div><div class="ds">Chat · drafting</div></div>
+        </div>
+        <div class="tile" onclick="pick('Design Studio')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 20l4-1 10-10-3-3L4 16l-1 4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Design Studio</div><div class="ds">Renders · plans</div></div>
+        </div>
+        <div class="tile" onclick="pick('Markets')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 16l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Markets</div><div class="ds">Prices · watchlist</div></div>
+        </div>
+        <div class="tile" onclick="pick('Companies')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 21V6l7-3 7 3v15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Companies</div><div class="ds">Five entities</div></div>
+        </div>
+        <div class="tile" onclick="pick('Inbox')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Inbox</div><div class="ds">Email · WhatsApp</div></div>
+        </div>
+        <div class="tile" onclick="pick('Newsroom')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h12v14H5a1 1 0 0 1-1-1V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 9h3v8a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <div><div class="tt">Newsroom</div><div class="ds">World headlines</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">Preview — buttons activate in the next build</div>
   </div>
 
   <div class="bar">
@@ -141,7 +207,7 @@
   function tick(){
     const d = new Date();
     document.getElementById("time").textContent = d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
-    document.getElementById("date").textContent = d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+    document.getElementById("date").textContent = d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
     const h = d.getHours();
     document.getElementById("hi").textContent = h<12 ? "Good morning" : h<18 ? "Good afternoon" : "Good evening";
   }
