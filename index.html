@@ -3,192 +3,260 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AMI Lite</title>
+<title>AMI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <style>
-  :root{
-    --navy:#16304F; --navy2:#1F3F66; --gold:#C79A3C; --bg:#F4F6FA;
-    --ink:#182333; --muted:#6B7482; --line:#E3E8F0; --user:#16304F; --bot:#FFFFFF;
-  }
+  :root{--bg2:#0E1524;--panel:rgba(255,255,255,.035);--panelbd:rgba(199,154,60,.18);
+    --gold:#C79A3C;--gold2:#E4B75A;--ink:#ECEFF5;--muted:#8A94A6;--line:rgba(255,255,255,.07);}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
-  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);color:var(--ink);display:flex;flex-direction:column;height:100dvh;}
-  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;
-    padding:14px 18px;display:flex;align-items:center;gap:11px;box-shadow:0 2px 10px rgba(0,0,0,.15);z-index:5;}
-  header .logo{width:34px;height:34px;border-radius:9px;background:var(--gold);color:var(--navy);
-    display:grid;place-items:center;font-weight:800;font-size:14px;letter-spacing:.5px;}
-  header .t{font-weight:700;font-size:17px;}
-  header .s{font-size:11px;color:#AFC0DC;margin-top:1px;}
-  header .out{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:none;
-    padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
-  #chat{flex:1;overflow-y:auto;padding:18px 14px 8px;display:flex;flex-direction:column;gap:12px;}
-  .msg{max-width:84%;padding:11px 14px;border-radius:16px;font-size:15px;line-height:1.5;
-    white-space:pre-wrap;word-wrap:break-word;animation:pop .2s ease;}
-  @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
-  .user{align-self:flex-end;background:var(--user);color:#fff;border-bottom-right-radius:5px;}
-  .bot{align-self:flex-start;background:var(--bot);color:var(--ink);border:1px solid var(--line);
-    border-bottom-left-radius:5px;box-shadow:0 1px 4px rgba(20,40,70,.05);}
-  .err{align-self:flex-start;background:#FDECEC;color:#8A2A2A;border:1px solid #F3C9C9;
-    border-radius:12px;font-size:13.5px;}
-  .welcome{align-self:center;text-align:center;color:var(--muted);font-size:14px;
-    max-width:300px;margin:auto 0;line-height:1.6;}
-  .welcome b{color:var(--navy);display:block;font-size:17px;margin-bottom:6px;}
-  .dots{align-self:flex-start;display:flex;gap:5px;padding:14px 16px;background:#fff;
-    border:1px solid var(--line);border-radius:16px;border-bottom-left-radius:5px;}
-  .dots i{width:7px;height:7px;border-radius:50%;background:#B9C3D4;animation:bob 1.2s infinite;}
-  .dots i:nth-child(2){animation-delay:.15s;} .dots i:nth-child(3){animation-delay:.3s;}
-  @keyframes bob{0%,60%,100%{opacity:.3;transform:translateY(0);}30%{opacity:1;transform:translateY(-4px);}}
-  footer{padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;
-    border-top:1px solid var(--line);display:flex;gap:9px;align-items:flex-end;}
-  #box{flex:1;border:1.5px solid var(--line);border-radius:22px;padding:11px 16px;font-size:16px;
-    font-family:inherit;resize:none;max-height:140px;outline:none;line-height:1.4;}
-  #box:focus{border-color:var(--gold);}
-  #send{width:46px;height:46px;flex:0 0 46px;border:none;border-radius:50%;background:var(--navy);
-    color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center;transition:.15s;}
-  #send:active{transform:scale(.92);} #send:disabled{background:#B9C3D4;cursor:default;}
+  body{font-family:"Inter",-apple-system,sans-serif;color:var(--ink);
+    background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
+    min-height:100dvh;display:flex;flex-direction:column;}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;}
+
+  .top{padding:22px 20px 14px;display:flex;align-items:center;gap:13px;}
+  .logo{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;
+    border:1px solid var(--panelbd);background:linear-gradient(135deg,rgba(199,154,60,.18),transparent);
+    font-family:"Cormorant Garamond",serif;font-weight:700;font-size:20px;color:var(--gold2);}
+  .hi{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+  .name{font-family:"Cormorant Garamond",serif;font-size:27px;font-weight:600;line-height:1;margin-top:2px;}
+  .clock{margin-left:auto;text-align:right;}
+  .clock .t{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:600;color:var(--gold2);line-height:1;}
+  .clock .d{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+  .rule{height:1px;margin:4px 20px 0;background:linear-gradient(90deg,transparent,var(--panelbd),transparent);}
+
+  .wrap{padding:16px 16px 92px;display:flex;flex-direction:column;gap:18px;}
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .eyebrow .k{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);}
+  .eyebrow .ln{flex:1;height:1px;background:var(--line);}
+  .ticker{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);}
+  .mkt{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .chart{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);height:150px;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .tile{border:1px solid var(--panelbd);border-radius:16px;padding:17px 15px;background:var(--panel);
+    backdrop-filter:blur(8px);cursor:pointer;transition:transform .12s,border-color .2s,background .2s;
+    display:flex;flex-direction:column;gap:12px;min-height:116px;}
+  .tile:active{transform:scale(.97);}
+  .tile:hover{border-color:var(--gold);background:rgba(199,154,60,.06);}
+  .tile .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:var(--gold2);border:1px solid var(--panelbd);}
+  .tile .ic svg{width:21px;height:21px;}
+  .tile .tt{font-family:"Cormorant Garamond",serif;font-size:19px;font-weight:600;}
+  .tile .ds{font-size:11px;letter-spacing:.03em;color:var(--muted);line-height:1.4;}
+  .foot{text-align:center;font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+
+  .bar{position:fixed;bottom:0;left:0;right:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    display:flex;gap:10px;align-items:center;background:linear-gradient(180deg,transparent,#080c15 28%);z-index:30;}
+  .bar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;
+    background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
+  .bar input::placeholder{color:var(--muted);}
+  .bar .mic{width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;
+    box-shadow:0 6px 18px rgba(199,154,60,.35);}
+  .bar .mic svg{width:22px;height:22px;}
+
   /* login */
-  #gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),var(--navy2));
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;z-index:20;}
-  #gate .card{background:#fff;border-radius:18px;padding:30px 24px;width:100%;max-width:340px;text-align:center;
-    box-shadow:0 20px 50px rgba(0,0,0,.3);}
-  #gate .logo{width:52px;height:52px;border-radius:13px;background:var(--gold);color:var(--navy);
-    display:grid;place-items:center;font-weight:800;font-size:19px;margin:0 auto 14px;}
-  #gate h1{font-size:20px;color:var(--navy);margin-bottom:5px;}
-  #gate p{font-size:13.5px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
-  #gate input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;
-    font-size:16px;font-family:inherit;outline:none;margin-bottom:11px;}
-  #gate input:focus{border-color:var(--gold);}
-  #gate button{width:100%;border:none;border-radius:11px;padding:13px;background:var(--navy);
-    color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
-  #gate .note{font-size:13px;margin-top:14px;min-height:18px;}
-  #gate .note.ok{color:#1A6B3F;} #gate .note.bad{color:#8A2A2A;}
-  .hidden{display:none!important;}
+  .login{position:fixed;inset:0;background:rgba(8,12,21,.92);backdrop-filter:blur(6px);z-index:60;
+    display:none;align-items:center;justify-content:center;padding:24px;}
+  .login.show{display:flex;}
+  .login .card{width:100%;max-width:340px;border:1px solid var(--panelbd);border-radius:18px;background:var(--bg2);padding:26px 22px;text-align:center;}
+  .login h1{font-family:"Cormorant Garamond",serif;font-size:30px;color:var(--gold2);margin-bottom:4px;}
+  .login p{font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+  .login input{width:100%;border:1px solid var(--panelbd);border-radius:12px;padding:13px 15px;font-size:15px;
+    background:rgba(255,255,255,.04);color:var(--ink);outline:none;margin-bottom:12px;}
+  .login button{width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;}
+  .login .msg{font-size:12.5px;color:var(--gold2);margin-top:12px;min-height:16px;}
+
+  /* chat overlay */
+  .chat{position:fixed;inset:0;background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
+    z-index:50;display:none;flex-direction:column;}
+  .chat.show{display:flex;}
+  .chead{display:flex;align-items:center;gap:12px;padding:18px 18px 12px;border-bottom:1px solid var(--line);}
+  .chead .bk{width:34px;height:34px;border:1px solid var(--panelbd);border-radius:50%;background:none;color:var(--gold2);
+    font-size:20px;cursor:pointer;display:grid;place-items:center;}
+  .chead .ct{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;}
+  .msgs{flex:1;overflow-y:auto;padding:16px 16px 10px;display:flex;flex-direction:column;gap:12px;}
+  .m{max-width:84%;padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;}
+  .m.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;border-bottom-right-radius:5px;}
+  .m.a{align-self:flex-start;background:var(--panel);border:1px solid var(--panelbd);border-bottom-left-radius:5px;}
+  .m.a a{color:var(--gold2);}
+  .m.a img{display:block;max-width:100%;border-radius:10px;margin-top:8px;}
+  .cbar{padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);}
+  .cbar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
+  .cbar .mic{width:46px;height:46px;flex:0 0 46px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;}
+  .cbar .mic svg{width:21px;height:21px;}
 </style>
 </head>
 <body>
-  <!-- LOGIN SCREEN -->
-  <div id="gate">
-    <div class="card">
-      <div class="logo">AI</div>
-      <h1>Sign in to AMI Lite</h1>
-      <p>Enter your email and we'll send you a secure sign-in link.</p>
-      <input id="email" type="email" placeholder="you@email.com" autocomplete="email">
-      <button id="magic">Send sign-in link</button>
-      <div class="note" id="note"></div>
+  <div class="top">
+    <div class="logo">A</div>
+    <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
+    <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div></div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="wrap">
+    <div class="ticker">
+      <div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
+      </script></div>
+    </div>
+
+    <div>
+      <div class="eyebrow"><span class="k">Markets</span><span class="ln"></span></div>
+      <div class="mkt">
+        <div class="chart" id="c1"></div><div class="chart" id="c2"></div>
+        <div class="chart" id="c3"></div><div class="chart" id="c4"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow"><span class="k">Suite</span><span class="ln"></span></div>
+      <div class="grid">
+        <div class="tile" onclick="openChat('Ask AMI')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9H3l2.3-2.3A9 9 0 0 1 12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Ask AMI</div><div class="ds">Chat · drafting</div></div>
+        </div>
+        <div class="tile" onclick="openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 20l4-1 10-10-3-3L4 16l-1 4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Design Studio</div><div class="ds">Renders · plans</div></div>
+        </div>
+        <div class="tile" onclick="quick('Markets','Give me a short market snapshot now: S&P 500, Nasdaq, gold, oil and Bitcoin, with the source and time for each.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 16l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Markets</div><div class="ds">Prices · news</div></div>
+        </div>
+        <div class="tile" onclick="openChat('Companies','Companies — send me a company\'s monthly figures to file, or ask for the group position.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 21V6l7-3 7 3v15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Companies</div><div class="ds">Five entities</div></div>
+        </div>
+        <div class="tile" onclick="quick('Inbox','Summarise my most recent important emails in a few short lines each, and say which are urgent.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Inbox</div><div class="ds">Email · WhatsApp</div></div>
+        </div>
+        <div class="tile" onclick="quick('Newsroom','Give me today\'s top world and market headlines, one line each, with the source for each.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h12v14H5a1 1 0 0 1-1-1V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 9h3v8a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <div><div class="tt">Newsroom</div><div class="ds">World headlines</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Asset Management Innovations</div>
+  </div>
+
+  <div class="bar">
+    <input id="home-q" placeholder="Ask AMI anything…" onkeydown="if(event.key==='Enter')goHome()">
+    <button class="mic" onclick="mic('home-q')"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat" id="chat">
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">Ask AMI</div></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="cbar">
+      <input id="q" placeholder="Type your message…" onkeydown="if(event.key==='Enter')go()">
+      <button class="mic" onclick="mic('q')"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
   </div>
 
-  <!-- APP -->
-  <header class="hidden" id="appHeader">
-    <div class="logo">AI</div>
-    <div><div class="t">AMI Lite</div><div class="s">Powered by Claude</div></div>
-    <button class="out" id="logout">Sign out</button>
-  </header>
-  <div id="chat" class="hidden">
-    <div class="welcome" id="welcome"><b>Hello 👋</b>Ask me anything — type your question below and press send.</div>
+  <!-- LOGIN -->
+  <div class="login" id="login">
+    <div class="card">
+      <h1>AMI</h1>
+      <p>Private access. Enter your email and I'll send you a sign-in link.</p>
+      <input id="email" type="email" placeholder="your email" autocomplete="email">
+      <button onclick="sendLink()">Send sign-in link</button>
+      <div class="msg" id="lmsg"></div>
+    </div>
   </div>
-  <footer class="hidden" id="appFooter">
-    <textarea id="box" rows="1" placeholder="Type your message…"></textarea>
-    <button id="send" aria-label="Send">➤</button>
-  </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 <script>
-  // ===== CONFIG (AMI Lite) =====
-  const SUPABASE_URL = "https://pdzhlslzwjlhxklqcwus.supabase.co";
-  const PUBLISHABLE_KEY = "sb_publishable_vHhWZVOnyl7_qQicqcYn2A_rZVvfYsd";
-  const FUNCTION_URL = SUPABASE_URL + "/functions/v1/ai";
-  const SITE_URL = "https://hnsaad1973-tech.github.io/ami-lite/";
-  // =============================
+const SB_URL="https://pdzhlslzwjlhxklqcwus.supabase.co";
+const SB_KEY="sb_publishable_vHhWZVOnyl7_qQicqcYn2A_rZVvfYsd";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let token=null;
 
-  const sb = supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY);
+async function initAuth(){
+  const {data}=await sb.auth.getSession();
+  setSession(data.session);
+  sb.auth.onAuthStateChange((_e,s)=>setSession(s));
+}
+function setSession(s){token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);}
+async function sendLink(){
+  const email=document.getElementById("email").value.trim();
+  if(!email)return;
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  document.getElementById("lmsg").textContent=error?error.message:"Check your email for the link.";
+}
+initAuth();
 
-  const gate = document.getElementById("gate");
-  const note = document.getElementById("note");
-  const appHeader = document.getElementById("appHeader");
-  const appFooter = document.getElementById("appFooter");
-  const chat = document.getElementById("chat");
-  const box = document.getElementById("box");
-  const send = document.getElementById("send");
-  const welcome = document.getElementById("welcome");
-  let history = [];
-  let busy = false;
+function tick(){const d=new Date();
+  time.textContent=d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  date.textContent=d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+  const h=d.getHours();hi.textContent=h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
+tick();setInterval(tick,10000);
 
-  // --- auth ---
-  document.getElementById("magic").addEventListener("click", async () => {
-    const email = document.getElementById("email").value.trim();
-    if (!email) { note.textContent = "Please enter your email."; note.className = "note bad"; return; }
-    note.textContent = "Sending…"; note.className = "note";
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: SITE_URL } });
-    if (error) { note.textContent = error.message; note.className = "note bad"; }
-    else { note.textContent = "Check your email for the sign-in link."; note.className = "note ok"; }
-  });
-  document.getElementById("logout").addEventListener("click", async () => {
-    await sb.auth.signOut(); show(false);
-  });
+[["FOREXCOM:SPXUSD","c1"],["FOREXCOM:NSXUSD","c2"],["TVC:GOLD","c3"],["BINANCE:BTCUSDT","c4"]].forEach(([sym,id])=>{
+  const s=document.createElement("script");
+  s.src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";s.async=true;
+  s.innerHTML=JSON.stringify({symbol:sym,width:"100%",height:"100%",locale:"en",dateRange:"1D",colorTheme:"dark",isTransparent:true,autosize:true});
+  document.getElementById(id).appendChild(s);});
 
-  function show(loggedIn){
-    gate.classList.toggle("hidden", loggedIn);
-    appHeader.classList.toggle("hidden", !loggedIn);
-    appFooter.classList.toggle("hidden", !loggedIn);
-    chat.classList.toggle("hidden", !loggedIn);
-  }
-  sb.auth.getSession().then(({ data }) => show(!!data.session));
-  sb.auth.onAuthStateChange((_e, session) => show(!!session));
+function openChat(title,greet){
+  document.getElementById("ctitle").textContent=title||"Ask AMI";
+  document.getElementById("msgs").innerHTML="";
+  if(greet)bubble("a",esc(greet));
+  document.getElementById("chat").classList.add("show");
+  document.getElementById("q").focus();
+}
+function closeChat(){document.getElementById("chat").classList.remove("show");}
+function quick(title,prompt){openChat(title);ask(prompt);}
+function go(){const q=document.getElementById("q");const t=q.value.trim();if(!t)return;q.value="";ask(t);}
+function goHome(){const i=document.getElementById("home-q");const t=i.value.trim();if(!t)return;i.value="";openChat("Ask AMI");ask(t);}
 
-  // --- chat ---
-  box.addEventListener("input", () => { box.style.height="auto"; box.style.height=Math.min(box.scrollHeight,140)+"px"; });
-  box.addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); submit(); } });
-  send.addEventListener("click", submit);
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function isImg(u){return /\.(png|jpe?g|gif|webp)(\?|$)/i.test(u)||/zapier-dev-files|oaidalleapiprod|blob\.core\.windows/.test(u);}
+function render(t){
+  let s=esc(t);
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<]+)/g,(m,label,u1,u2)=>{
+    const u=(u1||u2).replace(/[.,;:]+$/,"");
+    if(isImg(u))return '<img src="'+u+'" alt="image">';
+    return '<a href="'+u+'" target="_blank" rel="noopener">'+(label||u)+'</a>';});
+  s=s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>");
+  return s;
+}
+function bubble(cls,html){const d=document.createElement("div");d.className="m "+cls;d.innerHTML=html;
+  const box=document.getElementById("msgs");box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
+function extract(d){if(!d)return"";if(typeof d==="string")return d;
+  return d.reply||d.text||d.answer||d.message||(d.content&&d.content[0]&&d.content[0].text)||JSON.stringify(d);}
 
-  function add(text, cls){
-    const d = document.createElement("div"); d.className="msg "+cls; d.textContent=text;
-    chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return d;
-  }
-  function typing(){
-    const d = document.createElement("div"); d.className="dots"; d.innerHTML="<i></i><i></i><i></i>";
-    chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return d;
-  }
+async function ask(text){
+  if(!token){document.getElementById("login").classList.add("show");return;}
+  if(!document.getElementById("chat").classList.contains("show"))openChat("Ask AMI");
+  bubble("u",esc(text));
+  const wait=bubble("a","AMI is thinking…");
+  try{
+    const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",
+      headers:{"Content-Type":"text/plain","Authorization":"Bearer "+token},
+      body:text});
+    const data=await r.json().catch(()=>null);
+    wait.innerHTML=render(extract(data)||("Error: "+r.status));
+    document.getElementById("msgs").scrollTop=document.getElementById("msgs").scrollHeight;
+  }catch(e){wait.innerHTML="Connection error: "+esc(e.message);}
+}
 
-  async function submit(){
-    const text = box.value.trim();
-    if (!text || busy) return;
-    busy = true; send.disabled = true;
-    if (welcome) welcome.remove();
-    add(text, "user");
-    history.push({ role:"user", content:text });
-    box.value=""; box.style.height="auto";
-    const dots = typing();
-    try {
-      const { data:{ session } } = await sb.auth.getSession();
-      const res = await fetch(FUNCTION_URL, {
-        method:"POST",
-        headers: { "Content-Type":"text/plain", "Authorization":"Bearer "+(session?session.access_token:"") },
-        body: JSON.stringify({ messages: history })
-      });
-      dots.remove();
-      const raw = await res.text();
-      let data; try { data = JSON.parse(raw); } catch { data = raw; }
-      if (!res.ok) {
-        add("Error "+res.status+": "+(typeof data==="string"?data:(data.error||raw)).toString().slice(0,300), "err");
-      } else {
-        const reply = extract(data);
-        add(reply, "bot");
-        history.push({ role:"assistant", content:reply });
-      }
-    } catch (e) { dots.remove(); add("Connection problem: "+e.message, "err"); }
-    busy = false; send.disabled = false; box.focus();
-  }
-
-  function extract(d){
-    if (typeof d === "string") return d;
-    if (d.content && Array.isArray(d.content) && d.content[0] && d.content[0].text) return d.content[0].text;
-    if (typeof d.reply === "string") return d.reply;
-    if (typeof d.message === "string") return d.message;
-    if (typeof d.text === "string") return d.text;
-    if (d.response) return typeof d.response==="string"?d.response:JSON.stringify(d.response);
-    return JSON.stringify(d);
-  }
+function mic(fieldId){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const field=document.getElementById(fieldId);
+  if(!SR){field.focus();return;}
+  const r=new SR();r.lang="en-US";r.interimResults=false;
+  r.onresult=e=>{field.value=e.results[0][0].transcript;field.focus();};
+  try{r.start();}catch(_){field.focus();}
+}
 </script>
 </body>
 </html>
