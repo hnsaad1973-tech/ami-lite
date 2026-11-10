@@ -13,6 +13,13 @@
     --gold:#C79A3C;--gold2:#E4B75A;--ink:#ECEFF5;--muted:#8A94A6;--line:rgba(255,255,255,.07);}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;}
+  html{background:#080c15;}
+  /* on a computer: keep AMI phone-width and centred, nothing cut off */
+  body{width:100%;max-width:560px;margin:0 auto;overflow-x:hidden;}
+  .mkts,.ticker,.charts,.news,.grid,.bar,.top{min-width:0;max-width:100%;}
+  .ticker iframe,.cell iframe{max-width:100%!important;}
+  .chat,.ticker-wrap{max-width:560px;margin:0 auto;}
+  @media (min-width:600px){body{border-left:1px solid var(--line);border-right:1px solid var(--line);}}
   body{font-family:"Inter",-apple-system,sans-serif;color:var(--ink);
     background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
     height:100dvh;display:flex;flex-direction:column;
