@@ -313,11 +313,11 @@ async function ask(text,image){
     pct.textContent=p+"%";fill.style.width=p+"%";},200);
   setBusy(true);
   try{
-    const body={message:text,section};
+    const body={message:text,section,token};
     if(image)body.image=image;
     if(vOn)body.voice=true;
     const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",
-      headers:{"Content-Type":"text/plain","Authorization":"Bearer "+token},
+      headers:{"Content-Type":"text/plain"},
       body:JSON.stringify(body)});
     const data=await r.json().catch(()=>null);
     const reply=extract(data)||("Error: "+r.status);
