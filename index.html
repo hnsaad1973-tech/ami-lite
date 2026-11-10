@@ -397,9 +397,9 @@ if(IBKR.connected){setInterval(loadIBKR,60000);setTimeout(loadIBKR,3000);}
 
 /* ===== Hands-free voice mode =====
    Tap mic once: listens, sends when you pause, reads AMI's reply aloud (British English voice), listens again.
-   Tap the bar to interrupt AMI; tap Stop (or the mic) to end. Saying "stop" also ends it. */
+   Tap the bar to interrupt AMI; stays on until you tap Stop or the mic. */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let vOn=false,vRec=null,vVoice=null,vEmpty=0,vSpeaking=false;
+let vHeard=false,vOn=false,vRec=null,vVoice=null,vEmpty=0,vSpeaking=false;
 function pickVoice(){if(!("speechSynthesis" in window))return;const vs=speechSynthesis.getVoices();let best=null,bs=-99;
   vs.forEach(v=>{let sc=0;const n=v.name,l=v.lang||"";
     if(/en[-_]GB/i.test(l))sc+=4;else if(/^en/i.test(l))sc+=1;else sc-=50;
@@ -418,12 +418,16 @@ function startVoice(){
     if(!chatOpen())openChat("Ask AMI");bubble("a","Voice mode isn't supported in this browser. Use Safari or Chrome, or tap the keyboard's mic key.");return;}
   if("speechSynthesis" in window){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(" ");u.volume=0;speechSynthesis.speak(u);}catch(_){}}
   if(!chatOpen())openChat("Ask AMI");
-  vOn=true;vEmpty=0;document.getElementById("vbar").classList.add("show");
+  vOn=true;vEmpty=0;document.getElementById("vbar").classList.add("show");wake(true);
   document.querySelectorAll('[aria-label="Voice mode"]').forEach(b=>b.classList.add("on"));
   listen();
 }
+let vLock=null;
+async function wake(on){try{if(on&&"wakeLock" in navigator){vLock=await navigator.wakeLock.request("screen");}
+  else if(!on&&vLock){await vLock.release();vLock=null;}}catch(_){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&vOn){wake(true);if(!vRec&&!vSpeaking)listen();}});
 function stopVoice(){
-  vOn=false;vSpeaking=false;
+  vOn=false;vSpeaking=false;wake(false);
   if(vRec){try{vRec.abort();}catch(_){}vRec=null;}
   if("speechSynthesis" in window)try{speechSynthesis.cancel();}catch(_){}
   document.getElementById("vbar").classList.remove("show");
@@ -437,17 +441,15 @@ function listen(){
   vState("Listening… speak now");
   const r=new SR();r.lang="en-GB";r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
   let fin="";
-  r.onresult=e=>{let t="";for(let i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}q.value=t;
+  r.onresult=e=>{vHeard=true;let t="";for(let i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}q.value=t;
     if(e.results[e.results.length-1].isFinal)fin=t;};
-  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){stopVoice();
+  r.onerror=e=>{if(e.error==="not-allowed"&&!vHeard){stopVoice();
     bubble("a","Microphone is blocked for this page. Allow microphone access in your browser settings, then tap the mic again.");}};
   r.onend=async()=>{
     if(vRec===r)vRec=null;
     if(!vOn)return;
     const t=(fin||q.value).trim();q.value="";
-    if(!t){if(++vEmpty>=6){stopVoice();bubble("a","Voice paused — tap the mic when you want to talk.");return;}setTimeout(listen,300);return;}
-    vEmpty=0;
-    if(/^(stop|stop listening|that's all|thats all|goodbye|bye)[.!]?$/i.test(t)){stopVoice();return;}
+    if(!t){setTimeout(listen,250);return;}   // silence: keep listening — stays on until you tap Stop
     vState("AMI is thinking…","thk");
     const reply=await ask(t);
     if(!vOn)return;
