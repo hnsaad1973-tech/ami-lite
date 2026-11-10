@@ -2,64 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>AMI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <style>
-  :root{--bg2:#0E1524;--panel:rgba(255,255,255,.035);--panelbd:rgba(199,154,60,.18);
+  :root{--bg2:#0E1524;--panel:rgba(255,255,255,.035);--panelbd:rgba(199,154,60,.2);
     --gold:#C79A3C;--gold2:#E4B75A;--ink:#ECEFF5;--muted:#8A94A6;--line:rgba(255,255,255,.07);}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
+  html,body{height:100%;overflow:hidden;}
   body{font-family:"Inter",-apple-system,sans-serif;color:var(--ink);
     background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
-    min-height:100dvh;display:flex;flex-direction:column;}
-  .serif{font-family:"Cormorant Garamond",Georgia,serif;}
+    height:100dvh;display:flex;flex-direction:column;
+    padding-top:env(safe-area-inset-top);}
 
-  .top{padding:22px 20px 14px;display:flex;align-items:center;gap:13px;}
-  .logo{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;
-    border:1px solid var(--panelbd);background:linear-gradient(135deg,rgba(199,154,60,.18),transparent);
-    font-family:"Cormorant Garamond",serif;font-weight:700;font-size:20px;color:var(--gold2);}
-  .hi{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
-  .name{font-family:"Cormorant Garamond",serif;font-size:27px;font-weight:600;line-height:1;margin-top:2px;}
+  .top{padding:14px 18px 10px;display:flex;align-items:center;gap:12px;flex:0 0 auto;}
+  .logo{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;
+    border:1px solid var(--panelbd);background:linear-gradient(135deg,rgba(199,154,60,.22),transparent);
+    font-family:"Cormorant Garamond",serif;font-weight:700;font-size:19px;color:var(--gold2);}
+  .hi{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+  .name{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:600;line-height:1;margin-top:2px;}
   .clock{margin-left:auto;text-align:right;}
-  .clock .t{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:600;color:var(--gold2);line-height:1;}
-  .clock .d{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
-  .rule{height:1px;margin:4px 20px 0;background:linear-gradient(90deg,transparent,var(--panelbd),transparent);}
+  .clock .t{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:600;color:var(--gold2);line-height:1;}
+  .clock .d{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
 
-  .wrap{padding:16px 16px 92px;display:flex;flex-direction:column;gap:18px;}
-  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
-  .eyebrow .k{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);}
-  .eyebrow .ln{flex:1;height:1px;background:var(--line);}
-  .ticker{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);}
-  .mkt{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .chart{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);height:150px;}
+  .ticker{margin:0 14px;border:1px solid var(--panelbd);border-radius:12px;overflow:hidden;background:var(--bg2);
+    height:46px;flex:0 0 auto;}
 
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .tile{border:1px solid var(--panelbd);border-radius:16px;padding:17px 15px;background:var(--panel);
-    backdrop-filter:blur(8px);cursor:pointer;transition:transform .12s,border-color .2s,background .2s;
-    display:flex;flex-direction:column;gap:12px;min-height:116px;}
+  .grid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);
+    gap:10px;padding:12px 14px;}
+  .tile{border:1px solid var(--panelbd);border-radius:16px;padding:12px 13px;background:var(--panel);
+    cursor:pointer;transition:transform .12s,border-color .2s,background .2s;
+    display:flex;flex-direction:column;justify-content:space-between;min-height:0;overflow:hidden;}
   .tile:active{transform:scale(.97);}
   .tile:hover{border-color:var(--gold);background:rgba(199,154,60,.06);}
-  .tile .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:var(--gold2);border:1px solid var(--panelbd);}
-  .tile .ic svg{width:21px;height:21px;}
-  .tile .tt{font-family:"Cormorant Garamond",serif;font-size:19px;font-weight:600;}
-  .tile .ds{font-size:11px;letter-spacing:.03em;color:var(--muted);line-height:1.4;}
-  .foot{text-align:center;font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+  .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
+    background:radial-gradient(circle at 30% 25%,rgba(228,183,90,.35),rgba(199,154,60,.08) 70%);
+    border:1px solid rgba(228,183,90,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+  .ic svg{width:21px;height:21px;}
+  .tt{font-family:"Cormorant Garamond",serif;font-size:18px;font-weight:600;line-height:1.1;}
+  .ds{font-size:10.5px;color:var(--muted);margin-top:2px;}
 
-  .bar{position:fixed;bottom:0;left:0;right:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
-    display:flex;gap:10px;align-items:center;background:linear-gradient(180deg,transparent,#080c15 28%);z-index:30;}
-  .bar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;
+  .bar{flex:0 0 auto;padding:8px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;}
+  .bar input,.cbar input{flex:1;min-width:0;border:1px solid var(--panelbd);border-radius:24px;padding:12px 16px;font-size:15px;
     background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
-  .bar input::placeholder{color:var(--muted);}
-  .bar .mic{width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;
-    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;
-    box-shadow:0 6px 18px rgba(199,154,60,.35);}
-  .bar .mic svg{width:22px;height:22px;}
+  input::placeholder{color:var(--muted);}
+  .rb{width:44px;height:44px;flex:0 0 44px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+    border:1.5px solid var(--gold2);background:rgba(199,154,60,.08);color:var(--gold2);}
+  .rb svg{width:20px;height:20px;}
+  .rb.solid{border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;
+    box-shadow:0 6px 18px rgba(199,154,60,.3);}
+  .rb:disabled{opacity:.35;cursor:default;}
 
-  /* login */
   .login{position:fixed;inset:0;background:rgba(8,12,21,.92);backdrop-filter:blur(6px);z-index:60;
     display:none;align-items:center;justify-content:center;padding:24px;}
   .login.show{display:flex;}
@@ -72,31 +68,30 @@
     background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;}
   .login .msg{font-size:12.5px;color:var(--gold2);margin-top:12px;min-height:16px;}
 
-  /* chat overlay */
   .chat{position:fixed;inset:0;background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
-    z-index:50;display:none;flex-direction:column;}
+    z-index:50;display:none;flex-direction:column;padding-top:env(safe-area-inset-top);}
   .chat.show{display:flex;}
-  .chead{display:flex;align-items:center;gap:12px;padding:18px 18px 12px;border-bottom:1px solid var(--line);}
+  .chead{display:flex;align-items:center;gap:12px;padding:14px 16px 10px;border-bottom:1px solid var(--line);}
   .chead .bk{width:34px;height:34px;border:1px solid var(--panelbd);border-radius:50%;background:none;color:var(--gold2);
     font-size:20px;cursor:pointer;display:grid;place-items:center;}
   .chead .ct{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;}
-  .msgs{flex:1;overflow-y:auto;padding:16px 16px 10px;display:flex;flex-direction:column;gap:12px;}
-  .m{max-width:84%;padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;}
+  .msgs{flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px;}
+  .m{max-width:86%;padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;}
   .m.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;border-bottom-right-radius:5px;}
+  .m.u img{display:block;max-width:180px;border-radius:10px;margin-bottom:6px;}
   .m.a{align-self:flex-start;background:var(--panel);border:1px solid var(--panelbd);border-bottom-left-radius:5px;}
   .m.a a{color:var(--gold2);}
   .m.a img{display:block;max-width:100%;border-radius:10px;margin-top:8px;}
-  .cbar{padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);}
-  .cbar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
-  .cbar .mic{width:46px;height:46px;flex:0 0 46px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;}
-  .cbar .mic svg{width:21px;height:21px;}
-  .snd{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:1.5px solid var(--gold2);background:rgba(199,154,60,.08);
-    color:var(--gold2);display:grid;place-items:center;cursor:pointer;}
-  .snd svg{width:20px;height:20px;}
-  .snd:disabled{opacity:.35;cursor:default;}
   .cp{display:inline-block;margin-top:8px;border:1px solid var(--panelbd);border-radius:10px;background:none;color:var(--muted);
     font-size:11.5px;padding:4px 10px;cursor:pointer;}
   .cp:hover{color:var(--gold2);border-color:var(--gold);}
+  .cbar{padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);}
+  #cam{display:none;}
+  .pg{min-width:190px;}
+  .pgt{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:7px;}
+  .pgt b{color:var(--gold2);font-weight:600;}
+  .pgb{height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .pgb i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .2s;}
 </style>
 </head>
 <body>
@@ -105,74 +100,60 @@
     <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
     <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div></div>
   </div>
-  <div class="rule"></div>
 
-  <div class="wrap">
-    <div class="ticker">
-      <div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-      {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
-      </script></div>
-    </div>
+  <div class="ticker">
+    <div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+    {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"compact","locale":"en"}
+    </script></div>
+  </div>
 
-    <div>
-      <div class="eyebrow"><span class="k">Markets</span><span class="ln"></span></div>
-      <div class="mkt">
-        <div class="chart" id="c1"></div><div class="chart" id="c2"></div>
-        <div class="chart" id="c3"></div><div class="chart" id="c4"></div>
-      </div>
+  <div class="grid">
+    <div class="tile" onclick="openChat('Companies','Companies — send me a company\'s monthly figures to file, or ask for the group position.')">
+      <div class="ic"><svg viewBox="0 0 24 24"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3D27E"/><stop offset="1" stop-color="#C79A3C"/></linearGradient></defs><path fill="url(#g1)" d="M3 21V9.5L9 6v15H3zm7 0V3l11 4.5V21h-4v-4h-3v4h-4zm3-12h2V7h-2v2zm4 0h2V8h-2v1zm-4 4h2v-2h-2v2zm4 0h2v-2h-2v2zM5 13h2v-2H5v2zm0 4h2v-2H5v2z"/></svg></div>
+      <div><div class="tt">Companies</div><div class="ds">Figures · position</div></div>
     </div>
-
-    <div>
-      <div class="eyebrow"><span class="k">Suite</span><span class="ln"></span></div>
-      <div class="grid">
-        <div class="tile" onclick="openChat('Ask AMI')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9H3l2.3-2.3A9 9 0 0 1 12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
-          <div><div class="tt">Ask AMI</div><div class="ds">Chat · drafting</div></div>
-        </div>
-        <div class="tile" onclick="openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman.')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 20l4-1 10-10-3-3L4 16l-1 4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
-          <div><div class="tt">Design Studio</div><div class="ds">Renders · plans</div></div>
-        </div>
-        <div class="tile" onclick="quick('Markets','Give me a short market snapshot now: S&P 500, Nasdaq, gold, oil and Bitcoin, with the source and time for each.')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 16l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="tt">Markets</div><div class="ds">Prices · news</div></div>
-        </div>
-        <div class="tile" onclick="openChat('Companies','Companies — send me a company\'s monthly figures to file, or ask for the group position.')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 21V6l7-3 7 3v15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
-          <div><div class="tt">Companies</div><div class="ds">Five entities</div></div>
-        </div>
-        <div class="tile" onclick="quick('Inbox','Summarise my most recent important emails in a few short lines each, and say which are urgent.')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
-          <div><div class="tt">Inbox</div><div class="ds">Email · WhatsApp</div></div>
-        </div>
-        <div class="tile" onclick="quick('Newsroom','Give me today\'s top world and market headlines, one line each, with the source for each.')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h12v14H5a1 1 0 0 1-1-1V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 9h3v8a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="1.5"/></svg></div>
-          <div><div class="tt">Newsroom</div><div class="ds">World headlines</div></div>
-        </div>
-      </div>
+    <div class="tile" onclick="quick('Inbox','Summarise my most recent important emails in a few short lines each, and say which are urgent.')">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M4 5h16a2 2 0 0 1 2 2v.4l-10 6.3L2 7.4V7a2 2 0 0 1 2-2zm-2 4.8 10 6.3 10-6.3V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.8z"/></svg></div>
+      <div><div class="tt">Inbox</div><div class="ds">Email · WhatsApp</div></div>
     </div>
-    <div class="foot">Asset Management Innovations</div>
+    <div class="tile" onclick="quick('Markets','Give me a short market snapshot now: S&P 500, Nasdaq, gold, oil and Bitcoin, with the source and time for each.')">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M3 19h18v2H3v-2zm1-3 5-6 4 3 6-8 1.6 1.2-7.2 9.6-4-3L5.6 17.3 4 16z"/></svg></div>
+      <div><div class="tt">Markets</div><div class="ds">Prices · moves</div></div>
+    </div>
+    <div class="tile" onclick="quick('Newsroom','Give me today\'s top world and market headlines, one line each, with the source for each.')">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M3 5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v13a2 2 0 0 0 2 2H5a2 2 0 0 1-2-2V5zm3 2v4h4V7H6zm6 0v2h3V7h-3zm0 3v1h3v-1h-3zm-6 3v1h9v-1H6zm0 3v1h9v-1H6zm12-8h2a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2V8z"/></svg></div>
+      <div><div class="tt">Newsroom</div><div class="ds">World headlines</div></div>
+    </div>
+    <div class="tile" onclick="openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-.7 1.6-1.5 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.8.7-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8zM6.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></div>
+      <div><div class="tt">Design Studio</div><div class="ds">Renders · plans</div></div>
+    </div>
+    <div class="tile" onclick="openChat('Think Tank','Think Tank — give me the question and I will think it through properly, with every figure sourced.')">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1z"/></svg></div>
+      <div><div class="tt">Think Tank</div><div class="ds">Deep thinking</div></div>
+    </div>
   </div>
 
   <div class="bar">
-    <input id="home-q" placeholder="Ask AMI anything…" onkeydown="if(event.key==='Enter')goHome()">
-<button class="snd" id="snd-home" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <button class="mic" onclick="mic('home-q')"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <input id="home-q" placeholder="What do you need done, Chairman?" onkeydown="if(event.key==='Enter')goHome()">
+    <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
+    <button class="rb" onclick="mic('home-q')" aria-label="Voice"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <button class="rb solid snd" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
+  <input type="file" id="cam" accept="image/*" capture="environment" onchange="gotPhoto(this)">
 
-  <!-- CHAT -->
   <div class="chat" id="chat">
-    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">Ask AMI</div></div>
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI</div></div>
     <div class="msgs" id="msgs"></div>
     <div class="cbar">
-      <input id="q" placeholder="Type your message…" onkeydown="if(event.key==='Enter')go()">
-<button class="snd" id="snd-chat" onclick="go()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <button class="mic" onclick="mic('q')"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
+      <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
+      <button class="rb" onclick="mic('q')" aria-label="Voice"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button class="rb solid snd" onclick="go()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
   </div>
 
-  <!-- LOGIN -->
   <div class="login" id="login">
     <div class="card">
       <h1>AMI</h1>
@@ -205,23 +186,17 @@ initAuth();
 
 function tick(){const d=new Date();
   time.textContent=d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
-  date.textContent=d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+  date.textContent=d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
   const h=d.getHours();hi.textContent=h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
 tick();setInterval(tick,10000);
 
-[["FOREXCOM:SPXUSD","c1"],["FOREXCOM:NSXUSD","c2"],["TVC:GOLD","c3"],["BINANCE:BTCUSDT","c4"]].forEach(([sym,id])=>{
-  const s=document.createElement("script");
-  s.src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";s.async=true;
-  s.innerHTML=JSON.stringify({symbol:sym,width:"100%",height:"100%",locale:"en",dateRange:"1D",colorTheme:"dark",isTransparent:true,autosize:true});
-  document.getElementById(id).appendChild(s);});
-
+function chatOpen(){return document.getElementById("chat").classList.contains("show");}
 function openChat(title,greet){
   section=title||"Ask AMI";
-  document.getElementById("ctitle").textContent=section;
+  document.getElementById("ctitle").textContent=section==="Ask AMI"?"AMI":section;
   document.getElementById("msgs").innerHTML="";
   if(greet)bubble("a",esc(greet));
   document.getElementById("chat").classList.add("show");
-  document.getElementById("q").focus();
 }
 function closeChat(){document.getElementById("chat").classList.remove("show");}
 function quick(title,prompt){openChat(title);ask(prompt);}
@@ -243,31 +218,58 @@ function bubble(cls,html){const d=document.createElement("div");d.className="m "
   const box=document.getElementById("msgs");box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
 function extract(d){if(!d)return"";if(typeof d==="string")return d;
   return d.reply||d.text||d.answer||d.message||(d.content&&d.content[0]&&d.content[0].text)||JSON.stringify(d);}
-
-function setBusy(b){busy=b;["snd-home","snd-chat"].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=b;});}
+function setBusy(b){busy=b;document.querySelectorAll(".snd").forEach(e=>e.disabled=b);}
 function addCopy(div,text){const b=document.createElement("button");b.className="cp";b.textContent="Copy";
   b.onclick=()=>{const done=()=>{b.textContent="Copied ✓";setTimeout(()=>b.textContent="Copy",1800);};
     if(navigator.clipboard)navigator.clipboard.writeText(text).then(done).catch(()=>fallback());else fallback();
     function fallback(){const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();
       try{document.execCommand("copy");done();}catch(_){}t.remove();}};
   div.appendChild(document.createElement("br"));div.appendChild(b);}
-async function ask(text){
+
+async function ask(text,image){
   if(!token){document.getElementById("login").classList.add("show");return;}
   if(busy)return;
-  if(!document.getElementById("chat").classList.contains("show"))openChat("Ask AMI");
-  bubble("u",esc(text));
-  const wait=bubble("a","AMI is thinking…");
+  if(!chatOpen())openChat("Ask AMI");
+  bubble("u",(image?'<img src="data:image/jpeg;base64,'+image+'" alt="photo">':"")+esc(text));
+  const label=image?"Reading the photo":"Working";
+  const wait=bubble("a",'<div class="pg"><div class="pgt"><span>'+label+'</span><b>0%</b></div><div class="pgb"><i></i></div></div>');
+  const pct=wait.querySelector("b"),fill=wait.querySelector("i");let p=0;const t0=Date.now();
+  const timer=setInterval(()=>{const s=(Date.now()-t0)/1000;p=Math.min(95,Math.round(95*(1-Math.exp(-s/(image?14:10)))));
+    pct.textContent=p+"%";fill.style.width=p+"%";},200);
   setBusy(true);
   try{
+    const body={message:text,section};
+    if(image)body.image=image;
     const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",
       headers:{"Content-Type":"text/plain","Authorization":"Bearer "+token},
-      body:JSON.stringify({message:text,section})});
+      body:JSON.stringify(body)});
     const data=await r.json().catch(()=>null);
     const reply=extract(data)||("Error: "+r.status);
+    clearInterval(timer);pct.textContent="100%";fill.style.width="100%";
+    await new Promise(res=>setTimeout(res,250));
     wait.innerHTML=render(reply);addCopy(wait,reply);
     document.getElementById("msgs").scrollTop=document.getElementById("msgs").scrollHeight;
   }catch(e){wait.innerHTML="Connection error: "+esc(e.message);}
-  finally{setBusy(false);}
+  finally{clearInterval(timer);setBusy(false);}
+}
+
+/* camera: snap, shrink to max 1280px JPEG, send */
+function snap(){if(busy)return;document.getElementById("cam").click();}
+function gotPhoto(inp){
+  const f=inp.files&&inp.files[0];inp.value="";if(!f)return;
+  const field=document.getElementById(chatOpen()?"q":"home-q");
+  const note=field.value.trim()||"Read this photo and tell me what matters.";
+  field.value="";
+  const img=new Image();const url=URL.createObjectURL(f);
+  img.onload=()=>{
+    const max=1280;let w=img.width,h=img.height;
+    if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
+    const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    ask(note,c.toDataURL("image/jpeg",0.8).split(",")[1]);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);alert("Could not read that photo.");};
+  img.src=url;
 }
 
 function mic(fieldId){
