@@ -154,6 +154,7 @@
   .td .st.awaiting{background:rgba(217,164,65,.18);color:#d9a441;}.td .st.confirmed{background:rgba(41,191,120,.18);color:#29bf78;}
   .td .st.cancelled,.td .st.superseded{background:rgba(255,255,255,.06);color:var(--muted);}
   .td pre{white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.5;margin-top:6px;}
+  .crow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;}
   .td .ti{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.45;transition:opacity .2s;}
   .td .ti span{flex:1;min-width:0;overflow-wrap:anywhere;}
   .td button.dn{flex:none;border:1px solid rgba(41,191,120,.5);background:rgba(41,191,120,.12);color:#29bf78;border-radius:9px;padding:6px 12px;font-weight:600;font-size:12.5px;cursor:pointer;}
@@ -269,7 +270,7 @@
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
 
   <div class="grid">
-    <div class="tile" onclick="openChat('Companies','Companies — send me a company\'s monthly figures to file, or ask for the group position.')">
+    <div class="tile" onclick="openCompanies()">
       <div class="ic"><svg viewBox="0 0 24 24"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3D27E"/><stop offset="1" stop-color="#C79A3C"/></linearGradient></defs><path fill="url(#g1)" d="M3 21V9.5L9 6v15H3zm7 0V3l11 4.5V21h-4v-4h-3v4h-4zm3-12h2V7h-2v2zm4 0h2V8h-2v1zm-4 4h2v-2h-2v2zm4 0h2v-2h-2v2zM5 13h2v-2H5v2zm0 4h2v-2H5v2z"/></svg></div>
       <div><div class="tt">Companies</div><div class="ds">Figures · position</div></div>
     </div>
@@ -408,7 +409,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=43;
+const AMI_LEVEL=44;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -497,6 +498,37 @@ async function openPosition(){
     bubble("a",esc("Ask me anything about these figures, Chairman."));
     document.getElementById("msgs").scrollTop=0;
   }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
+}
+/* ===== Companies ===== */
+const FORMS={"Leone Investment":"1JGzR-JZFtIHm9WbqJbrQU6CHZXjyCGuhqlEcqGOlio8","Cape Realities — Real Estate":"1R8QCwyUR_5UC_OM1YqY2vKx6Z6PR2Ir3olp_Ct1-XAY","Cape Realities — Construction":"1NyF_QjQ06EnaIQLT0egphoZECac-1iCZC73fqX4dt5A","Platinum Insurers":"1qUUU0uDcfFz4oFJqyv8Ifz_WrEiWF6bayfxXvhufYqU","The Lead Business Living":"1LBE6K_kmtwLojIc_I1oYFnDJNea9whA5Craf3Cpuujs","M Hotel":"1_IP3w8Dm8ah5_3g25SZ12vk7Oyxh7iz9a4jtIlNKcd8","JV Ventures":"1clrlqfnzPZVWaDIhbJPu-rzUD_PMYBqP5EMfDrlkAJw","JOUN":"1U-K-1nspL6t-PQIu6mtCYrOmuUJQq8CxYgad4pvavrs"};
+let COMP=null;
+async function openCompanies(){
+  openChat("Companies");
+  const w=bubble("a","Loading your companies…");
+  try{const d=await api({action:"position"});COMP=d.position;
+    if(!COMP){w.innerHTML="No figures loaded yet.";return;}
+    let h='<div class="gp"><div class="card"><div class="lbl">Your companies · tap one for the detail</div>';
+    COMP.companies.forEach((c,i)=>{h+='<div class="crow" onclick="openCompany('+i+')"><div><b>'+esc(c.name)+'</b><br><span style="color:var(--muted);font-size:11px">as of '+esc(c.as_of)+'</span></div><div class="'+cls(c.net)+'" style="font-weight:700">'+money(c.net)+' ›</div></div>';});
+    h+='<div class="crow" style="cursor:default;border-bottom:none"><b>Group total</b><b class="'+cls(COMP.total.net)+'">'+money(COMP.total.net)+'</b></div></div></div>';
+    w.innerHTML=h;w.style.maxWidth="100%";w.style.width="100%";
+    bubble("a",esc("Ask me about any company, Chairman, or send me its new figures."));
+  }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
+}
+function openCompany(i){const c=COMP.companies[i];if(!c)return;
+  let h='<div class="gp"><div class="card"><div class="lbl">'+esc(c.name)+' · as of '+esc(c.as_of)+'</div><div class="big '+cls(c.net)+'">'+money(c.net)+'</div>'+
+    '<table><tr><td>Cash</td><td class="'+cls(c.cash)+'">'+money(c.cash)+'</td></tr><tr><td>Receivables</td><td>'+money(c.receivables)+'</td></tr>'+
+    '<tr><td>Payables</td><td class="neg">'+money(c.payables)+'</td></tr><tr><td>Bank debt</td><td class="neg">'+money(c.bank_debt)+'</td></tr>'+
+    (c.due_from_chairman?'<tr><td>You owe this company</td><td>'+money(c.due_from_chairman)+'</td></tr>':'')+
+    (c.due_to_chairman?'<tr><td>This company owes you</td><td>'+money(c.due_to_chairman)+'</td></tr>':'')+'</table>'+
+    (FORMS[c.name]?'<div style="margin-top:10px"><a style="text-decoration:none;display:inline-block;border-radius:10px;padding:9px 16px;font-weight:600;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2))" href="https://docs.google.com/spreadsheets/d/'+FORMS[c.name]+'/edit" target="_blank" rel="noopener">📝 Monthly update form</a></div>':'')+'</div>';
+  if((c.contracts_list||[]).length){h+='<div class="card"><div class="lbl">Contracts</div><table>';
+    c.contracts_list.forEach(k=>{h+='<tr><td>'+esc(k.name)+(k.note?'<br><span style="color:var(--muted);font-size:10.5px">'+esc(k.note)+'</span>':'')+'</td><td>'+(k.value?money(k.value):'<span style="color:var(--muted)">to fill</span>')+'</td></tr>';});h+='</table></div>';}
+  const f=(COMP.flows||[]).find(x=>x.name===c.name);
+  if(f){h+='<div class="card"><div class="lbl">Cash flow — next 12 months</div><div class="scroll"><table><tr><th>Month</th><th>In</th><th>Out</th><th>Net</th></tr>';
+    COMP.months.forEach((m,j)=>{if(!f.in[j]&&!f.out[j])return;h+='<tr><td>'+esc(m)+'</td><td>'+money(f.in[j])+'</td><td class="neg">'+money(f.out[j])+'</td><td class="'+cls(f.net[j])+'">'+money(f.net[j])+'</td></tr>';});h+='</table></div></div>';}
+  if((c.notes||[]).length){h+='<div class="card"><div class="lbl">Notes</div>';c.notes.forEach(n=>{h+='<div class="note">• '+esc(n)+'</div>';});h+='</div>';}
+  h+='<div class="card"><div class="lbl">Source</div><div class="note">'+esc([...new Set(c.sources.map(x=>x.split(" — ")[0].trim()).filter(x=>/\.(pdf|xlsx?|docx?|csv)$/i.test(x)))].join(", ")||"AMI — Master Brain sheet")+'</div><div style="margin-top:8px"><button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--line);color:var(--ink)" onclick="openCompanies()">‹ All companies</button></div></div></div>';
+  const w=bubble("a","");w.innerHTML=h;w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
 }
 /* ===== Calendar & Events ===== */
 const CAL_IC={event:"📅",medication:"💊",birthday:"🎂",other:"📌"};
