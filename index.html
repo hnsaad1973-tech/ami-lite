@@ -1,670 +1,283 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="AMI" />
-<title>AMI — Chairman Command Center</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AMI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <style>
-  :root{
-    --bg:#08080D; --bg2:#0B0C12; --panel:#0F1118; --panel2:#12141C; --line:#262834; --linegold:#3A3320;
-    --ink:#EDEAE2; --muted:#8C8F9A; --gold:#C9A24B; --gold2:#E0C079; --goldfill:#C6A14C;
-    --green:#5BCB8B; --red:#F0565B; --blue:#5B9BD5; --amber:#D9A441; --purple:#A56BE0;
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
-  ::selection{background:var(--gold);color:#000}
-  .serif{font-family:"Playfair Display",Georgia,serif}
-  .mono{font-family:"JetBrains Mono",monospace}
-  button{font-family:inherit;cursor:pointer;color:inherit}
-  input{font-family:inherit}
-  .cap{letter-spacing:.18em;text-transform:uppercase}
-  .gold{color:var(--gold)}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
-  .dot{height:8px;width:8px;border-radius:50%;display:inline-block;vertical-align:middle}
-  svg{display:block}
-  @keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
-  .blink{animation:pl 1.6s ease-in-out infinite}
-  @media (prefers-reduced-motion:reduce){.blink{animation:none}}
+  :root{--bg2:#0E1524;--panel:rgba(255,255,255,.035);--panelbd:rgba(199,154,60,.18);
+    --gold:#C79A3C;--gold2:#E4B75A;--ink:#ECEFF5;--muted:#8A94A6;--line:rgba(255,255,255,.07);}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:"Inter",-apple-system,sans-serif;color:var(--ink);
+    background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
+    min-height:100dvh;display:flex;flex-direction:column;}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;}
 
-  .top{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;padding-top:max(14px,env(safe-area-inset-top))}
-  .brand{display:flex;align-items:center;gap:7px;color:var(--gold)}
-  .brand .cap{font-size:13px;font-weight:600}
-  .badge{border:1px solid;border-radius:3px;padding:3px 8px;font-size:11px;font-weight:600;letter-spacing:.12em;display:inline-flex;align-items:center;gap:6px}
-  .b-alert{color:var(--red);border-color:var(--red)}
-  .b-nominal{color:var(--green);border-color:var(--green)}
-  .b-live{color:var(--green);border-color:var(--green)}
-  .b-degraded{color:var(--amber);border-color:var(--amber)}
-  .clock{margin-left:auto;color:var(--muted);font-size:12px}
-  .gear{background:none;border:none;color:var(--muted);font-size:17px;padding:4px}
+  .top{padding:22px 20px 14px;display:flex;align-items:center;gap:13px;}
+  .logo{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;
+    border:1px solid var(--panelbd);background:linear-gradient(135deg,rgba(199,154,60,.18),transparent);
+    font-family:"Cormorant Garamond",serif;font-weight:700;font-size:20px;color:var(--gold2);}
+  .hi{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+  .name{font-family:"Cormorant Garamond",serif;font-size:27px;font-weight:600;line-height:1;margin-top:2px;}
+  .clock{margin-left:auto;text-align:right;}
+  .clock .t{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:600;color:var(--gold2);line-height:1;}
+  .clock .d{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+  .rule{height:1px;margin:4px 20px 0;background:linear-gradient(90deg,transparent,var(--panelbd),transparent);}
 
-  .wrap{padding:4px 16px 48px;max-width:680px;margin:0 auto}
-  .eyebrow{color:var(--gold);font-size:12px;font-weight:600;margin:14px 0 2px}
-  h1.big{font-size:34px;margin:0 0 4px;font-weight:600;line-height:1.05}
-  .rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5;margin:8px auto;width:200px}
+  .wrap{padding:16px 16px 92px;display:flex;flex-direction:column;gap:18px;}
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .eyebrow .k{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);}
+  .eyebrow .ln{flex:1;height:1px;background:var(--line);}
+  .ticker{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);}
+  .mkt{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .chart{border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);height:150px;}
 
-  .switch{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;-webkit-overflow-scrolling:touch}
-  .switch::-webkit-scrollbar{display:none}
-  .chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 13px;font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
-  .chip.on{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .tile{border:1px solid var(--panelbd);border-radius:16px;padding:17px 15px;background:var(--panel);
+    backdrop-filter:blur(8px);cursor:pointer;transition:transform .12s,border-color .2s,background .2s;
+    display:flex;flex-direction:column;gap:12px;min-height:116px;}
+  .tile:active{transform:scale(.97);}
+  .tile:hover{border-color:var(--gold);background:rgba(199,154,60,.06);}
+  .tile .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:var(--gold2);border:1px solid var(--panelbd);}
+  .tile .ic svg{width:21px;height:21px;}
+  .tile .tt{font-family:"Cormorant Garamond",serif;font-size:19px;font-weight:600;}
+  .tile .ds{font-size:11px;letter-spacing:.03em;color:var(--muted);line-height:1.4;}
+  .foot{text-align:center;font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
 
-  .card{border:1px solid var(--line);border-radius:5px;background:var(--panel);margin-top:14px}
-  .card .pad{padding:16px}
-  .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .btn-line{border:1px solid var(--gold);color:var(--gold);background:none;border-radius:3px;padding:8px 14px;font-size:12px;font-weight:600;letter-spacing:.14em}
-  .btn-gold{background:var(--goldfill);color:#0a0a0a;border:none;border-radius:3px;padding:12px 16px;font-weight:700;letter-spacing:.12em;font-size:13px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
-  .divider{height:1px;background:var(--line)}
-  .muted{color:var(--muted)}
-  .small{font-size:13px}
-  .xs{font-size:11px}
+  .bar{position:fixed;bottom:0;left:0;right:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    display:flex;gap:10px;align-items:center;background:linear-gradient(180deg,transparent,#080c15 28%);z-index:30;}
+  .bar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;
+    background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
+  .bar input::placeholder{color:var(--muted);}
+  .bar .mic{width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;
+    box-shadow:0 6px 18px rgba(199,154,60,.35);}
+  .bar .mic svg{width:22px;height:22px;}
 
-  .enter{margin-top:16px;border:1px solid var(--linegold);border-radius:6px;padding:20px 18px;background:
-     radial-gradient(120% 140% at 0% 0%, rgba(201,162,75,.16), transparent 55%), var(--panel);
-     display:flex;align-items:center;gap:16px}
-  .enter .sq{width:60px;height:60px;border:1px solid var(--gold);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--gold);flex:0 0 auto}
-  .enter .arrow{margin-left:auto;color:var(--gold)}
+  /* login */
+  .login{position:fixed;inset:0;background:rgba(8,12,21,.92);backdrop-filter:blur(6px);z-index:60;
+    display:none;align-items:center;justify-content:center;padding:24px;}
+  .login.show{display:flex;}
+  .login .card{width:100%;max-width:340px;border:1px solid var(--panelbd);border-radius:18px;background:var(--bg2);padding:26px 22px;text-align:center;}
+  .login h1{font-family:"Cormorant Garamond",serif;font-size:30px;color:var(--gold2);margin-bottom:4px;}
+  .login p{font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+  .login input{width:100%;border:1px solid var(--panelbd);border-radius:12px;padding:13px 15px;font-size:15px;
+    background:rgba(255,255,255,.04);color:var(--ink);outline:none;margin-bottom:12px;}
+  .login button{width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;}
+  .login .msg{font-size:12.5px;color:var(--gold2);margin-top:12px;min-height:16px;}
 
-  .toggle{width:54px;height:30px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);position:relative;flex:0 0 auto}
-  .toggle .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;background:#EDEAE2;border-radius:2px;transition:.2s}
-  .toggle.on{border-color:var(--green)}
-  .toggle.on .knob{left:27px;background:var(--green)}
-
-  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
-  .tile{border:1px solid var(--line);border-radius:4px;background:var(--panel);padding:18px 8px;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--ink)}
-  .tile .ti{color:var(--gold)}
-  .tile .tl{font-size:12px;font-weight:600;letter-spacing:.1em}
-
-  .sec{margin-top:16px;border:1px solid var(--line);border-radius:5px}
-  .sec .head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
-  .sec .head .gold{font-size:12px;font-weight:600;letter-spacing:.14em}
-  .sec .head .right{margin-left:auto;color:var(--muted);font-size:11px;letter-spacing:.12em}
-  .sec .body{padding:16px}
-
-  .cashrow{padding:16px;border-bottom:1px solid var(--line)}
-  .cashrow:last-child{border-bottom:none}
-  .cashrow .k{font-size:11px;letter-spacing:.12em;color:var(--muted);display:flex;align-items:center;gap:8px}
-  .cashrow .v{font-family:"Playfair Display";font-size:30px;margin-top:6px}
-  .cashrow .s{font-size:11px;letter-spacing:.1em;color:var(--muted);margin-top:2px}
-
-  .occ-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}
-  .occ{border:1px solid var(--line);border-radius:4px;padding:14px}
-  .occ .l{font-size:11px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;gap:8px}
-  .occ .n{font-family:"Playfair Display";font-size:26px;margin-top:8px}
-  .bar{height:8px;border:1px solid var(--line);border-radius:3px;margin:0 16px;overflow:hidden;background:var(--panel2)}
-  .bar > i{display:block;height:100%;background:var(--green)}
-
-  .vaults{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-  .vault{border:1px solid var(--line);border-radius:5px;padding:16px;display:flex;gap:12px;align-items:flex-start}
-  .vault .vi{width:46px;height:46px;border:1px solid var(--gold);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--gold);flex:0 0 auto}
-  .vault .vt{font-weight:600;letter-spacing:.08em;font-size:14px}
-  .vault .vs{font-size:11px;letter-spacing:.1em;color:var(--muted);margin-top:4px}
-
-  .feedline{padding:14px 16px;border-bottom:1px solid var(--line)}
-  .feedline:last-child{border-bottom:none}
-  .feedhead{font-size:12px;letter-spacing:.1em;display:flex;gap:10px;align-items:center}
-  .feedmsg{margin-top:5px;font-size:15px}
-  .wa-on{margin:16px;border:1px solid var(--green);border-radius:4px;color:var(--green);text-align:center;padding:14px;font-weight:600;letter-spacing:.14em;font-size:13px;display:flex;align-items:center;justify-content:center;gap:10px}
-
-  .act{display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);align-items:flex-start}
-  .act:last-child{border-bottom:none}
-  .act .t{font-size:12px;color:var(--muted);width:50px;flex:0 0 auto}
-  .act .tag{border:1px solid var(--gold);color:var(--gold);font-size:10px;letter-spacing:.1em;padding:3px 7px;border-radius:3px;flex:0 0 auto}
-  .act .m{font-size:14px}
-
-  .adv-in{display:flex;gap:8px;padding:16px}
-  .adv-in input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:3px;color:var(--ink);padding:12px;outline:none;font-size:14px}
-  .icbtn{border:1px solid var(--line);background:var(--panel2);border-radius:3px;width:48px;display:flex;align-items:center;justify-content:center;color:var(--gold)}
-  .send{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:3px;padding:0 16px;font-weight:600;letter-spacing:.1em;font-size:12px}
-  .msgs{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow-y:auto}
-  .bub{border-radius:8px;padding:9px 12px;font-size:14px;white-space:pre-wrap;line-height:1.5;max-width:90%}
-  .bub.me{align-self:flex-end;background:var(--panel2);border:1px solid var(--line)}
-  .bub.ai{align-self:flex-start;background:rgba(201,162,75,.1);border:1px solid rgba(201,162,75,.3)}
-
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:18px;z-index:60}
-  .modal.show{display:flex}
-  .sheet{width:100%;max-width:420px;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
-  .sheet label{display:block;font-size:12px;color:var(--muted);margin:14px 0 5px}
-  .sheet input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:4px;padding:10px 12px;outline:none;font-size:13px}
-  .primary{background:var(--goldfill);color:#0a0a0a;border:none;border-radius:4px;padding:12px;width:100%;font-weight:700;margin-top:18px;letter-spacing:.08em}
-  .ghost{background:none;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:9px;width:100%;margin-top:8px}
-  .note{font-size:12px;color:var(--muted);line-height:1.5}
-  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--ink);padding:11px 16px;border-radius:6px;font-size:13px;z-index:70;display:none;max-width:90%}
-  .toast.show{display:block}
-
-  .sheet.big{max-width:560px;max-height:86vh;overflow-y:auto;padding:0}
-  .dhead{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:16px 18px;z-index:2}
-  .dhead .dt{font-family:"Playfair Display";font-size:20px}
-  .dhead .dx{margin-left:auto;background:none;border:1px solid var(--line);border-radius:4px;color:var(--muted);width:34px;height:34px;font-size:16px}
-  .dbody{padding:16px 18px 22px}
-  .drow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
-  .drow:last-child{border-bottom:none}
-  .drow .lab{color:var(--muted)}
-  .drow .val{font-family:"Playfair Display";font-size:17px}
-  .dkpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 14px}
-  .dkpi .k{border:1px solid var(--line);border-radius:5px;padding:13px;background:var(--panel2)}
-  .dkpi .k .l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-  .dkpi .k .n{font-family:"Playfair Display";font-size:22px;margin-top:5px}
-  .dsub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px}
-  .dlist{border:1px solid var(--line);border-radius:5px;overflow:hidden}
-  .dlist .li{display:flex;justify-content:space-between;gap:10px;padding:12px 13px;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
-  .dlist .li:last-child{border-bottom:none}
-  .dlist .li .nm{font-weight:500}
-  .dlist .li .mt{color:var(--muted);font-size:11px;margin-top:2px}
-  .dtag{font-size:10px;letter-spacing:.1em;padding:3px 8px;border-radius:3px;border:1px solid;text-transform:uppercase}
-  .t-ok{color:var(--green);border-color:var(--green)}
-  .t-warn{color:var(--amber);border-color:var(--amber)}
-  .t-bad{color:var(--red);border-color:var(--red)}
-  .t-mut{color:var(--muted);border-color:var(--line)}
-  .dbtn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600;letter-spacing:.04em}
-  .dbtn.ok{border-color:var(--green);color:var(--green)}
-  .dbtn.bad{border-color:var(--red);color:var(--red)}
-  .dwarn{border:1px solid var(--red);border-radius:5px;padding:12px;color:var(--red);font-size:12px;margin-top:16px}
-  .dnote{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
-  .cam{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .cam .c{border:1px solid var(--line);border-radius:5px;background:#000;aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);position:relative}
-  .cam .c .nm{font-size:11px;letter-spacing:.06em}
-  .cam .c .st{font-size:9px;letter-spacing:.14em;color:var(--red)}
-
-  html[data-theme="day"]{
-    --bg:#E9E7DF;--bg2:#F2F0E9;--panel:#FBFAF5;--panel2:#F0EEE6;--line:#D8D4C8;--linegold:#C9B68A;
-    --ink:#1B1C22;--muted:#6B6E78;--gold:#8A6E29;--gold2:#A8862F;--goldfill:#C6A14C;
-    --green:#2E9D63;--red:#C73E43;--blue:#3A78B5;--amber:#B7841F;--purple:#7A45B0;
-  }
-  html[data-theme="day"] body{background:var(--bg)}
-  .top{flex-wrap:wrap}
-  .sys{display:flex;gap:14px;align-items:center;padding:7px 16px;margin:0 -16px 0 -16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.13em;color:var(--muted);overflow-x:auto;white-space:nowrap}
-  .sys::-webkit-scrollbar{display:none}
-  .sys span{display:inline-flex;align-items:center;gap:5px}
-  .sys .lt{height:7px;width:7px;border-radius:50%;flex:0 0 auto}
-  .comms{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap}
-  .comms button{font-size:11px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:7px 12px;letter-spacing:.04em}
-  .comms button.wa{border-color:var(--green);color:var(--green)}
-  .comms button.em{border-color:var(--blue);color:var(--blue)}
-  .card,.sec,.tile,.occ,.vault,.panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 1px 2px rgba(0,0,0,.25)}
-  html[data-theme="day"] .card,html[data-theme="day"] .sec,html[data-theme="day"] .tile,html[data-theme="day"] .occ,html[data-theme="day"] .vault,html[data-theme="day"] .panel{box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  /* chat overlay */
+  .chat{position:fixed;inset:0;background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
+    z-index:50;display:none;flex-direction:column;}
+  .chat.show{display:flex;}
+  .chead{display:flex;align-items:center;gap:12px;padding:18px 18px 12px;border-bottom:1px solid var(--line);}
+  .chead .bk{width:34px;height:34px;border:1px solid var(--panelbd);border-radius:50%;background:none;color:var(--gold2);
+    font-size:20px;cursor:pointer;display:grid;place-items:center;}
+  .chead .ct{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;}
+  .msgs{flex:1;overflow-y:auto;padding:16px 16px 10px;display:flex;flex-direction:column;gap:12px;}
+  .m{max-width:84%;padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;}
+  .m.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;border-bottom-right-radius:5px;}
+  .m.a{align-self:flex-start;background:var(--panel);border:1px solid var(--panelbd);border-bottom-left-radius:5px;}
+  .m.a a{color:var(--gold2);}
+  .m.a img{display:block;max-width:100%;border-radius:10px;margin-top:8px;}
+  .cbar{padding:12px 14px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);}
+  .cbar input{flex:1;border:1px solid var(--panelbd);border-radius:24px;padding:13px 18px;font-size:15px;background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
+  .cbar .mic{width:46px;height:46px;flex:0 0 46px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;display:grid;place-items:center;cursor:pointer;}
+  .cbar .mic svg{width:21px;height:21px;}
+  .snd{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:1.5px solid var(--gold2);background:rgba(199,154,60,.08);
+    color:var(--gold2);display:grid;place-items:center;cursor:pointer;}
+  .snd svg{width:20px;height:20px;}
+  .snd:disabled{opacity:.35;cursor:default;}
+  .cp{display:inline-block;margin-top:8px;border:1px solid var(--panelbd);border-radius:10px;background:none;color:var(--muted);
+    font-size:11.5px;padding:4px 10px;cursor:pointer;}
+  .cp:hover{color:var(--gold2);border-color:var(--gold);}
 </style>
 </head>
 <body>
-<div id="app"></div>
-
-<div class="modal" id="settings">
-  <div class="sheet">
-    <div class="serif" style="font-size:20px">Connect AMI</div>
-    <p class="note" style="margin-top:6px">Stored only on this device. Claude is reached through your secure Supabase server — <b style="color:var(--ink)">no AI key is kept in this app</b>.</p>
-    <label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co" />
-    <label>Supabase anon (public) key</label><input id="cfgAnon" placeholder="sb_publishable_..." />
-    <label>Your WhatsApp number (intl, e.g. 231...)</label><input id="cfgWa" placeholder="231770022222" />
-    <label>Your email (for send-as)</label><input id="cfgEmail" placeholder="you@example.com" />
-    <button class="primary" data-act="save">Save &amp; connect</button>
-    <button class="ghost" data-act="closeSettings">Close</button>
+  <div class="top">
+    <div class="logo">A</div>
+    <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
+    <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div></div>
   </div>
-</div>
-<div class="toast" id="toast"></div>
+  <div class="rule"></div>
 
-<div class="modal" id="detail">
-  <div class="sheet big">
-    <div class="dhead"><span class="dt" id="detailTitle">Detail</span><button class="dx" data-act="detailClose">✕</button></div>
-    <div class="dbody" id="detailBody"></div>
+  <div class="wrap">
+    <div class="ticker">
+      <div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"adaptive","locale":"en"}
+      </script></div>
+    </div>
+
+    <div>
+      <div class="eyebrow"><span class="k">Markets</span><span class="ln"></span></div>
+      <div class="mkt">
+        <div class="chart" id="c1"></div><div class="chart" id="c2"></div>
+        <div class="chart" id="c3"></div><div class="chart" id="c4"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow"><span class="k">Suite</span><span class="ln"></span></div>
+      <div class="grid">
+        <div class="tile" onclick="openChat('Ask AMI')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9H3l2.3-2.3A9 9 0 0 1 12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Ask AMI</div><div class="ds">Chat · drafting</div></div>
+        </div>
+        <div class="tile" onclick="openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 20l4-1 10-10-3-3L4 16l-1 4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Design Studio</div><div class="ds">Renders · plans</div></div>
+        </div>
+        <div class="tile" onclick="quick('Markets','Give me a short market snapshot now: S&P 500, Nasdaq, gold, oil and Bitcoin, with the source and time for each.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 16l4-5 4 3 6-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Markets</div><div class="ds">Prices · news</div></div>
+        </div>
+        <div class="tile" onclick="openChat('Companies','Companies — send me a company\'s monthly figures to file, or ask for the group position.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 21V6l7-3 7 3v15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Companies</div><div class="ds">Five entities</div></div>
+        </div>
+        <div class="tile" onclick="quick('Inbox','Summarise my most recent important emails in a few short lines each, and say which are urgent.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+          <div><div class="tt">Inbox</div><div class="ds">Email · WhatsApp</div></div>
+        </div>
+        <div class="tile" onclick="quick('Newsroom','Give me today\'s top world and market headlines, one line each, with the source for each.')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h12v14H5a1 1 0 0 1-1-1V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 9h3v8a2 2 0 0 1-4 0" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <div><div class="tt">Newsroom</div><div class="ds">World headlines</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Asset Management Innovations</div>
   </div>
-</div>
+
+  <div class="bar">
+    <input id="home-q" placeholder="Ask AMI anything…" onkeydown="if(event.key==='Enter')goHome()">
+<button class="snd" id="snd-home" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="mic" onclick="mic('home-q')"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat" id="chat">
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">Ask AMI</div></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="cbar">
+      <input id="q" placeholder="Type your message…" onkeydown="if(event.key==='Enter')go()">
+<button class="snd" id="snd-chat" onclick="go()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="mic" onclick="mic('q')"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="login" id="login">
+    <div class="card">
+      <h1>AMI</h1>
+      <p>Private access. Enter your email and I'll send you a sign-in link.</p>
+      <input id="email" type="email" placeholder="your email" autocomplete="email">
+      <button onclick="sendLink()">Send sign-in link</button>
+      <div class="msg" id="lmsg"></div>
+    </div>
+  </div>
 
 <script>
-const I=(p)=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-const ICONS={
-  shield:I('<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>'),
-  swords:I('<path d="M14 4l6 6-3 3-6-6zM10 20l-6-6 3-3 6 6zM5 19l2-2M19 5l-2 2"/>'),
-  mic:I('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>'),
-  power:I('<path d="M12 4v8M7 7a7 7 0 1010 0"/>'),
-  doc:I('<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5"/>'),
-  printer:I('<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/>'),
-  check:I('<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>'),
-  wallet:I('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h3M3 9h13a2 2 0 012 2"/>'),
-  building:I('<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>'),
-  scale:I('<path d="M12 3v18M5 8h14M5 8l-2 6h4zM19 8l-2 6h4zM8 21h8"/>'),
-  camera:I('<rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M9 7l1.5-2h3L15 7"/>'),
-  spark:I('<path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5zM18 3v3M19.5 4.5h-3"/>'),
-  plane:I('<path d="M10 14L3 11l2-2 6 1 4-5 2 1-3 6 4 6-2 1-4-4-3 4-2-1z"/>'),
-  bell:I('<path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 004 0"/>'),
-  dollar:I('<circle cx="12" cy="12" r="9"/><path d="M12 7v10M14.5 9.5C14 8.5 13 8 12 8c-1.5 0-2.5 1-2.5 2s1 1.5 2.5 2 2.5 1 2.5 2-1 2-2.5 2c-1 0-2-.5-2.5-1.5"/>'),
-  people:I('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0112 0M15 20a5 5 0 016-4.5"/>'),
-  chat:I('<path d="M4 5h16v11H9l-5 4z"/>'),
-  lock:I('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>'),
-  vault:I('<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M8 9l8 6M16 9l-8 6"/>'),
-  target:I('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
-  arrow:I('<path d="M5 12h14M13 6l6 6-6 6"/>'),
-  up:I('<path d="M7 17L17 7M9 7h8v8"/>'),
-  down:I('<path d="M7 7l10 10M15 17H7V9"/>'),
-};
+const SB_URL="https://pdzhlslzwjlhxklqcwus.supabase.co";
+const SB_KEY="sb_publishable_vHhWZVOnyl7_qQicqcYn2A_rZVvfYsd";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let token=null, section="Ask AMI", busy=false;
 
-const COMPANIES=[
-  {key:"group",   name:"Group (all entities)",        short:"Group",             match:null,       accent:"var(--gold)"},
-  {key:"leone",   name:"Leone Investment Inc.",       short:"Leone Investment",  match:"leone",    accent:"var(--green)"},
-  {key:"cape",    name:"Cape Realities Liberia Ltd",  short:"Cape Realities",    match:"cape",     accent:"var(--gold)"},
-  {key:"lead",    name:"The Lead Hotel",              short:"The Lead Hotel",    match:"lead",     accent:"var(--purple)"},
-  {key:"platinum",name:"Platinum Insurance",          short:"Platinum Insurance",match:"platinum", accent:"var(--blue)"},
-];
-const ENTITY_KEYS=["leone","cape","lead","platinum"];
-const TABLES=["properties","units","tenants","bank_accounts","loans","receivables","payables"];
-const MODEL_FAST="claude-sonnet-4-6", MODEL_DEEP="claude-opus-4-8";
-
-const WA=[
-  {dir:"IN", t:"08:14", who:"HASHIM — OPS",  msg:"Pact warehouse generator serviced ✅"},
-  {dir:"OUT",t:"08:22", who:"CHAIRMAN",      msg:"Confirm rent received from UK Embassy"},
-  {dir:"IN", t:"08:31", who:"NOUR — FINANCE",msg:"Bank sweep posted, $412k balance"},
-  {dir:"OUT",t:"08:40", who:"CHAIRMAN",      msg:"Schedule inspection 13th St Sinkor"},
-];
-const FEED=[
-  {t:"08:42",tone:"green",tag:"TREASURY", m:"Daily bank sweep reconciled across 6 accounts."},
-  {t:"08:30",tone:"amber",tag:"APPROVALS",m:"2 capex items awaiting Chairman signature."},
-  {t:"07:55",tone:"amber",tag:"ASSETS",   m:"Tenant move-in scheduled — Tower A, Unit 1204."},
-  {t:"07:30",tone:"green",tag:"BRIEF",    m:"Chief of Staff morning brief generated."},
-  {t:"YEST", tone:"amber",tag:"LEGAL",    m:"Counsel uploaded revised lease addendum."},
-  {t:"YEST", tone:"red",  tag:"ALERTS",   m:"1 overdue receivable flagged — follow-up queued."},
-];
-const TILES=[["doc","BRIEFS"],["printer","REPORTS"],["check","APPROVALS"],["wallet","TREASURY"],["building","ASSETS"],["scale","LEGAL"],["shield","ADMIN"],["camera","CAPTURE"],["spark","ADVISOR"],["plane","COMMAND"],["bell","ALERTS"]];
-
-const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return (this._m[k]??d)}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){this._m[k]=v}},_m:{}};
-const state={view:"home",company:"group",cfg:store.get("ami_cfg",{url:"",anon:"",wa:"",email:""}),snap:emptySnap(),conv:store.get("ami_conv",[]),autopilot:false,brief:null,briefStatus:"idle",busy:false,clock:"",theme:store.get("ami_theme","night")};
-function emptySnap(){const s={};["leone","cape","lead","platinum"].forEach(k=>s[k]={entity:null,properties:[],units:[],tenants:[],bank_accounts:[],loans:[],receivables:[],payables:[]});return s}
-function money(n){return "$"+(Math.round((n||0)*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
-function sum(rows,f){return (rows||[]).reduce((a,r)=>a+(Number(r&&r[f])||0),0)}
-function sb(){if(!state.cfg.url||!state.cfg.anon)return null;try{return window.supabase.createClient(state.cfg.url,state.cfg.anon)}catch(e){return null}}
-function aiReady(){return !!(state.cfg.url&&state.cfg.anon)}
-
-async function loadSnapshot(){
-  const db=sb(); if(!db)return;
-  let entities=[]; try{const r=await db.from("entities").select("*");entities=r.data||[]}catch(e){}
-  const id={}; ENTITY_KEYS.forEach(k=>{const c=COMPANIES.find(x=>x.key===k);const e=entities.find(x=>((x.name||"").toLowerCase()).includes(c.match));state.snap[k].entity=e||null;id[k]=e?e.id:null});
-  for(const t of TABLES){let rows=[];try{const r=await db.from(t).select("*");rows=r.data||[]}catch(e){}ENTITY_KEYS.forEach(k=>{state.snap[k][t]=id[k]?rows.filter(r=>r.entity_id===id[k]):[]})}
+async function initAuth(){
+  const {data}=await sb.auth.getSession();
+  setSession(data.session);
+  sb.auth.onAuthStateChange((_e,s)=>setSession(s));
 }
-function scope(company){const c=company||state.company;const keys=c==="group"?ENTITY_KEYS:[c];const out={};TABLES.forEach(t=>out[t]=keys.flatMap(k=>state.snap[k][t]));return out}
-function within7(d){if(!d)return false;const diff=(new Date(d)-new Date())/86400000;return diff>=0&&diff<=7}
-function metrics(company){const s=scope(company);const u=s.units,st=x=>u.filter(r=>(r.status||"").toLowerCase()===x).length;
-  return{cash:sum(s.bank_accounts,"balance"),
-    receivables:sum(s.receivables,"amount"),
-    payables:sum(s.payables,"amount"),
-    incoming:s.receivables.filter(r=>within7(r.due_date)).reduce((a,r)=>a+(Number(r.amount)||0),0),
-    outgoing:s.payables.filter(r=>within7(r.due_date)).reduce((a,r)=>a+(Number(r.amount)||0),0),
-    units:u.length,occupied:st("occupied"),leased:st("leased"),active:st("active"),vacant:st("vacant"),pending:st("pending")}}
+function setSession(s){token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);}
+async function sendLink(){
+  const email=document.getElementById("email").value.trim();
+  if(!email)return;
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  document.getElementById("lmsg").textContent=error?error.message:"Check your email for the link.";
+}
+initAuth();
 
-const SYSTEM=`You are AMI (always pronounced "Ah-mee", never spelled out), AI Chief of Staff for Saad AI Ventures, run by the Chairman Hussein Saad. You act as CEO/CFO/CRO across four entities: Leone Investment Inc., Cape Realities Liberia Ltd, The Lead Hotel, Platinum Insurance. Be direct and executive; lead with the number then the implication; tight enough for a phone. Final approval on anything that moves money or sends external messages belongs to the Chairman.`;
-function aiContext(){const lines=ENTITY_KEYS.map(k=>{const c=COMPANIES.find(x=>x.key===k);const d=state.snap[k];
-  return `- ${c.name}: cash ${money(sum(d.bank_accounts,"balance"))}, receivables ${money(sum(d.receivables,"amount"))}, payables ${money(sum(d.payables,"amount"))}, ${d.units.length} units, ${d.tenants.length} tenants.`});
-  const where=state.view==="war"?"War Room (all four entities integrated)":`Command Center — ${COMPANIES.find(c=>c.key===state.company).name}`;
-  return `Viewing: ${where}.\nEntities:\n${lines.join("\n")}`}
+function tick(){const d=new Date();
+  time.textContent=d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  date.textContent=d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+  const h=d.getHours();hi.textContent=h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
+tick();setInterval(tick,10000);
 
-// ===== AI now routes through the secure Supabase Edge Function `ai` (no key in this app) =====
-async function callClaude(messages,deep){
-  if(!aiReady()) throw new Error("Add your Supabase URL + anon key in settings (⚙).");
-  const fnUrl=state.cfg.url.replace(/\/+$/,"")+"/functions/v1/ai";
-  let res;
+[["FOREXCOM:SPXUSD","c1"],["FOREXCOM:NSXUSD","c2"],["TVC:GOLD","c3"],["BINANCE:BTCUSDT","c4"]].forEach(([sym,id])=>{
+  const s=document.createElement("script");
+  s.src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";s.async=true;
+  s.innerHTML=JSON.stringify({symbol:sym,width:"100%",height:"100%",locale:"en",dateRange:"1D",colorTheme:"dark",isTransparent:true,autosize:true});
+  document.getElementById(id).appendChild(s);});
+
+function openChat(title,greet){
+  section=title||"Ask AMI";
+  document.getElementById("ctitle").textContent=section;
+  document.getElementById("msgs").innerHTML="";
+  if(greet)bubble("a",esc(greet));
+  document.getElementById("chat").classList.add("show");
+  document.getElementById("q").focus();
+}
+function closeChat(){document.getElementById("chat").classList.remove("show");}
+function quick(title,prompt){openChat(title);ask(prompt);}
+function go(){if(busy)return;const q=document.getElementById("q");const t=q.value.trim();if(!t)return;q.value="";ask(t);}
+function goHome(){if(busy)return;const i=document.getElementById("home-q");const t=i.value.trim();if(!t)return;i.value="";openChat("Ask AMI");ask(t);}
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function isImg(u){return /\.(png|jpe?g|gif|webp)(\?|$)/i.test(u)||/zapier-dev-files|oaidalleapiprod|blob\.core\.windows/.test(u);}
+function render(t){
+  let s=esc(t);
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<]+)/g,(m,label,u1,u2)=>{
+    const u=(u1||u2).replace(/[.,;:]+$/,"");
+    if(isImg(u))return '<img src="'+u+'" alt="image">';
+    return '<a href="'+u+'" target="_blank" rel="noopener">'+(label||u)+'</a>';});
+  s=s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>");
+  return s;
+}
+function bubble(cls,html){const d=document.createElement("div");d.className="m "+cls;d.innerHTML=html;
+  const box=document.getElementById("msgs");box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
+function extract(d){if(!d)return"";if(typeof d==="string")return d;
+  return d.reply||d.text||d.answer||d.message||(d.content&&d.content[0]&&d.content[0].text)||JSON.stringify(d);}
+
+function setBusy(b){busy=b;["snd-home","snd-chat"].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=b;});}
+function addCopy(div,text){const b=document.createElement("button");b.className="cp";b.textContent="Copy";
+  b.onclick=()=>{const done=()=>{b.textContent="Copied ✓";setTimeout(()=>b.textContent="Copy",1800);};
+    if(navigator.clipboard)navigator.clipboard.writeText(text).then(done).catch(()=>fallback());else fallback();
+    function fallback(){const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();
+      try{document.execCommand("copy");done();}catch(_){}t.remove();}};
+  div.appendChild(document.createElement("br"));div.appendChild(b);}
+async function ask(text){
+  if(!token){document.getElementById("login").classList.add("show");return;}
+  if(busy)return;
+  if(!document.getElementById("chat").classList.contains("show"))openChat("Ask AMI");
+  bubble("u",esc(text));
+  const wait=bubble("a","AMI is thinking…");
+  setBusy(true);
   try{
-    res=await fetch(fnUrl,{method:"POST",
-      headers:{"Content-Type":"application/json","apikey":state.cfg.anon,"Authorization":"Bearer "+state.cfg.anon},
-      body:JSON.stringify({model:deep?MODEL_DEEP:MODEL_FAST,max_tokens:1400,system:SYSTEM+"\n\n## Live context\n"+aiContext(),messages})});
-  }catch(e){throw new Error("Cannot reach the AI server. Check the Supabase URL.")}
-  let data;
-  try{data=await res.json()}catch(e){throw new Error("Server returned "+res.status+". Make sure the 'ai' function is deployed and Verify-JWT is off.")}
-  if(data&&data.error){const m=typeof data.error==="string"?data.error:(data.error.message||"AI error");throw new Error(m)}
-  if(!res.ok) throw new Error("Server error "+res.status);
-  return (data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
-}
-async function generateBrief(){state.briefStatus="loading";render();
-  try{const txt=await callClaude([{role:"user",content:"Produce today's executive morning brief across all four entities: consolidated cash position, biggest receivables risk, payables due this week, and the 3 actions I should take today. 6 lines max."}],true);
-    state.brief={text:txt,time:new Date().toLocaleTimeString("en-GB",{hour12:false}).slice(0,5),ok:true};state.briefStatus="ok";}
-  catch(e){state.brief={text:e.message,time:new Date().toLocaleTimeString("en-GB",{hour12:false}).slice(0,5),ok:false};state.briefStatus="error";}
-  render()}
-function listen(){if(!state.brief||!state.brief.ok){toast("Generate a brief first");return}try{const u=new SpeechSynthesisUtterance(state.brief.text.replace(/AMI/g,"Ah-mee"));speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){toast("Voice not available")}}
-
-// ===== Detail panels — every tile opens a live panel from the demo data =====
-state.approvals=[
-  {id:1,who:"Cape Realities",item:"Site mobilization — Tubman Blvd",amt:48000,status:"pending"},
-  {id:2,who:"The Lead Hotel",item:"Kitchen chiller replacement",amt:12500,status:"pending"},
-  {id:3,who:"Leone Investment",item:"Embassy Compound roof repair",amt:8200,status:"pending"},
-];
-function netPos(k){const m=metrics(k);return m.cash+m.receivables-m.payables}
-function entityRows(fn){return ENTITY_KEYS.map(k=>{const c=COMPANIES.find(x=>x.key===k);return fn(k,c)}).join("")}
-function overdue(){const out=[];ENTITY_KEYS.forEach(k=>{const c=COMPANIES.find(x=>x.key===k);state.snap[k].receivables.forEach(r=>{const d=r.due_date?new Date(r.due_date):null;if(d&&d<new Date()&&(r.status||"").toLowerCase()!=="paid")out.push({who:c.short,amt:Number(r.amount)||0,due:r.due_date})})});return out}
-function dueSoon(){const out=[];ENTITY_KEYS.forEach(k=>{const c=COMPANIES.find(x=>x.key===k);state.snap[k].payables.forEach(p=>{if(within7(p.due_date))out.push({who:c.short,vendor:p.vendor||"—",amt:Number(p.amount)||0,due:p.due_date})})});return out}
-
-function detailContent(label){
-  const g=metrics("group");
-  if(label==="TREASURY"){
-    return `<div class="dkpi">
-      <div class="k"><div class="l">Group Cash</div><div class="n" style="color:var(--green)">${money(g.cash)}</div></div>
-      <div class="k"><div class="l">Net Position</div><div class="n">${money(g.cash+g.receivables-g.payables)}</div></div>
-      <div class="k"><div class="l">Receivables</div><div class="n" style="color:var(--gold)">${money(g.receivables)}</div></div>
-      <div class="k"><div class="l">Payables</div><div class="n" style="color:var(--red)">${money(g.payables)}</div></div></div>
-      <div class="dsub">By Entity</div>
-      <div class="dlist">${entityRows((k,c)=>{const m=metrics(k);return `<div class="li"><div><div class="nm">${c.short}</div><div class="mt">Recv ${money(m.receivables)} · Pay ${money(m.payables)}</div></div><div class="val" style="font-family:'Playfair Display';font-size:16px;color:var(--green)">${money(m.cash)}</div></div>`})}</div>
-      <div class="dsub">Bank Accounts</div>
-      <div class="dlist">${ENTITY_KEYS.flatMap(k=>{const c=COMPANIES.find(x=>x.key===k);return state.snap[k].bank_accounts.map(b=>`<div class="li"><div><div class="nm">${esc(b.bank_name||"Account")}</div><div class="mt">${c.short} · •••${String(b.account_number||"").slice(-4)} · ${esc(b.currency||"USD")}</div></div><div class="val" style="font-family:'Playfair Display';font-size:16px">${money(b.balance)}</div></div>`)}).join("")||'<div class="li"><span class="mt">No accounts in demo data</span></div>'}</div>`;
-  }
-  if(label==="ASSETS"){
-    const occ=g.units?Math.round(g.occupied/g.units*100):0;
-    return `<div class="dkpi">
-      <div class="k"><div class="l">Total Units</div><div class="n">${g.units}</div></div>
-      <div class="k"><div class="l">Occupancy</div><div class="n" style="color:var(--green)">${occ}%</div></div>
-      <div class="k"><div class="l">Occupied</div><div class="n" style="color:var(--green)">${g.occupied}</div></div>
-      <div class="k"><div class="l">Vacant</div><div class="n" style="color:var(--red)">${g.vacant}</div></div></div>
-      <div class="dsub">Properties</div>
-      <div class="dlist">${ENTITY_KEYS.flatMap(k=>{const c=COMPANIES.find(x=>x.key===k);return state.snap[k].properties.map(p=>{const pu=state.snap[k].units.filter(u=>u.property_id===p.id);return `<div class="li"><div><div class="nm">${esc(p.name||"Property")}</div><div class="mt">${c.short} · ${esc(p.address||"—")}</div></div><div class="dtag t-mut">${pu.length} units</div></div>`})}).join("")||'<div class="li"><span class="mt">No properties in demo data</span></div>'}</div>`;
-  }
-  if(label==="REPORTS"){
-    return `<div class="dnote">Consolidated position across all four entities — live from your database.</div>
-      <div class="dsub">Consolidated Financials</div>
-      <div class="dlist">${entityRows((k,c)=>{const m=metrics(k);return `<div class="li"><div><div class="nm">${c.short}</div><div class="mt">${m.units} units · net ${money(m.cash+m.receivables-m.payables)}</div></div><div class="val" style="font-family:'Playfair Display';font-size:16px;color:var(--green)">${money(m.cash)}</div></div>`})}
-      <div class="li" style="background:var(--panel2)"><div class="nm">GROUP TOTAL</div><div class="val" style="font-family:'Playfair Display';font-size:16px;color:var(--gold)">${money(g.cash)}</div></div></div>
-      <div class="dsub">Generate</div>
-      <button class="btn-gold" data-act="repbrief">${ICONS.doc} BUILD EXECUTIVE REPORT</button>
-      <div class="dnote">PDF export and scheduled emailing arrive in the server build.</div>`;
-  }
-  if(label==="APPROVALS"){
-    const p=state.approvals;
-    return `<div class="dnote">Capex and spend awaiting Chairman sign-off. Approving here is a demo action — nothing leaves the device yet.</div>
-      <div class="dsub">Pending · ${p.filter(x=>x.status==="pending").length}</div>
-      <div class="dlist">${p.map(a=>`<div class="li"><div><div class="nm">${esc(a.item)}</div><div class="mt">${esc(a.who)} · ${money(a.amt)}</div></div>${a.status==="pending"?`<div style="display:flex;gap:6px"><button class="dbtn ok" data-act="approve" data-id="${a.id}">Approve</button><button class="dbtn bad" data-act="decline" data-id="${a.id}">Decline</button></div>`:`<div class="dtag ${a.status==="approved"?"t-ok":"t-bad"}">${a.status}</div>`}</div>`).join("")}</div>`;
-  }
-  if(label==="LEGAL"){
-    const loans=ENTITY_KEYS.flatMap(k=>{const c=COMPANIES.find(x=>x.key===k);return state.snap[k].loans.map(l=>({c:c.short,l}))});
-    return `<div class="dsub">Financing & Liabilities</div>
-      <div class="dlist">${loans.map(x=>`<div class="li"><div><div class="nm">${esc(x.l.lender||"Lender")}</div><div class="mt">${x.c} · ${x.l.interest_rate||"—"}% · principal ${money(x.l.principal)}</div></div><div class="val" style="font-family:'Playfair Display';font-size:16px;color:var(--red)">${money(x.l.outstanding)}</div></div>`).join("")||'<div class="li"><span class="mt">No loans in demo data</span></div>'}</div>
-      <div class="dsub">Documents (demo)</div>
-      <div class="dlist">
-        <div class="li"><div><div class="nm">Lutheran Church Lease — 50yr</div><div class="mt">Cape Realities · Tubman Blvd</div></div><div class="dtag t-ok">Active</div></div>
-        <div class="li"><div><div class="nm">CBL HVAC Contract</div><div class="mt">RED INC · CBL/RFP/22/2025</div></div><div class="dtag t-ok">Signed</div></div>
-        <div class="li"><div><div class="nm">Embassy Compound leases</div><div class="mt">Leone Investment · multiple</div></div><div class="dtag t-warn">Renewal due</div></div>
-      </div>
-      <div class="dnote">Document vault and counsel uploads arrive in the server build.</div>`;
-  }
-  if(label==="ADMIN"){
-    const tc=ENTITY_KEYS.reduce((a,k)=>a+state.snap[k].properties.length+state.snap[k].units.length+state.snap[k].tenants.length+state.snap[k].bank_accounts.length+state.snap[k].loans.length+state.snap[k].receivables.length+state.snap[k].payables.length,0);
-    return `<div class="dsub">Connection</div>
-      <div class="dlist">
-        <div class="li"><span class="lab" style="color:var(--muted)">Supabase</span><span class="dtag ${state.cfg.url?"t-ok":"t-bad"}">${state.cfg.url?"Linked":"Not set"}</span></div>
-        <div class="li"><span class="lab" style="color:var(--muted)">AI proxy</span><span class="dtag ${aiReady()?"t-ok":"t-bad"}">${aiReady()?"Online":"Offline"}</span></div>
-        <div class="li"><span class="lab" style="color:var(--muted)">Entities loaded</span><span class="val" style="font-size:15px">${ENTITY_KEYS.filter(k=>state.snap[k].entity).length} / 4</span></div>
-        <div class="li"><span class="lab" style="color:var(--muted)">Data rows</span><span class="val" style="font-size:15px">${tc}</span></div>
-      </div>
-      <div class="dsub">Data</div>
-      <button class="dbtn" data-act="settings" style="width:100%;padding:11px;margin-bottom:8px">⚙ Open connection settings</button>
-      <button class="dbtn bad" data-act="cleardemo" style="width:100%;padding:11px">⌦ CLEAR ALL DEMO DATA</button>
-      <div class="dwarn">Clear wipes every row so you can load real data fresh. This cannot be undone.</div>`;
-  }
-  if(label==="CAPTURE"){
-    const cams=[["Embassy Gate","Leone"],["Lead Hotel Lobby","Hotel"],["Base 4 Yard","Leone"],["Cape Site","Cape"]];
-    return `<div class="dnote">Live CCTV feeds connect in the server build (RTSP via the Vercel relay). Layout shown for placement.</div>
-      <div class="cam" style="margin-top:12px">${cams.map(c=>`<div class="c">${ICONS.camera}<div class="nm">${c[0]}</div><div class="st">● OFFLINE</div></div>`).join("")}</div>`;
-  }
-  if(label==="ALERTS"){
-    const od=overdue(),ds=dueSoon();
-    return `<div class="dkpi">
-      <div class="k"><div class="l">Overdue Receivables</div><div class="n" style="color:var(--red)">${od.length}</div></div>
-      <div class="k"><div class="l">Payables Due ≤7d</div><div class="n" style="color:var(--amber)">${ds.length}</div></div></div>
-      <div class="dsub">Overdue Receivables</div>
-      <div class="dlist">${od.map(x=>`<div class="li"><div><div class="nm">${x.who}</div><div class="mt">due ${x.due||"—"}</div></div><div class="val" style="font-size:15px;color:var(--red)">${money(x.amt)}</div></div>`).join("")||'<div class="li"><span class="mt">None overdue ✓</span></div>'}</div>
-      <div class="dsub">Payables Due This Week</div>
-      <div class="dlist">${ds.map(x=>`<div class="li"><div><div class="nm">${esc(x.vendor)}</div><div class="mt">${x.who} · due ${x.due||"—"}</div></div><div class="val" style="font-size:15px;color:var(--amber)">${money(x.amt)}</div></div>`).join("")||'<div class="li"><span class="mt">Nothing due ✓</span></div>'}</div>`;
-  }
-  return `<div class="dnote">No view for ${esc(label)}.</div>`;
-}
-function renderDetail(){const t=document.getElementById("detailTitle"),b=document.getElementById("detailBody");if(!t||!b)return;const lab=state.detail;t.textContent=lab.charAt(0)+lab.slice(1).toLowerCase();b.innerHTML=detailContent(lab)}
-function openDetail(label){state.detail=label;renderDetail();document.getElementById("detail").classList.add("show")}
-function closeDetail(){document.getElementById("detail").classList.remove("show")}
-async function clearDemo(){if(!confirm("Delete ALL demo data from every table? This cannot be undone."))return;const db=sb();if(!db){toast("Connect Supabase first");return}toast("Clearing…");const order=["payables","receivables","loans","bank_accounts","tenants","units","properties","entities"];let failed=0;for(const t of order){try{const{error}=await db.from(t).delete().not("id","is",null);if(error)failed++}catch(e){failed++}}state.snap=emptySnap();await loadSnapshot();closeDetail();render();toast(failed?("Cleared with "+failed+" blocked — check table permissions"):"All demo data cleared")}
-
-const app=document.getElementById("app");
-function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
-function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast._);toast._=setTimeout(()=>t.classList.remove("show"),2200)}
-function applyTheme(){document.documentElement.setAttribute("data-theme",state.theme==="day"?"day":"night")}
-function themeBtn(){return `<button class="gear" data-act="theme" title="Day / Night">${state.theme==="day"?"☀":"☾"}</button>`}
-function dashBtn(){return `<button class="btn-line" data-act="home" style="padding:6px 9px;font-size:11px;letter-spacing:.06em">⌂ DASH</button>`}
-function systemsStrip(){
-  const on=aiReady(), data=aiReady();
-  const lt=c=>`<span class="lt" style="background:var(--${c})"></span>`;
-  return `<div class="sys">
-    <span>${lt("green")}SYS NOMINAL</span>
-    <span>${lt(data?"green":"amber")}DATA ${data?"LINK":"STANDBY"}</span>
-    <span>${lt(on?"green":"red")}AI ${on?"ONLINE":"OFFLINE"}</span>
-    <span>${lt("amber")}AUTOPILOT ${state.autopilot?"ENGAGED":"STANDBY"}</span>
-    <span>${lt(state.cfg.wa||state.cfg.email?"green":"amber")}COMMS ${state.cfg.wa||state.cfg.email?"READY":"SETUP"}</span>
-  </div>`;
-}
-function lastAI(){for(let i=state.conv.length-1;i>=0;i--)if(state.conv[i].role==="assistant")return state.conv[i].content;return ""}
-function sendVia(kind){
-  const t=lastAI(); if(!t){toast("Ask Claude to draft a message first");return}
-  if(kind==="wa"){const n=(state.cfg.wa||"").replace(/[^0-9]/g,"");location.href="whatsapp://send?"+(n?("phone="+n+"&"):"")+"text="+encodeURIComponent(t);}
-  else{location.href="mailto:"+(state.cfg.email||"")+"?subject="+encodeURIComponent("From AMI")+"&body="+encodeURIComponent(t);}
-}
-function switcher(){return `<div class="switch">`+COMPANIES.map(c=>`<button class="chip ${state.company===c.key?"on":""}" data-act="company" data-k="${c.key}" style="${state.company===c.key?`border-color:${c.accent}`:""}"><span class="dot" style="background:${c.accent}"></span>${c.short}</button>`).join("")+`</div>`}
-
-function tileEl(lab,val,sub,color){return `<div class="panel" style="padding:14px"><div class="xs cap muted">${lab}</div><div class="serif" style="font-size:24px;margin-top:4px;color:${color}">${val}</div><div class="xs muted" style="margin-top:3px">${sub}</div></div>`}
-
-function homeView(){
-  const g=metrics("group"); const on=aiReady();
-  return `
-  <div class="top">
-    <span class="brand">${ICONS.shield}<span class="cap">AMI</span></span>
-    <span class="badge ${on?"b-nominal":"b-alert"}"><span class="dot blink" style="background:${on?"var(--green)":"var(--red)"}"></span>${on?"NOMINAL":"ALERT"}</span>
-    <span class="clock mono" id="clock">${state.clock}</span>
-    ${themeBtn()}
-    <button class="gear" data-act="settings">⚙</button>
-  </div>
-  <div class="wrap">
-    ${systemsStrip()}
-    <div style="text-align:center;margin-top:24px">
-      <div class="eyebrow cap" style="margin:0">Asset Management Innovations</div>
-      <div class="serif" style="font-size:60px;line-height:1;font-weight:700">AMI<span class="gold">.</span></div>
-      <div class="muted cap xs" style="margin-top:8px;letter-spacing:.34em">Chairman’s Operating System</div>
-      <div class="rule"></div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
-      ${tileEl("Group Cash",money(g.cash),"all entities","var(--green)")}
-      ${tileEl("Receivables",money(g.receivables),"open","var(--gold)")}
-      ${tileEl("Payables",money(g.payables),"open","var(--red)")}
-      ${tileEl("Units",String(g.units),"portfolio","var(--ink)")}
-    </div>
-
-    <button class="enter" data-act="command" style="width:100%;text-align:left;margin-top:16px">
-      <span class="sq">${ICONS.shield}</span>
-      <span><div class="gold cap xs">Open the</div><div class="serif" style="font-size:28px;line-height:1">Command Center</div><div class="muted cap xs" style="margin-top:6px">Brief · Autopilot · Activity</div></span>
-      <span class="arrow">${ICONS.arrow}</span>
-    </button>
-    <button class="enter" data-act="war" style="width:100%;text-align:left;margin-top:12px">
-      <span class="sq">${ICONS.swords}</span>
-      <span><div class="gold cap xs">Enter the</div><div class="serif" style="font-size:28px;line-height:1">War Room</div><div class="muted cap xs" style="margin-top:6px">Cash flow · Alerts · Approvals</div></span>
-      <span class="arrow">${ICONS.arrow}</span>
-    </button>
-
-    <div class="eyebrow cap" style="margin-top:22px">Companies</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
-      ${ENTITY_KEYS.map(k=>{const c=COMPANIES.find(x=>x.key===k);const f=metrics(k);
-        return `<button class="tile" data-act="gocompany" data-k="${k}" style="align-items:flex-start;padding:16px;gap:6px">
-          <span style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:${c.accent}"></span><span class="tl">${c.short}</span></span>
-          <span class="muted xs">Cash ${money(f.cash)}</span></button>`}).join("")}
-    </div>
-
-    <div class="card" style="border-color:var(--linegold)"><div class="pad">
-      <div class="gold cap xs">Add AMI to your iPhone</div>
-      <div class="muted small" style="margin-top:6px">In Safari, tap the Share icon then <b style="color:var(--ink)">Add to Home Screen</b> — AMI gets an app icon and opens full-screen.</div>
-    </div></div>
-  </div>`;
+    const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",
+      headers:{"Content-Type":"text/plain","Authorization":"Bearer "+token},
+      body:JSON.stringify({message:text,section})});
+    const data=await r.json().catch(()=>null);
+    const reply=extract(data)||("Error: "+r.status);
+    wait.innerHTML=render(reply);addCopy(wait,reply);
+    document.getElementById("msgs").scrollTop=document.getElementById("msgs").scrollHeight;
+  }catch(e){wait.innerHTML="Connection error: "+esc(e.message);}
+  finally{setBusy(false);}
 }
 
-function commandView(){
-  const on=aiReady() && state.briefStatus!=="error";
-  const briefBadge=state.briefStatus==="error"?`<span class="badge b-degraded">DEGRADED</span>`:state.briefStatus==="loading"?`<span class="badge b-degraded">WORKING…</span>`:`<span class="badge b-nominal">NOMINAL</span>`;
-  const briefTitle=state.brief?(state.brief.ok?"Today’s brief ready":"Chief of Staff unreachable"):"No brief yet";
-  const briefBody=state.brief?esc(state.brief.text):"Tap RE-BRIEF to generate today’s brief from your live data.";
-  const briefTime=state.brief?state.brief.time:"—";
-  return `
-  <div class="top">
-    ${dashBtn()}
-    <span class="brand" data-act="home">${ICONS.shield}<span class="cap">AMI</span></span>
-    <span class="badge ${on?"b-nominal":"b-alert"}"><span class="dot blink" style="background:${on?"var(--green)":"var(--red)"}"></span>${on?"NOMINAL":"ALERT"}</span>
-    <span class="clock mono" id="clock">${state.clock}</span>
-    ${themeBtn()}
-    <button class="gear" data-act="settings">⚙</button>
-  </div>
-  <div class="wrap">
-    ${systemsStrip()}
-    <div class="eyebrow cap">Asset Management Innovations</div>
-    <h1 class="big serif">Chairman Command Center</h1>
-    ${switcher()}
-    <div class="card"><div class="pad">
-      <div class="between">
-        <span class="gold cap" style="font-size:12px;font-weight:600"><span class="dot" style="background:var(--gold)"></span>&nbsp; Chief of Staff · ${on?"Online":"Offline"}</span>
-        <button class="btn-line" data-act="brief">RE-BRIEF</button>
-      </div>
-      <button class="btn-gold" style="margin-top:14px" data-act="listen">${ICONS.mic} LISTEN TO BRIEF</button>
-    </div>
-    <div class="divider"></div>
-    <div class="pad">
-      <div class="between"><span class="gold cap xs">Today’s brief · ${briefTime}</span>${briefBadge}</div>
-      <div style="font-size:19px;margin-top:8px">${briefTitle}</div>
-      <div class="muted small" style="margin-top:6px;white-space:pre-wrap">${briefBody}</div>
-    </div></div>
-    <button class="enter" data-act="war" style="width:100%;text-align:left">
-      <span class="sq">${ICONS.swords}</span>
-      <span><div class="gold cap xs">Enter the</div><div class="serif" style="font-size:30px;line-height:1">War Room</div><div class="muted cap xs" style="margin-top:6px">Cash flow · Critical alerts · Approvals</div></span>
-      <span class="arrow">${ICONS.arrow}</span>
-    </button>
-    <div class="card"><div class="pad between">
-      <span style="display:flex;gap:14px;align-items:center">
-        <span style="width:46px;height:46px;border:1px solid var(--gold);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--gold)">${ICONS.power}</span>
-        <span><div class="gold cap" style="font-size:12px;font-weight:600">Autopilot</div><div class="muted small" style="margin-top:4px">Standby — Chairman approval required for all actions.</div></span>
-      </span>
-      <button class="toggle ${state.autopilot?"on":""}" data-act="autopilot"><span class="knob"></span></button>
-    </div></div>
-    <div class="tiles">${TILES.map(t=>`<button class="tile" data-act="tile" data-l="${t[1]}"><span class="ti">${ICONS[t[0]]}</span><span class="tl">${t[1]}</span></button>`).join("")}</div>
-    <div class="sec" style="margin-top:18px">
-      <div class="head"><span class="gold cap">Company Database · Activity Feed</span><span class="right">LAST 24H</span></div>
-      <div>${FEED.map(f=>`<div class="act"><span class="t mono">${f.t}</span><span class="dot" style="background:var(--${f.tone});margin-top:5px"></span><span class="tag">${f.tag}</span><span class="m">${f.m}</span></div>`).join("")}</div>
-    </div>
-  </div>`;
+function mic(fieldId){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const field=document.getElementById(fieldId);
+  if(!SR){field.focus();return;}
+  const r=new SR();r.lang="en-US";r.interimResults=false;
+  r.onresult=e=>{field.value=e.results[0][0].transcript;field.focus();};
+  try{r.start();}catch(_){field.focus();}
 }
-
-function warView(){
-  const m=metrics();const occWidth=m.units?Math.round((m.occupied/m.units)*100):0;
-  const conv=state.conv.map(x=>`<div class="bub ${x.role==="user"?"me":"ai"}">${esc(x.content)}</div>`).join("");
-  return `
-  <div class="top">
-    <button class="btn-line" data-act="command" style="letter-spacing:.06em;padding:7px 9px;font-size:11px">← CMD</button>
-    ${dashBtn()}
-    <span class="brand" data-act="home">${ICONS.shield}<span class="cap">AMI</span></span>
-    <span class="badge b-nominal"><span class="dot" style="background:var(--green)"></span>NOMINAL</span>
-    <span class="badge b-live">((•)) LIVE</span>
-    <span class="clock mono" id="clock">${state.clock}</span>
-    ${themeBtn()}
-  </div>
-  <div class="wrap">
-    ${systemsStrip()}
-    <div style="text-align:center;margin-top:18px">
-      <div class="gold cap" style="font-size:12px;font-weight:600">Chairman’s Theatre</div>
-      <div class="serif gold" style="font-size:42px;font-weight:700;letter-spacing:.02em">WAR ROOM</div>
-      <div class="rule"></div>
-    </div>
-    <button class="btn-gold" style="margin-top:8px" data-act="brief">${ICONS.target} POSITION &nbsp;·&nbsp; CHIEF OF STAFF BRIEF</button>
-    <div class="sec">
-      <div class="head">${ICONS.spark}<span class="gold cap">Advisor</span><span class="right">${state.busy?"WORKING…":"IDLE"}</span></div>
-      ${conv?`<div class="msgs" id="msgs">${conv}</div>`:""}
-      <div class="adv-in"><input id="ask" placeholder="Ask the Chief of Staff…" /><button class="icbtn" data-act="voicein">${ICONS.mic}</button><button class="send" data-act="send">SEND</button></div>
-      <div class="comms">
-        <button class="wa" data-act="wa">↪ Send last reply via WhatsApp</button>
-        <button class="em" data-act="email">↪ Email last reply</button>
-      </div>
-    </div>
-    <div class="sec">
-      <div class="head">${ICONS.dollar}<span class="gold cap">Cash Flow Situation</span><span class="right">LIVE</span></div>
-      <div class="cashrow"><div class="k">${ICONS.dollar} CURRENT POSITION</div><div class="v gold">${money(m.cash)}</div><div class="s">ACROSS ALL ACCOUNTS</div></div>
-      <div class="cashrow"><div class="k" style="color:var(--green)">${ICONS.up} INCOMING</div><div class="v" style="color:var(--green)">${money(m.incoming)}</div><div class="s">NEXT 7 DAYS</div></div>
-      <div class="cashrow"><div class="k" style="color:var(--red)">${ICONS.down} OUTGOING</div><div class="v" style="color:var(--red)">${money(m.outgoing)}</div><div class="s">NEXT 7 DAYS</div></div>
-    </div>
-    <div class="sec">
-      <div class="head">${ICONS.people}<span class="gold cap">Portfolio Occupancy</span><span class="right">${m.units} UNITS</span></div>
-      <div style="padding-top:16px"></div>
-      <div class="bar"><i style="width:${occWidth}%"></i></div>
-      <div class="occ-grid">
-        <div class="occ"><div class="l"><span class="dot" style="background:var(--green)"></span>OCCUPIED</div><div class="n" style="color:var(--green)">${m.occupied}</div></div>
-        <div class="occ"><div class="l"><span class="dot" style="background:var(--blue)"></span>LEASED</div><div class="n" style="color:var(--blue)">${m.leased}</div></div>
-        <div class="occ"><div class="l"><span class="dot" style="background:var(--amber)"></span>ACTIVE</div><div class="n" style="color:var(--amber)">${m.active}</div></div>
-        <div class="occ"><div class="l"><span class="dot" style="background:var(--red)"></span>VACANT</div><div class="n" style="color:var(--red)">${m.vacant}</div></div>
-        <div class="occ"><div class="l"><span class="dot" style="background:var(--purple)"></span>PENDING</div><div class="n" style="color:var(--purple)">${m.pending}</div></div>
-      </div>
-    </div>
-    <div class="eyebrow cap" style="margin-top:20px">Vaults</div>
-    <div class="vaults">
-      <div class="vault"><span class="vi">${ICONS.vault}</span><span><div class="vt">AMI VAULT</div><div class="vs">COMPANY DOCUMENTS</div></span></div>
-      <div class="vault"><span class="vi">${ICONS.lock}</span><span><div class="vt">PERSONAL VAULT</div><div class="vs">CHAIRMAN PRIVATE</div></span></div>
-    </div>
-    <div class="sec">
-      <div class="head">${ICONS.chat}<span class="gold cap">WhatsApp · Live</span><span class="right">TODAY</span></div>
-      <div class="wa-on">${ICONS.chat} WHATSAPP · LIVE <span class="dot blink" style="background:var(--green)"></span></div>
-      ${WA.map(w=>`<div class="feedline"><div class="feedhead"><span style="color:var(--${w.dir==="IN"?"green":"red"})">${w.dir} ${w.dir==="IN"?"▾":"▴"}</span><span class="muted mono">${w.t}</span><span class="gold">${w.who}</span></div><div class="feedmsg">${w.msg}</div></div>`).join("")}
-    </div>
-    <div class="sec">
-      <div class="head">${ICONS.bell}<span class="gold cap">Critical Alerts</span><span class="right">REAL-TIME</span></div>
-      <div class="body muted">No active alerts.</div>
-    </div>
-  </div>`;
-}
-
-function render(){
-  let body=state.view==="war"?warView():state.view==="home"?homeView():commandView();
-  if(!aiReady() && state.view==="command"){body=body.replace('<div class="wrap">','<div class="wrap"><div class="card" style="margin-top:14px;border-color:var(--gold)"><div class="pad"><div class="serif" style="font-size:18px">Connect your data</div><p class="note" style="margin-top:6px">Tap ⚙ and add your Supabase URL + anon key. Until then values read $0 and the brief is offline.</p></div></div>');}
-  app.innerHTML=body;
-  const mm=document.getElementById("msgs"); if(mm)mm.scrollTop=mm.scrollHeight;
-}
-
-function pushMsg(role,content){state.conv.push({role,content});store.set("ami_conv",state.conv);const m=document.getElementById("msgs");if(m){const b=document.createElement("div");b.className="bub "+(role==="user"?"me":"ai");b.textContent=content;m.appendChild(b);m.scrollTop=m.scrollHeight}}
-async function send(text){const q=(text||"").trim();if(!q||state.busy)return;
-  if(!document.getElementById("msgs")){state.conv.push({role:"user",content:q});store.set("ami_conv",state.conv);render();}else pushMsg("user",q);
-  state.busy=true;const hd=document.querySelector(".sec .head .right");if(hd&&hd.textContent.indexOf("IDLE")>=0)hd.textContent="WORKING…";
-  try{const out=await callClaude(state.conv.map(x=>({role:x.role,content:x.content})),false);pushMsg("assistant",out);}
-  catch(e){pushMsg("assistant","⚠ "+e.message);}
-  finally{state.busy=false;const h=document.querySelector(".sec .head .right");if(h&&h.textContent==="WORKING…")h.textContent="IDLE";}}
-
-document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el)return;const a=el.getAttribute("data-act");
-  if(a==="war"){state.view="war";render()}
-  else if(a==="command"){state.view="command";render()}
-  else if(a==="home"){state.view="home";render()}
-  else if(a==="company"){state.company=el.getAttribute("data-k");render()}
-  else if(a==="gocompany"){state.company=el.getAttribute("data-k");state.view="command";render()}
-  else if(a==="settings"){openSettings(true)}
-  else if(a==="closeSettings"){openSettings(false)}
-  else if(a==="save"){saveSettings()}
-  else if(a==="autopilot"){state.autopilot=!state.autopilot;render();toast(state.autopilot?"Autopilot engaged — approvals still required":"Autopilot on standby")}
-  else if(a==="brief"){generateBrief()}
-  else if(a==="listen"){listen()}
-  else if(a==="send"){const i=document.getElementById("ask");const v=i.value;i.value="";send(v)}
-  else if(a==="voicein"){startVoice()}
-  else if(a==="theme"){state.theme=state.theme==="day"?"night":"day";store.set("ami_theme",state.theme);applyTheme();render()}
-  else if(a==="wa"){sendVia("wa")}
-  else if(a==="email"){sendVia("email")}
-  else if(a==="tile"){const l=el.getAttribute("data-l");
-    if(l==="BRIEFS"){state.view="command";generateBrief()}
-    else if(l==="ADVISOR"||l==="COMMAND"){state.view="war";render();setTimeout(()=>{const i=document.getElementById("ask");if(i)i.focus()},60)}
-    else openDetail(l);}
-  else if(a==="detailClose"){closeDetail()}
-  else if(a==="approve"){const id=+el.getAttribute("data-id");const x=state.approvals.find(z=>z.id===id);if(x){x.status="approved";renderDetail();toast("Approved — Chairman sign-off recorded (demo)")}}
-  else if(a==="decline"){const id=+el.getAttribute("data-id");const x=state.approvals.find(z=>z.id===id);if(x){x.status="declined";renderDetail();toast("Declined")}}
-  else if(a==="cleardemo"){clearDemo()}
-  else if(a==="repbrief"){closeDetail();state.view="command";generateBrief()}
-});
-document.addEventListener("keydown",e=>{if(e.key==="Enter"){const i=document.getElementById("ask");if(i&&document.activeElement===i){const v=i.value;i.value="";send(v)}}});
-
-function startVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast("Voice input not supported here");return}const r=new SR();r.lang="en-US";r.onresult=ev=>{const t=ev.results[0][0].transcript;const i=document.getElementById("ask");if(i)i.value=t;send(t)};r.start();toast("Listening…")}
-function openSettings(s){const md=document.getElementById("settings");if(s){document.getElementById("cfgUrl").value=state.cfg.url;document.getElementById("cfgAnon").value=state.cfg.anon;document.getElementById("cfgWa").value=state.cfg.wa||"";document.getElementById("cfgEmail").value=state.cfg.email||"";md.classList.add("show")}else md.classList.remove("show")}
-async function saveSettings(){state.cfg={url:document.getElementById("cfgUrl").value.trim(),anon:document.getElementById("cfgAnon").value.trim(),wa:document.getElementById("cfgWa").value.trim(),email:document.getElementById("cfgEmail").value.trim()};store.set("ami_cfg",state.cfg);openSettings(false);toast("Connecting…");await loadSnapshot();render();}
-
-setInterval(()=>{state.clock=new Date().toLocaleTimeString("en-GB",{hour12:false});const c=document.getElementById("clock");if(c)c.textContent=state.clock},1000);
-(async function(){applyTheme();state.clock=new Date().toLocaleTimeString("en-GB",{hour12:false});if(state.cfg.url){await loadSnapshot()}render();})();
 </script>
 </body>
 </html>
