@@ -154,6 +154,9 @@
   .td .st.awaiting{background:rgba(217,164,65,.18);color:#d9a441;}.td .st.confirmed{background:rgba(41,191,120,.18);color:#29bf78;}
   .td .st.cancelled,.td .st.superseded{background:rgba(255,255,255,.06);color:var(--muted);}
   .td pre{white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.5;margin-top:6px;}
+  .td .ti{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.45;transition:opacity .2s;}
+  .td .ti span{flex:1;min-width:0;overflow-wrap:anywhere;}
+  .td button.dn{flex:none;border:1px solid rgba(41,191,120,.5);background:rgba(41,191,120,.12);color:#29bf78;border-radius:9px;padding:6px 12px;font-weight:600;font-size:12.5px;cursor:pointer;}
   .td button.cf{margin-top:8px;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));}
   .rb.on{background:#e65050;border-color:#e65050;color:#fff;animation:pulse 1.4s infinite;}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(230,80,80,.55);}70%{box-shadow:0 0 0 12px rgba(230,80,80,0);}100%{box-shadow:0 0 0 0 rgba(230,80,80,0);}}
@@ -405,7 +408,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=42;
+const AMI_LEVEL=43;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -556,22 +559,28 @@ async function brainRefresh(btn){btn.disabled=true;btn.textContent="Refreshing�
   try{const d=await api({action:"brain_refresh"});toast(d.reply||"Refreshing…",6000);setTimeout(()=>{if(chatOpen()&&section==="Group Position")openPosition();},70000);}
   catch(e){toast("Error: "+e.message);btn.disabled=false;btn.textContent="🔄 Refresh now";}}
 /* ===== To-do list ===== */
+let TODO=[];
 async function openTodo(){
   openChat("To-do list");
-  const w=bubble("a","Loading your lists…");
-  try{const d=await api({action:"todo"});const L=d.lists||[];
-    if(!L.length){w.innerHTML="No lists yet. Your 9pm call (or tap <b>Call me</b>) creates one.";return;}
-    const lab={awaiting:"Waiting for confirm",confirmed:"Confirmed",cancelled:"Cancelled",superseded:"Replaced"};
-    let h='<div class="td">';
-    L.forEach((x,i)=>{const t=x.sent_at?new Date(x.sent_at).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"";
-      h+=(i?'<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">':'')+'<b>'+(x.kind==="evening"?"Tomorrow's list":x.kind==="inbox"?"From your email":"Orders")+'</b> <span style="color:var(--muted);font-size:12px">'+esc(t)+'</span>'+
-        '<span class="st '+esc(x.orders_status||"")+'">'+(lab[x.orders_status]||"")+'</span><pre>'+esc(x.orders||"")+'</pre>'+
-        (x.orders_status==="awaiting"?'<button class="cf" onclick="confirmTodo(this)">✅ Confirm</button>':'');});
-    w.innerHTML=h+'</div>';w.style.maxWidth="100%";
-  }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
+  const w=bubble("a","Loading your to-do list…");
+  try{const d=await api({action:"todo"});TODO=d.lists||[];renderTodo(w);}
+  catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
 }
-async function confirmTodo(btn){btn.disabled=true;btn.textContent="Confirming…";
-  try{const d=await api({action:"todo_confirm"});btn.textContent="✅ Confirmed";toast(d.reply||"Confirmed",5000);}catch(e){btn.disabled=false;btn.textContent="✅ Confirm";toast("Error: "+e.message);}}
+function todoItems(x){const done=x.done_items||[];
+  return String(x.orders||"").split("\n").map(l=>l.trim()).filter(l=>l&&!done.includes(l));}
+function renderTodo(w){
+  let h='<div class="td">',n=0;
+  TODO.forEach((x,i)=>{const items=todoItems(x);if(!items.length)return;
+    const t=x.sent_at?new Date(x.sent_at).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+    h+=(n++?'<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">':'')+'<b>'+(x.kind==="evening"?"Tomorrow's list":x.kind==="inbox"?"From your email":"Orders")+'</b> <span style="color:var(--muted);font-size:12px">'+esc(t)+'</span>';
+    items.forEach(l=>{h+='<div class="ti"><span>'+esc(l.replace(/^\d+[.)]\s*|^[-•*]\s*/,""))+'</span><button class="dn" data-i="'+i+'" data-l="'+esc(l)+'" onclick="todoDone(this)">✓ Done</button></div>';});});
+  w.innerHTML=n?h+'</div>':"✅ All clear, Chairman — nothing left on your To-do list.";w.style.maxWidth="100%";
+}
+async function todoDone(btn){const x=TODO[+btn.dataset.i],l=btn.dataset.l,row=btn.parentNode;
+  btn.disabled=true;row.style.opacity=".35";
+  try{const d=await api({action:"todo_done",call_sid:x.call_sid,item:l});if(!d.ok)throw new Error(d.reply||"not saved");
+    x.done_items=d.done_items;setTimeout(()=>renderTodo(row.closest(".td").parentNode),250);}
+  catch(e){btn.disabled=false;row.style.opacity="";toast("Error: "+e.message);}}
 
 function chatOpen(){return document.getElementById("chat").classList.contains("show");}
 function openChat(title,greet){
