@@ -216,6 +216,26 @@
     .name{font-size:26px;}
     .m{max-width:62%;}
   }
+  /* Design Studio tools + drawing pad */
+  .stools{display:none;gap:6px;padding:8px 12px 0;overflow-x:auto;scrollbar-width:none;}
+  .stools.show{display:flex;}
+  .stools button{flex:0 0 auto;border:1px solid var(--panelbd);background:var(--panel);color:var(--ink);border-radius:20px;padding:8px 12px;font:500 13px "Inter",sans-serif;cursor:pointer;white-space:nowrap;}
+  .stools button:hover{border-color:var(--gold);color:var(--gold2);}
+  .schip{display:none;align-items:center;gap:8px;margin:6px 12px 0;padding:6px 8px;border:1px dashed var(--gold);border-radius:12px;font-size:12.5px;color:var(--muted);}
+  .schip.show{display:flex;}.schip img{height:40px;border-radius:6px;}.schip button{margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
+  .pad{position:fixed;inset:0;z-index:90;background:#0b1322;display:none;flex-direction:column;}
+  .pad.show{display:flex;}
+  .padbar{display:flex;gap:6px;align-items:center;padding:8px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-top:calc(8px + env(safe-area-inset-top));}
+  .padbar button,.padbar select,.padbar input{border:1px solid var(--panelbd);background:var(--panel);color:var(--ink);border-radius:10px;padding:7px 10px;font:500 13px "Inter",sans-serif;cursor:pointer;}
+  .padbar button.on{border-color:var(--gold2);color:var(--gold2);background:rgba(199,154,60,.12);}
+  .padbar .sw{width:26px;height:26px;padding:0;border-radius:50%;}
+  .padbar .t{font-family:"Cormorant Garamond",serif;font-size:19px;color:var(--gold2);margin-right:6px;}
+  .padwrap{flex:1;min-height:0;position:relative;background:#fff;}
+  #padc{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;}
+  .padsend{display:flex;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);align-items:center;}
+  .padsend input{flex:1;min-width:0;border:1px solid var(--panelbd);border-radius:20px;padding:10px 14px;background:rgba(255,255,255,.04);color:var(--ink);font-size:14px;outline:none;}
+  .padsend button{border:none;border-radius:20px;padding:10px 12px;font:600 13px "Inter",sans-serif;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;white-space:nowrap;}
+  .padsend button.g{background:var(--panel);color:var(--ink);border:1px solid var(--panelbd);}
   .pg{min-width:190px;}
   .pgt{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:7px;}
   .pgt b{color:var(--gold2);font-weight:600;}
@@ -281,11 +301,46 @@
     <button class="rb solid snd" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
   <input type="file" id="cam" accept="image/*" capture="environment" onchange="gotPhoto(this)">
+  <input type="file" id="sketchin" accept="image/*" style="display:none" onchange="gotSketch(this)">
+  <div class="pad" id="pad">
+    <div class="padbar">
+      <span class="t" id="padt">Drawing pad</span>
+      <button id="pPen" class="on" onclick="padTool('pen')">✏️ Pen</button>
+      <button id="pEra" onclick="padTool('erase')">🧽 Eraser</button>
+      <button id="pDim" onclick="padTool('dim')">📏 Dimension</button>
+      <button class="sw" style="background:#111" onclick="padColor('#111111')" aria-label="Black"></button>
+      <button class="sw" style="background:#c0392b" onclick="padColor('#c0392b')" aria-label="Red"></button>
+      <button class="sw" style="background:#1f5fbf" onclick="padColor('#1f5fbf')" aria-label="Blue"></button>
+      <select id="pW" onchange="padW=+this.value" aria-label="Pen size"><option value="2">Fine</option><option value="4" selected>Medium</option><option value="8">Bold</option></select>
+      <button id="pGrid" onclick="padGrid()">▦ Grid</button>
+      <span id="pScaleW" style="display:none;font-size:12px;color:var(--muted)">1 square = <input id="pScale" type="number" value="1" step="0.5" min="0.1" style="width:60px"> m</span>
+      <button onclick="padUndo()">↶ Undo</button>
+      <button onclick="padClear()">🗑️ Clear</button>
+      <button onclick="closePad()" style="margin-left:auto">✕ Close</button>
+    </div>
+    <div class="padwrap" id="padwrap"><canvas id="padc"></canvas></div>
+    <div class="padsend">
+      <input id="padq" placeholder="What should AMI do? (e.g. 3-bed villa, render in white stone)">
+      <button class="g" onclick="padUse()">Use</button>
+      <button onclick="padSend('adjust')">Adjust</button>
+      <button onclick="padSend('render')">Render</button>
+      <button onclick="padSend('3d')">3D</button>
+    </div>
+  </div>
 
   <div class="chat" id="chat">
     <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI</div></div>
     <div class="msgs" id="msgs"></div>
     <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
+    <div class="stools" id="stools">
+      <button onclick="openPad(false)">✏️ Drawing pad</button>
+      <button onclick="openPad(true)">📏 Measure pad</button>
+      <button onclick="pickSketch()">📤 Upload sketch</button>
+      <button onclick="studioDo('render')">🏛️ Render</button>
+      <button onclick="studioDo('3d')">🧊 3D</button>
+      <button onclick="studioDo('adjust')">🛠️ Adjust</button>
+    </div>
+    <div class="schip" id="schip"><img id="schipimg" alt=""><span>Sketch ready — tap Render, 3D or Adjust, or type what to do and send.</span><button onclick="clearSketch()" aria-label="Remove">✕</button></div>
     <div class="cbar">
       <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
@@ -350,7 +405,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=41;
+const AMI_LEVEL=42;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -408,13 +463,23 @@ async function openPosition(){
   const w=bubble("a","Loading your group position…");
   try{const d=await api({action:"position"});const b=d.position;
     if(!b){w.innerHTML="No position loaded yet.";return;}
+    const links='<div class="card"><div class="lbl">Master Brain</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'+
+      '<button class="cf" onclick="brainRefresh(this)">🔄 Refresh now</button>'+
+      (d.master_url?'<a class="cf" style="text-decoration:none;background:var(--line);color:var(--ink)" href="'+esc(d.master_url)+'" target="_blank" rel="noopener">📊 Master sheet</a>':'')+
+      (d.forms_folder?'<a class="cf" style="text-decoration:none;background:var(--line);color:var(--ink)" href="'+esc(d.forms_folder)+'" target="_blank" rel="noopener">📝 Monthly forms</a>':'')+
+      '</div><div class="note">Each company fills its monthly form and sets Status to READY. Refresh imports READY forms and recalculates everything (automatic on the 5th).</div></div>';
     let h='<div class="gp"><div class="card"><div class="lbl">Group net position · '+esc(b.updated)+'</div><div class="big '+cls(b.total.net)+'">'+money(b.total.net)+'</div>'+
       '<table><tr><td>Cash</td><td class="'+cls(b.total.cash)+'">'+money(b.total.cash)+'</td></tr><tr><td>Receivables</td><td>'+money(b.total.receivables)+'</td></tr>'+
       '<tr><td>Payables</td><td class="neg">'+money(b.total.payables)+'</td></tr><tr><td>Bank debt</td><td class="neg">'+money(b.total.bank_debt)+'</td></tr></table>'+
-      '<div class="note">'+esc(b.note)+'</div></div>';
+      '<div class="note">'+esc(b.note)+'</div></div>'+links;
+    if(b.chairman&&(b.chairman.owes_companies||b.chairman.companies_owe_him))h+='<div class="card"><div class="lbl">You ↔ companies</div><table><tr><td>You owe the companies</td><td class="neg">'+money(b.chairman.owes_companies)+'</td></tr><tr><td>Companies owe you</td><td class="pos">'+money(b.chairman.companies_owe_him)+'</td></tr></table></div>';
     h+='<div class="card"><div class="lbl">By company</div><div class="scroll"><table><tr><th></th><th>Cash</th><th>Receiv.</th><th>Payables</th><th>Bank debt</th><th>Net</th></tr>';
     b.companies.forEach(c=>{h+='<tr><td>'+esc(c.name)+'<br><span style="color:var(--muted);font-size:10px">'+esc(c.as_of)+'</span></td><td>'+money(c.cash)+'</td><td>'+money(c.receivables)+'</td><td>'+money(c.payables)+'</td><td>'+money(c.bank_debt)+'</td><td class="'+cls(c.net)+'"><b>'+money(c.net)+'</b></td></tr>';});
     h+='</table></div></div>';
+    const cl=[];(b.companies||[]).forEach(c=>(c.contracts_list||[]).forEach(k=>cl.push([c.name,k])));
+    if(cl.length){h+='<div class="card"><div class="lbl">Contracts (remaining value)</div><div class="scroll"><table><tr><th>Contract</th><th>Entity</th><th>Remaining</th></tr>';
+      cl.forEach(([n,k])=>{h+='<tr><td>'+esc(k.name)+'</td><td style="color:var(--muted)">'+esc(n)+'</td><td>'+(k.value?money(k.value):'<span style="color:var(--muted)">to fill</span>')+'</td></tr>';});
+      h+='</table></div></div>';}
     const gf=b.group_flow,m=b.months;
     h+='<div class="card"><div class="lbl">Cash flow — this month</div><div class="big '+cls(gf.net[0])+'">'+money(gf.net[0])+'</div><div class="note">'+esc(m[0])+': in '+money(gf.in[0])+' · out '+money(gf.out[0])+'</div></div>';
     h+='<div class="card"><div class="lbl">Next 12 months</div><div class="scroll"><table><tr><th>Month</th><th>In</th><th>Out</th><th>Net</th></tr>';
@@ -467,7 +532,7 @@ async function calAdd(btn){const v=id=>document.getElementById(id).value.trim();
   try{const d=await api({action:"events_add",event:ev});toast(d.reply||"Saved",4000);document.getElementById("cvT").value="";document.getElementById("cvN").value="";calList();}
   catch(e){toast("Error: "+e.message);}btn.disabled=false;btn.textContent="Save";}
 async function calDel(id){if(!confirmDel(id))return;try{const d=await api({action:"events_delete",id});toast(d.reply||"Deleted");calList();}catch(e){toast("Error: "+e.message);}}
-let _delArm="";function confirmDel(id){if(_delArm===id){_delArm="";return true;}_delArm=id;toast("Tap ✕ again to delete.",3000);setTimeout(()=>{if(_delArm===id)_delArm="";},3000);return false;}
+let _delArm="";function confirmDel(id){if(_delArm===id){_delArm="";return true;}_delArm=id;toast("Tap again to confirm.",3000);setTimeout(()=>{if(_delArm===id)_delArm="";},3000);return false;}
 /* ===== Inbox: morning email brief ===== */
 async function openInbox(){
   openChat("Inbox");
@@ -487,6 +552,9 @@ async function inboxDo(btn,act){btn.disabled=true;const old=btn.textContent;btn.
   try{const d=await api({action:act});btn.textContent=old;toast(d.reply||"Done",6000);
     btn.parentElement.querySelectorAll("button").forEach(b=>{if(act!=="inbox_check")b.disabled=true;});}
   catch(e){btn.disabled=false;btn.textContent=old;toast("Error: "+e.message);}}
+async function brainRefresh(btn){btn.disabled=true;btn.textContent="Refreshing…";
+  try{const d=await api({action:"brain_refresh"});toast(d.reply||"Refreshing…",6000);setTimeout(()=>{if(chatOpen()&&section==="Group Position")openPosition();},70000);}
+  catch(e){toast("Error: "+e.message);btn.disabled=false;btn.textContent="🔄 Refresh now";}}
 /* ===== To-do list ===== */
 async function openTodo(){
   openChat("To-do list");
@@ -496,7 +564,7 @@ async function openTodo(){
     const lab={awaiting:"Waiting for confirm",confirmed:"Confirmed",cancelled:"Cancelled",superseded:"Replaced"};
     let h='<div class="td">';
     L.forEach((x,i)=>{const t=x.sent_at?new Date(x.sent_at).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"";
-      h+=(i?'<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">':'')+'<b>'+(x.kind==="evening"?"Tomorrow's list":"Orders")+'</b> <span style="color:var(--muted);font-size:12px">'+esc(t)+'</span>'+
+      h+=(i?'<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">':'')+'<b>'+(x.kind==="evening"?"Tomorrow's list":x.kind==="inbox"?"From your email":"Orders")+'</b> <span style="color:var(--muted);font-size:12px">'+esc(t)+'</span>'+
         '<span class="st '+esc(x.orders_status||"")+'">'+(lab[x.orders_status]||"")+'</span><pre>'+esc(x.orders||"")+'</pre>'+
         (x.orders_status==="awaiting"?'<button class="cf" onclick="confirmTodo(this)">✅ Confirm</button>':'');});
     w.innerHTML=h+'</div>';w.style.maxWidth="100%";
@@ -510,12 +578,16 @@ function openChat(title,greet){
   section=title||"Ask AMI";
   document.getElementById("ctitle").textContent=section==="Ask AMI"?"AMI":section;
   document.getElementById("msgs").innerHTML="";
+  document.getElementById("stools").classList.toggle("show",section==="Design Studio");
+  if(section!=="Design Studio")clearSketch();
   if(greet)bubble("a",esc(greet));
   document.getElementById("chat").classList.add("show");
 }
 function closeChat(){stopVoice();document.getElementById("chat").classList.remove("show");}
 function quick(title,prompt){openChat(title);ask(prompt);}
-function go(){if(busy)return;const q=document.getElementById("q");const t=q.value.trim();if(!t)return;q.value="";ask(t);}
+function go(){if(busy)return;const q=document.getElementById("q");const t=q.value.trim();
+  if(studioImg&&section==="Design Studio"){q.value="";const im=studioImg;clearSketch();ask(t||STUDIO_ASK.adjust,im);return;}
+  if(!t)return;q.value="";ask(t);}
 function goHome(){if(busy)return;const i=document.getElementById("home-q");const t=i.value.trim();if(!t)return;i.value="";openChat("Ask AMI");ask(t);}
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -570,6 +642,68 @@ async function ask(text,image){
   finally{clearInterval(timer);setBusy(false);}
 }
 
+/* ===== Design Studio: sketch upload, drawing / measurement pad, render / 3D ===== */
+let studioImg="";
+const STUDIO_ASK={
+  render:"Turn this sketch into a photorealistic architectural render. Keep the layout, proportions and any dimensions exactly; add realistic materials, daylight and landscaping suited to West Africa.",
+  "3d":"Turn this sketch into a 3D perspective render (aerial three-quarter view) showing the massing, roof, openings and site. Keep the layout and dimensions exactly.",
+  adjust:"Clean up and adjust this sketch into a neat, professional architectural drawing. Keep the layout and all dimensions; straighten lines and label rooms."};
+function setSketch(b64){studioImg=b64;document.getElementById("schipimg").src="data:image/jpeg;base64,"+b64;document.getElementById("schip").classList.add("show");}
+function clearSketch(){studioImg="";const c=document.getElementById("schip");if(c)c.classList.remove("show");}
+function pickSketch(){document.getElementById("sketchin").click();}
+function shrink(f,cb){const img=new Image(),url=URL.createObjectURL(f);img.onload=()=>{const max=1536;let w=img.width,h=img.height;
+  if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
+  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);
+  URL.revokeObjectURL(url);cb(c.toDataURL("image/jpeg",0.85).split(",")[1]);};img.onerror=()=>{URL.revokeObjectURL(url);toast("Couldn't read that image.");};img.src=url;}
+let afterPick="";
+function gotSketch(inp){const f=inp.files&&inp.files[0];inp.value="";if(!f)return;shrink(f,b=>{setSketch(b);if(afterPick){const k=afterPick;afterPick="";studioDo(k);}});}
+function studioDo(kind){if(busy)return;
+  if(!studioImg){afterPick=kind;pickSketch();return;}
+  const q=document.getElementById("q");const extra=q.value.trim();q.value="";
+  const im=studioImg;clearSketch();ask(STUDIO_ASK[kind]+(extra?" Also: "+extra:""),im);}
+/* drawing pad (pen, eraser, dimensions on a measured grid) */
+const PAD={strokes:[],tool:"pen",color:"#111111",grid:false,measure:false,cur:null};let padW=4;const GRID=40;
+function padCv(){return document.getElementById("padc");}
+function openPad(measure){PAD.measure=measure;PAD.grid=measure||PAD.grid;document.getElementById("padt").textContent=measure?"Measure pad":"Drawing pad";
+  document.getElementById("pScaleW").style.display=measure?"inline":"none";document.getElementById("pDim").style.display=measure?"":"none";
+  document.getElementById("pGrid").classList.toggle("on",PAD.grid);padTool(measure?"dim":"pen");
+  document.getElementById("pad").classList.add("show");padResize();}
+function closePad(){document.getElementById("pad").classList.remove("show");}
+function padTool(t){PAD.tool=t;["pPen","pEra","pDim"].forEach((id,i)=>document.getElementById(id).classList.toggle("on",["pen","erase","dim"][i]===t));}
+function padColor(c){PAD.color=c;if(PAD.tool==="erase")padTool("pen");}
+function padGrid(){PAD.grid=!PAD.grid;document.getElementById("pGrid").classList.toggle("on",PAD.grid);padDraw();}
+function padUndo(){PAD.strokes.pop();padDraw();}
+function padClear(){if(PAD.strokes.length&&!confirmDel("pad"))return;PAD.strokes=[];padDraw();}
+function padResize(){const c=padCv(),r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);c.getContext("2d").setTransform(d,0,0,d,0,0);padDraw();}
+window.addEventListener("resize",()=>{if(document.getElementById("pad").classList.contains("show"))padResize();});
+function dimLabel(a,b){const px=Math.hypot(b.x-a.x,b.y-a.y),sc=+document.getElementById("pScale").value||1;const m=px/GRID*sc;return (Math.round(m*100)/100)+" m";}
+function padDraw(ctx,W,H){const c=padCv();ctx=ctx||c.getContext("2d");const r=c.getBoundingClientRect();W=W||r.width;H=H||r.height;
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
+  if(PAD.grid){ctx.strokeStyle="#dfe6f0";ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<W;x+=GRID){ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,H);}for(let y=0;y<H;y+=GRID){ctx.moveTo(0,y+.5);ctx.lineTo(W,y+.5);}ctx.stroke();}
+  for(const s of PAD.strokes.concat(PAD.cur?[PAD.cur]:[])){
+    if(s.kind==="dim"){const a=s.a,b=s.b;ctx.strokeStyle="#1f5fbf";ctx.fillStyle="#1f5fbf";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      const ang=Math.atan2(b.y-a.y,b.x-a.x);for(const [p,dir] of [[a,1],[b,-1]]){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+dir*10*Math.cos(ang-.4),p.y+dir*10*Math.sin(ang-.4));ctx.lineTo(p.x+dir*10*Math.cos(ang+.4),p.y+dir*10*Math.sin(ang+.4));ctx.closePath();ctx.fill();}
+      const lab=dimLabel(a,b),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;ctx.font="600 14px Inter,sans-serif";const tw=ctx.measureText(lab).width;ctx.fillStyle="#fff";ctx.fillRect(mx-tw/2-4,my-18,tw+8,18);ctx.fillStyle="#1f5fbf";ctx.fillText(lab,mx-tw/2,my-4);continue;}
+    if(s.pts.length<1)continue;ctx.strokeStyle=s.erase?"#fff":s.color;ctx.lineCap="round";ctx.lineJoin="round";
+    for(let i=1;i<s.pts.length;i++){const p0=s.pts[i-1],p1=s.pts[i];ctx.lineWidth=(s.erase?s.w*4:s.w)*(0.5+(p1.p||0.5));ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);ctx.stroke();}
+    if(s.pts.length===1){const p=s.pts[0];ctx.fillStyle=s.erase?"#fff":s.color;ctx.beginPath();ctx.arc(p.x,p.y,s.w/2,0,7);ctx.fill();}}}
+(function(){const c=document.getElementById("padc");if(!c)return;
+  const pos=e=>{const r=c.getBoundingClientRect();let x=e.clientX-r.left,y=e.clientY-r.top;
+    if(PAD.tool==="dim"&&PAD.grid){x=Math.round(x/(GRID/4))*(GRID/4);y=Math.round(y/(GRID/4))*(GRID/4);}return {x,y,p:e.pressure||0.5};};
+  c.addEventListener("pointerdown",e=>{if(e.pointerType==="touch"&&e.isPrimary===false)return;c.setPointerCapture(e.pointerId);const p=pos(e);
+    PAD.cur=PAD.tool==="dim"?{kind:"dim",a:p,b:p}:{kind:"line",pts:[p],color:PAD.color,w:padW,erase:PAD.tool==="erase"};padDraw();});
+  c.addEventListener("pointermove",e=>{if(!PAD.cur)return;const p=pos(e);if(PAD.cur.kind==="dim")PAD.cur.b=p;else PAD.cur.pts.push(p);padDraw();});
+  const end=()=>{if(!PAD.cur)return;if(PAD.cur.kind!=="dim"||Math.hypot(PAD.cur.b.x-PAD.cur.a.x,PAD.cur.b.y-PAD.cur.a.y)>8)PAD.strokes.push(PAD.cur);PAD.cur=null;padDraw();};
+  c.addEventListener("pointerup",end);c.addEventListener("pointercancel",end);})();
+function padExport(){const c=padCv(),r=c.getBoundingClientRect(),k=Math.min(2,1536/Math.max(r.width,r.height)),o=document.createElement("canvas");
+  o.width=Math.round(r.width*k);o.height=Math.round(r.height*k);const x=o.getContext("2d");x.scale(k,k);padDraw(x,r.width,r.height);
+  return o.toDataURL("image/jpeg",0.9).split(",")[1];}
+function padUse(){if(!PAD.strokes.length){toast("Draw something first, Chairman.");return;}setSketch(padExport());closePad();
+  toast("Sketch ready — tap Render, 3D or Adjust.",3500);}
+function padSend(kind){if(!PAD.strokes.length){toast("Draw something first, Chairman.");return;}const b=padExport();
+  const note=document.getElementById("padq").value.trim();document.getElementById("padq").value="";closePad();
+  const dims=PAD.strokes.filter(s=>s.kind==="dim").map(s=>dimLabel(s.a,s.b));
+  ask(STUDIO_ASK[kind]+(dims.length?" Marked dimensions: "+dims.join(", ")+".":"")+(note?" Also: "+note:""),b);}
 /* camera: snap, shrink to max 1280px JPEG, send */
 function snap(){if(busy)return;document.getElementById("cam").click();}
 function gotPhoto(inp){
