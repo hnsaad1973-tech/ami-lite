@@ -115,6 +115,29 @@
   .rb.solid{border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;
     box-shadow:0 6px 18px rgba(199,154,60,.3);}
   .rb:disabled{opacity:.35;cursor:default;}
+  .tk-t{width:34px;height:34px;flex:0 0 34px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+    border:1.5px solid var(--panelbd);background:none;color:var(--muted);transition:all .2s;}
+  .tk-t svg{width:17px;height:17px;}
+  .tk-t.on{border-color:#29bf78;background:rgba(41,191,120,.18);color:#29bf78;box-shadow:0 0 10px rgba(41,191,120,.35);}
+  .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;
+    background:var(--bg2);border:1px solid var(--gold);border-radius:12px;padding:10px 16px;font-size:13.5px;display:none;max-width:90%;text-align:center;}
+  .toast.show{display:block;}
+  .gp{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .gp .card{border:1px solid var(--panelbd);border-radius:14px;background:var(--panel);padding:12px 14px;}
+  .gp .big{font-family:"Cormorant Garamond",serif;font-size:30px;font-weight:700;line-height:1.1;}
+  .gp .lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .gp table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+  .gp td,.gp th{padding:4px 4px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .gp td:first-child,.gp th:first-child{text-align:left;}
+  .gp th{color:var(--muted);font-weight:500;font-size:10.5px;}
+  .gp .note{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px;}
+  .gp .scroll{overflow-x:auto;}
+  .neg{color:#e65050;}.pos{color:#29bf78;}
+  .td .st{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:6px;margin-left:6px;}
+  .td .st.awaiting{background:rgba(217,164,65,.18);color:#d9a441;}.td .st.confirmed{background:rgba(41,191,120,.18);color:#29bf78;}
+  .td .st.cancelled,.td .st.superseded{background:rgba(255,255,255,.06);color:var(--muted);}
+  .td pre{white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.5;margin-top:6px;}
+  .td button.cf{margin-top:8px;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));}
   .rb.on{background:#e65050;border-color:#e65050;color:#fff;animation:pulse 1.4s infinite;}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(230,80,80,.55);}70%{box-shadow:0 0 0 12px rgba(230,80,80,0);}100%{box-shadow:0 0 0 0 rgba(230,80,80,0);}}
   .vbar{display:none;align-items:center;gap:10px;margin:0 12px 8px;padding:10px 14px;border:1px solid var(--panelbd);
@@ -183,7 +206,7 @@
     <div class="tabs" id="tabs"></div>
     <div class="charts" id="charts"></div>
   </div>
-  <div class="news" id="news" onclick="openNews()"><span class="tag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
+  <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
 
   <div class="grid">
     <div class="tile" onclick="openChat('Companies','Companies — send me a company\'s monthly figures to file, or ask for the group position.')">
@@ -194,26 +217,28 @@
       <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M4 5h16a2 2 0 0 1 2 2v.4l-10 6.3L2 7.4V7a2 2 0 0 1 2-2zm-2 4.8 10 6.3 10-6.3V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.8z"/></svg></div>
       <div><div class="tt">Inbox</div><div class="ds">Email · WhatsApp</div></div>
     </div>
-    <div class="tile" onclick="quick('Markets','Give me a short market snapshot now: S&P 500, Nasdaq, gold, oil and Bitcoin, with the source and time for each.')">
-      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M3 19h18v2H3v-2zm1-3 5-6 4 3 6-8 1.6 1.2-7.2 9.6-4-3L5.6 17.3 4 16z"/></svg></div>
-      <div><div class="tt">Markets</div><div class="ds">Prices · moves</div></div>
+    <div class="tile" onclick="callMe()">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8z"/></svg></div>
+      <div><div class="tt">Call me</div><div class="ds">AMI rings you</div></div>
     </div>
-    <div class="tile" onclick="quick('Newsroom','Give me today\'s top world and market headlines, one line each, with the source for each.')">
-      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M3 5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v13a2 2 0 0 0 2 2H5a2 2 0 0 1-2-2V5zm3 2v4h4V7H6zm6 0v2h3V7h-3zm0 3v1h3v-1h-3zm-6 3v1h9v-1H6zm0 3v1h9v-1H6zm12-8h2a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2V8z"/></svg></div>
-      <div><div class="tt">Newsroom</div><div class="ds">World headlines</div></div>
+    <div class="tile" onclick="openPosition()">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M4 20h16v2H4v-2zM5 10h3v8H5v-8zm5.5-4h3v12h-3V6zM16 13h3v5h-3v-5zM3 8l9-6 9 6-1.2 1.6L12 4.4 4.2 9.6 3 8z"/></svg></div>
+      <div><div class="tt">Group Position</div><div class="ds">Total · cash flow</div></div>
     </div>
     <div class="tile" onclick="openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')">
       <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-.7 1.6-1.5 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.8.7-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8zM6.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></div>
       <div><div class="tt">Design Studio</div><div class="ds">Renders · plans</div></div>
     </div>
-    <div class="tile" onclick="openChat('Think Tank','Think Tank — give me the question and I will think it through properly, with every figure sourced.')">
-      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1z"/></svg></div>
-      <div><div class="tt">Think Tank</div><div class="ds">Deep thinking</div></div>
+    <div class="tile" onclick="openTodo()">
+      <div class="ic"><svg viewBox="0 0 24 24"><path fill="url(#g1)" d="M9 4h11v2H9V4zm0 7h11v2H9v-2zm0 7h11v2H9v-2zM3.5 5.5 5 7l2.5-3 1.2 1-3.6 4.2L2.3 6.7l1.2-1.2zm0 7L5 14l2.5-3 1.2 1-3.6 4.2-2.8-2.5 1.2-1.2zM4 17h3v3H4v-3z"/></svg></div>
+      <div><div class="tt">To-do list</div><div class="ds">From your calls</div></div>
     </div>
+  </div>
   </div>
 
   <div class="bar">
-    <input id="home-q" placeholder="What do you need done, Chairman?" onkeydown="if(event.key==='Enter')goHome()">
+    <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <input id="home-q" placeholder="Ask AMI…" onkeydown="if(event.key==='Enter')goHome()">
     <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
     <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     <button class="rb solid snd" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -225,6 +250,7 @@
     <div class="msgs" id="msgs"></div>
     <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
     <div class="cbar">
+      <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
       <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
       <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
@@ -232,6 +258,7 @@
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
   <div class="ticket" id="ticket" onclick="if(event.target===this)closeTicket()">
     <div class="tk">
       <h3 id="tkh">Order</h3>
@@ -286,33 +313,103 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=32;
+const AMI_LEVEL=38;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
   document.getElementById("lvlt").textContent="AMI "+v+"%";})();
 
 /* Rolling financial headlines (free public RSS via rss2json), new headline every 8s, feeds refresh every 10 min */
-const FEEDS=[["CNBC","https://www.cnbc.com/id/100003114/device/rss/rss.html"],
-  ["MarketWatch","https://feeds.content.dowjones.io/public/rss/mw_topstories"],
-  ["Yahoo Finance","https://finance.yahoo.com/news/rssindex"],
-  ["BBC Business","https://feeds.bbci.co.uk/news/business/rss.xml"]];
+const FEEDS=[["CNBC","https://www.cnbc.com/id/100003114/device/rss/rss.html","mkt"],
+  ["MarketWatch","https://feeds.content.dowjones.io/public/rss/mw_topstories","mkt"],
+  ["Yahoo Finance","https://finance.yahoo.com/news/rssindex","mkt"],
+  ["BBC Business","https://feeds.bbci.co.uk/news/business/rss.xml","mkt"],
+  ["BBC World","https://feeds.bbci.co.uk/news/world/rss.xml","world"],
+  ["Al Jazeera","https://www.aljazeera.com/xml/rss/all.xml","world"],
+  ["BBC Africa","https://feeds.bbci.co.uk/news/world/africa/rss.xml","world"],
+  ["The Guardian","https://www.theguardian.com/world/rss","world"]];
 let heads=[],hIdx=0;
 async function loadNews(){
   const all=[];
-  await Promise.all(FEEDS.map(async([src,url])=>{
+  await Promise.all(FEEDS.map(async([src,url,kind])=>{
     try{const r=await fetch("https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(url));
-      const j=await r.json();(j.items||[]).slice(0,8).forEach(it=>all.push({src,title:it.title,link:it.link,t:Date.parse(it.pubDate)||0}));}catch(_){}
+      const j=await r.json();(j.items||[]).slice(0,6).forEach(it=>all.push({src,kind,title:it.title,link:it.link,t:Date.parse(it.pubDate)||0}));}catch(_){}
   }));
-  if(all.length){all.sort((a,b)=>b.t-a.t);heads=all.slice(0,24);hIdx=0;showHead();}
+  if(all.length){
+    // newest first, then alternate markets and world so both keep rolling
+    const m=all.filter(x=>x.kind==="mkt").sort((a,b)=>b.t-a.t),w=all.filter(x=>x.kind==="world").sort((a,b)=>b.t-a.t);
+    heads=[];for(let i=0;i<Math.max(m.length,w.length);i++){if(m[i])heads.push(m[i]);if(w[i])heads.push(w[i]);}
+    heads=heads.slice(0,40);hIdx=0;showHead();}
   else document.getElementById("hl").textContent="Headlines unavailable right now.";
 }
 function showHead(){if(!heads.length)return;const h=heads[hIdx%heads.length],el=document.getElementById("hl");
-  el.style.opacity=0;setTimeout(()=>{el.innerHTML='<span class="src">'+esc(h.src)+':</span> '+esc(h.title);el.style.opacity=1;},350);}
+  el.style.opacity=0;setTimeout(()=>{el.innerHTML='<span class="src">'+esc(h.src)+':</span> '+esc(h.title);el.style.opacity=1;
+    document.getElementById("ntag").textContent=h.kind==="world"?"World":"Markets";},350);}
 function openNews(){if(heads.length)window.open(heads[hIdx%heads.length].link,"_blank","noopener");}
 setInterval(()=>{hIdx++;showHead();},8000);
 setInterval(loadNews,600000);
 loadNews();
+
+/* ===== Think Tank toggle (green when on) ===== */
+let thinkOn=false;
+function toggleThink(){thinkOn=!thinkOn;document.querySelectorAll(".tk-t").forEach(b=>b.classList.toggle("on",thinkOn));
+  toast(thinkOn?"🧠 Think Tank on — deep thinking, slower answers":"Think Tank off");}
+function toast(t,ms){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),ms||2600);}
+async function api(body){
+  if(!token){document.getElementById("login").classList.add("show");throw new Error("Not signed in");}
+  const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({token},body))});
+  return r.json();
+}
+/* ===== Call me ===== */
+async function callMe(){toast("📞 Asking AMI to call you…",4000);
+  try{const d=await api({action:"callme"});toast(d.reply||"Calling…",6000);}catch(e){toast("Couldn't start the call: "+e.message,5000);}}
+/* ===== Group Position ===== */
+const money=n=>{const v=Math.round(+n||0);return (v<0?"−$":"$")+Math.abs(v).toLocaleString("en-US");};
+const cls=n=>(+n<0?"neg":"pos");
+async function openPosition(){
+  openChat("Group Position");
+  const w=bubble("a","Loading your group position…");
+  try{const d=await api({action:"position"});const b=d.position;
+    if(!b){w.innerHTML="No position loaded yet.";return;}
+    let h='<div class="gp"><div class="card"><div class="lbl">Group net position · '+esc(b.updated)+'</div><div class="big '+cls(b.total.net)+'">'+money(b.total.net)+'</div>'+
+      '<table><tr><td>Cash</td><td class="'+cls(b.total.cash)+'">'+money(b.total.cash)+'</td></tr><tr><td>Receivables</td><td>'+money(b.total.receivables)+'</td></tr>'+
+      '<tr><td>Payables</td><td class="neg">'+money(b.total.payables)+'</td></tr><tr><td>Bank debt</td><td class="neg">'+money(b.total.bank_debt)+'</td></tr></table>'+
+      '<div class="note">'+esc(b.note)+'</div></div>';
+    h+='<div class="card"><div class="lbl">By company</div><div class="scroll"><table><tr><th></th><th>Cash</th><th>Receiv.</th><th>Payables</th><th>Bank debt</th><th>Net</th></tr>';
+    b.companies.forEach(c=>{h+='<tr><td>'+esc(c.name)+'<br><span style="color:var(--muted);font-size:10px">'+esc(c.as_of)+'</span></td><td>'+money(c.cash)+'</td><td>'+money(c.receivables)+'</td><td>'+money(c.payables)+'</td><td>'+money(c.bank_debt)+'</td><td class="'+cls(c.net)+'"><b>'+money(c.net)+'</b></td></tr>';});
+    h+='</table></div></div>';
+    const gf=b.group_flow,m=b.months;
+    h+='<div class="card"><div class="lbl">Cash flow — this month</div><div class="big '+cls(gf.net[0])+'">'+money(gf.net[0])+'</div><div class="note">'+esc(m[0])+': in '+money(gf.in[0])+' · out '+money(gf.out[0])+'</div></div>';
+    h+='<div class="card"><div class="lbl">Next 12 months</div><div class="scroll"><table><tr><th>Month</th><th>In</th><th>Out</th><th>Net</th></tr>';
+    m.forEach((mm,i)=>{h+='<tr><td>'+esc(mm)+'</td><td>'+money(gf.in[i])+'</td><td class="neg">'+money(gf.out[i])+'</td><td class="'+cls(gf.net[i])+'">'+money(gf.net[i])+'</td></tr>';});
+    h+='</table></div></div><div class="card"><div class="lbl">Quarterly totals</div><table><tr><th>Quarter</th><th>In</th><th>Out</th><th>Net</th></tr>';
+    b.quarters.forEach(q=>{h+='<tr><td>'+esc(q.label)+'</td><td>'+money(q.in)+'</td><td class="neg">'+money(q.out)+'</td><td class="'+cls(q.net)+'">'+money(q.net)+'</td></tr>';});
+    h+='</table></div><div class="card"><div class="lbl">What the figures rest on</div>';
+    b.companies.forEach(c=>{h+='<div class="note"><b style="color:var(--ink)">'+esc(c.name)+'</b> — '+esc(c.sources.join(", "))+'. '+esc(c.notes.join(" "))+'</div>';});
+    b.flows.forEach(f=>{h+='<div class="note"><b style="color:var(--ink)">'+esc(f.name)+' cash flow</b> — '+esc(f.basis)+'</div>';});
+    h+='<div class="note"><b style="color:var(--ink)">Personal</b> (not in total): '+money(b.personal.owed)+' — '+esc(b.personal.note)+'</div></div></div>';
+    w.innerHTML=h;w.style.maxWidth="100%";w.style.width="100%";
+    bubble("a",esc("Ask me anything about these figures, Chairman."));
+    document.getElementById("msgs").scrollTop=0;
+  }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
+}
+/* ===== To-do list ===== */
+async function openTodo(){
+  openChat("To-do list");
+  const w=bubble("a","Loading your lists…");
+  try{const d=await api({action:"todo"});const L=d.lists||[];
+    if(!L.length){w.innerHTML="No lists yet. Your 9pm call (or tap <b>Call me</b>) creates one.";return;}
+    const lab={awaiting:"Waiting for confirm",confirmed:"Confirmed",cancelled:"Cancelled",superseded:"Replaced"};
+    let h='<div class="td">';
+    L.forEach((x,i)=>{const t=x.sent_at?new Date(x.sent_at).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"";
+      h+=(i?'<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">':'')+'<b>'+(x.kind==="evening"?"Tomorrow's list":"Orders")+'</b> <span style="color:var(--muted);font-size:12px">'+esc(t)+'</span>'+
+        '<span class="st '+esc(x.orders_status||"")+'">'+(lab[x.orders_status]||"")+'</span><pre>'+esc(x.orders||"")+'</pre>'+
+        (x.orders_status==="awaiting"?'<button class="cf" onclick="confirmTodo(this)">✅ Confirm</button>':'');});
+    w.innerHTML=h+'</div>';w.style.maxWidth="100%";
+  }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
+}
+async function confirmTodo(btn){btn.disabled=true;btn.textContent="Confirming…";
+  try{const d=await api({action:"todo_confirm"});btn.textContent="✅ Confirmed";toast(d.reply||"Confirmed",5000);}catch(e){btn.disabled=false;btn.textContent="✅ Confirm";toast("Error: "+e.message);}}
 
 function chatOpen(){return document.getElementById("chat").classList.contains("show");}
 function openChat(title,greet){
@@ -362,7 +459,7 @@ async function ask(text,image){
     pct.textContent=p+"%";fill.style.width=p+"%";},200);
   setBusy(true);
   try{
-    const body={message:text,section,token};
+    const body={message:text,section:thinkOn?"Think Tank":section,token};
     if(image)body.image=image;
     if(vOn)body.voice=true;
     const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",
