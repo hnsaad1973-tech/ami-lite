@@ -18,20 +18,36 @@
     height:100dvh;display:flex;flex-direction:column;
     padding-top:env(safe-area-inset-top);}
 
-  .top{padding:10px 18px 8px;display:flex;align-items:center;gap:12px;flex:0 0 auto;}
-  .logo{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;
+  .top{padding:10px 14px 8px;display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+  .logo{width:34px;height:34px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;
     border:1px solid var(--panelbd);background:linear-gradient(135deg,rgba(199,154,60,.22),transparent);
     font-family:"Cormorant Garamond",serif;font-weight:700;font-size:19px;color:var(--gold2);}
-  .hi{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
-  .name{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:600;line-height:1;margin-top:2px;}
+  .hi{font-size:9.5px;letter-spacing:.14em;white-space:nowrap;text-transform:uppercase;color:var(--muted);}
+  .name{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;line-height:1;margin-top:2px;}
   .clock{margin-left:auto;text-align:right;}
-  .clock .t{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:600;color:var(--gold2);line-height:1;}
+  .clock .t{font-family:"Cormorant Garamond",serif;font-size:21px;font-weight:600;color:var(--gold2);line-height:1;}
   .clock .d{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
 
   .mkts{margin:0 14px;height:34dvh;flex:0 0 auto;display:flex;flex-direction:column;
     border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);}
-  .ticker{height:40px;flex:0 0 auto;border-bottom:1px solid var(--line);overflow:hidden;}
-  .overview{flex:1 1 auto;min-height:0;}
+  .ticker{height:50px;flex:0 0 auto;border-bottom:1px solid var(--line);overflow:hidden;}
+  .tabs{height:30px;flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);}
+  .tabs button{flex:1;border:none;background:none;color:var(--muted);font:500 11.5px "Inter",sans-serif;cursor:pointer;
+    border-bottom:2px solid transparent;white-space:nowrap;}
+  .tabs button.on{color:var(--gold2);border-bottom-color:var(--gold2);background:rgba(199,154,60,.06);}
+  .charts{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;}
+  .cell{min-width:0;min-height:0;height:100%;overflow:hidden;position:relative;}
+  .cell+.cell{border-left:1px solid var(--line);}
+  .cell .tradingview-widget-container__widget,.cell iframe{width:100%!important;height:100%!important;}
+  .tradingview-widget-copyright{display:none!important;}
+  .ibk{margin-left:auto;border:1px solid var(--panelbd);border-radius:10px;padding:4px 8px;background:var(--panel);
+    cursor:pointer;text-align:left;color:var(--ink);flex:0 0 auto;}
+  .ibk .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:5px;}
+  .ibk .k i{width:6px;height:6px;border-radius:50%;background:#d9a441;box-shadow:0 0 6px #d9a441;}
+  .ibk .k i.live{background:#29bf78;box-shadow:0 0 6px #29bf78;}
+  .ibk .v{font-size:11.5px;font-weight:600;margin-top:2px;white-space:nowrap;}
+  .ibk .v.up{color:#29bf78;}.ibk .v.dn{color:#e65050;}
+  .clock{margin-left:0!important;flex:0 0 auto;}
   .news{margin:8px 14px 0;height:34px;flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 12px;
     border:1px solid var(--panelbd);border-radius:10px;background:rgba(199,154,60,.05);overflow:hidden;cursor:pointer;}
   .news .tag{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#0A0F1A;background:var(--gold2);
@@ -40,7 +56,7 @@
   .news .src{color:var(--gold2);font-weight:600;}
   .lvl{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:5px;}
   .lvl span{font-size:9.5px;letter-spacing:.08em;color:var(--muted);}
-  .lvl .trk{width:74px;height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .lvl .trk{width:48px;height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;}
   .lvl .trk i{display:block;height:100%;border-radius:5px;}
 
   .grid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);
@@ -67,6 +83,16 @@
   .rb.solid{border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;
     box-shadow:0 6px 18px rgba(199,154,60,.3);}
   .rb:disabled{opacity:.35;cursor:default;}
+  .rb.on{background:#e65050;border-color:#e65050;color:#fff;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(230,80,80,.55);}70%{box-shadow:0 0 0 12px rgba(230,80,80,0);}100%{box-shadow:0 0 0 0 rgba(230,80,80,0);}}
+  .vbar{display:none;align-items:center;gap:10px;margin:0 12px 8px;padding:10px 14px;border:1px solid var(--panelbd);
+    border-radius:14px;background:rgba(199,154,60,.07);cursor:pointer;}
+  .vbar.show{display:flex;}
+  .vbar .dot{width:10px;height:10px;border-radius:50%;background:#e65050;animation:pulse 1.4s infinite;flex:0 0 auto;}
+  .vbar .dot.spk{background:var(--gold2);}
+  .vbar .dot.thk{background:var(--muted);animation:none;}
+  .vbar .vs{flex:1;font-size:13px;}
+  .vbar .vx{border:1px solid var(--panelbd);border-radius:10px;background:none;color:var(--gold2);font-size:12px;padding:5px 11px;cursor:pointer;}
 
   .login{position:fixed;inset:0;background:rgba(8,12,21,.92);backdrop-filter:blur(6px);z-index:60;
     display:none;align-items:center;justify-content:center;padding:24px;}
@@ -110,6 +136,7 @@
   <div class="top">
     <div class="logo">A</div>
     <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
+    <button class="ibk" onclick="ibkr()" aria-label="Trading"><div class="k"><i id="ibkd"></i>IBKR</div><div class="v" id="ibkv">Awaiting</div></button>
     <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div>
       <div class="lvl" title="AMI level: build complete = 50%, learning fills the rest"><span id="lvlt">AMI 20%</span><div class="trk"><i id="lvlb"></i></div></div></div>
   </div>
@@ -118,18 +145,11 @@
     <div class="ticker">
       <div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-      {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Dow","proName":"FOREXCOM:DJI"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"},{"description":"EUR/USD","proName":"FX:EURUSD"},{"description":"US 10Y","proName":"TVC:US10Y"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"compact","locale":"en"}
+      {"symbols":[{"description":"S&P 500","proName":"FOREXCOM:SPXUSD"},{"description":"Nasdaq","proName":"FOREXCOM:NSXUSD"},{"description":"Dow","proName":"FOREXCOM:DJI"},{"description":"Gold","proName":"TVC:GOLD"},{"description":"Oil","proName":"TVC:USOIL"},{"description":"Bitcoin","proName":"BINANCE:BTCUSDT"},{"description":"EUR/USD","proName":"FX:EURUSD"},{"description":"Silver","proName":"TVC:SILVER"},{"description":"GBP/USD","proName":"FX:GBPUSD"},{"description":"FTSE 100","proName":"FOREXCOM:UKXGBP"}],"showSymbolLogo":false,"colorTheme":"dark","isTransparent":true,"displayMode":"compact","locale":"en"}
       </script></div>
     </div>
-    <div class="overview">
-      <div class="tradingview-widget-container" style="height:100%"><div class="tradingview-widget-container__widget" style="height:100%"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
-      {"colorTheme":"dark","dateRange":"1D","showChart":true,"locale":"en","width":"100%","height":"100%","largeChartUrl":"","isTransparent":true,"showSymbolLogo":false,"showFloatingTooltip":true,"plotLineColorGrowing":"rgba(41,191,120,1)","plotLineColorFalling":"rgba(230,80,80,1)","gridLineColor":"rgba(255,255,255,0.04)","scaleFontColor":"rgba(138,148,166,1)","belowLineFillColorGrowing":"rgba(41,191,120,0.12)","belowLineFillColorFalling":"rgba(230,80,80,0.12)","belowLineFillColorGrowingBottom":"rgba(41,191,120,0)","belowLineFillColorFallingBottom":"rgba(230,80,80,0)","symbolActiveColor":"rgba(199,154,60,0.15)",
-       "tabs":[{"title":"Indices","symbols":[{"s":"FOREXCOM:SPXUSD","d":"S&P 500"},{"s":"FOREXCOM:NSXUSD","d":"Nasdaq 100"},{"s":"FOREXCOM:DJI","d":"Dow 30"},{"s":"INDEX:UKX","d":"FTSE 100"}]},
-               {"title":"Commodities","symbols":[{"s":"TVC:GOLD","d":"Gold"},{"s":"TVC:USOIL","d":"Crude oil"},{"s":"TVC:SILVER","d":"Silver"},{"s":"PEPPERSTONE:COCOA","d":"Cocoa"}]},
-               {"title":"FX & Crypto","symbols":[{"s":"FX:EURUSD","d":"EUR/USD"},{"s":"FX:GBPUSD","d":"GBP/USD"},{"s":"BINANCE:BTCUSDT","d":"Bitcoin"},{"s":"TVC:US10Y","d":"US 10Y yield"}]}]}
-      </script></div>
-    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
 
@@ -163,7 +183,7 @@
   <div class="bar">
     <input id="home-q" placeholder="What do you need done, Chairman?" onkeydown="if(event.key==='Enter')goHome()">
     <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
-    <button class="rb" onclick="mic('home-q')" aria-label="Voice"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     <button class="rb solid snd" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
   <input type="file" id="cam" accept="image/*" capture="environment" onchange="gotPhoto(this)">
@@ -171,10 +191,11 @@
   <div class="chat" id="chat">
     <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI</div></div>
     <div class="msgs" id="msgs"></div>
+    <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
     <div class="cbar">
       <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
       <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
-      <button class="rb" onclick="mic('q')" aria-label="Voice"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
       <button class="rb solid snd" onclick="go()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
   </div>
@@ -216,7 +237,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=20;
+const AMI_LEVEL=25;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -252,7 +273,7 @@ function openChat(title,greet){
   if(greet)bubble("a",esc(greet));
   document.getElementById("chat").classList.add("show");
 }
-function closeChat(){document.getElementById("chat").classList.remove("show");}
+function closeChat(){stopVoice();document.getElementById("chat").classList.remove("show");}
 function quick(title,prompt){openChat(title);ask(prompt);}
 function go(){if(busy)return;const q=document.getElementById("q");const t=q.value.trim();if(!t)return;q.value="";ask(t);}
 function goHome(){if(busy)return;const i=document.getElementById("home-q");const t=i.value.trim();if(!t)return;i.value="";openChat("Ask AMI");ask(t);}
@@ -281,8 +302,8 @@ function addCopy(div,text){const b=document.createElement("button");b.className=
   div.appendChild(document.createElement("br"));div.appendChild(b);}
 
 async function ask(text,image){
-  if(!token){document.getElementById("login").classList.add("show");return;}
-  if(busy)return;
+  if(!token){document.getElementById("login").classList.add("show");return null;}
+  if(busy)return null;
   if(!chatOpen())openChat("Ask AMI");
   bubble("u",(image?'<img src="data:image/jpeg;base64,'+image+'" alt="photo">':"")+esc(text));
   const label=image?"Reading the photo":"Working";
@@ -303,7 +324,8 @@ async function ask(text,image){
     await new Promise(res=>setTimeout(res,250));
     wait.innerHTML=render(reply);addCopy(wait,reply);
     document.getElementById("msgs").scrollTop=document.getElementById("msgs").scrollHeight;
-  }catch(e){wait.innerHTML="Connection error: "+esc(e.message);}
+    return reply;
+  }catch(e){wait.innerHTML="Connection error: "+esc(e.message);return "Connection error.";}
   finally{clearInterval(timer);setBusy(false);}
 }
 
@@ -326,13 +348,119 @@ function gotPhoto(inp){
   img.src=url;
 }
 
-function mic(fieldId){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const field=document.getElementById(fieldId);
-  if(!SR){field.focus();return;}
-  const r=new SR();r.lang="en-US";r.interimResults=false;
-  r.onresult=e=>{field.value=e.results[0][0].transcript;field.focus();};
-  try{r.start();}catch(_){field.focus();}
+/* ===== Market charts: 2 clean charts per tab ===== */
+const TABS=[["Indices",[["FOREXCOM:SPXUSD"],["FOREXCOM:NSXUSD"]]],
+  ["Global",[["FOREXCOM:DJI"],["FOREXCOM:UKXGBP"]]],
+  ["Commodities",[["TVC:GOLD"],["TVC:USOIL"]]],
+  ["FX & Crypto",[["BINANCE:BTCUSDT"],["FX:EURUSD"]]]];
+function buildTabs(){const t=document.getElementById("tabs");
+  TABS.forEach((x,i)=>{const b=document.createElement("button");b.textContent=x[0];b.onclick=()=>showTab(i);t.appendChild(b);});
+  let i=0;try{i=+localStorage.getItem("amiTab")||0;}catch(_){}showTab(i<TABS.length?i:0);}
+function showTab(i){
+  document.querySelectorAll("#tabs button").forEach((b,k)=>b.classList.toggle("on",k===i));
+  const g=document.getElementById("charts");g.innerHTML="";
+  TABS[i][1].forEach(([sym])=>{
+    const box=document.createElement("div");box.className="cell tradingview-widget-container";
+    const w=document.createElement("div");w.className="tradingview-widget-container__widget";box.appendChild(w);
+    const sc=document.createElement("script");sc.type="text/javascript";sc.async=true;
+    sc.src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";
+    sc.textContent=JSON.stringify({symbol:sym,width:"100%",height:"100%",locale:"en",dateRange:"1D",colorTheme:"dark",
+      isTransparent:true,autosize:true,largeChartUrl:"",chartOnly:false,noTimeScale:false,
+      trendLineColor:"rgba(228,183,90,1)",underLineColor:"rgba(199,154,60,0.18)",underLineBottomColor:"rgba(199,154,60,0)"});
+    box.appendChild(sc);g.appendChild(box);});
+  try{localStorage.setItem("amiTab",i);}catch(_){}
+}
+buildTabs();
+
+/* ===== Trading corner — Interactive Brokers placeholder =====
+   Flip IBKR.connected to true once the account is approved and the `ibkr` function is built.
+   It must return JSON: {pnl:number, currency:"USD", positions:[{symbol,qty,value,pnl}]} */
+const IBKR={connected:false,endpoint:SB_URL+"/functions/v1/ibkr"};
+let ibkrData=null;
+async function loadIBKR(){
+  if(!IBKR.connected||!token)return;
+  try{const r=await fetch(IBKR.endpoint,{headers:{"Authorization":"Bearer "+token}});const d=await r.json();ibkrData=d;
+    const v=document.getElementById("ibkv"),p=+d.pnl||0;
+    v.textContent=(p>=0?"+":"")+p.toLocaleString("en-US",{maximumFractionDigits:0})+" "+(d.currency||"USD")+" today";
+    v.className="v "+(p>=0?"up":"dn");document.getElementById("ibkd").className="live";}
+  catch(_){document.getElementById("ibkv").textContent="Connection error";}
+}
+function ibkr(){
+  if(!IBKR.connected){openChat("Trading","Trading corner — reserved for your Interactive Brokers account. It shows “Awaiting activation” until the account is approved and connected. From then on it shows your live positions and today's P&L here.");return;}
+  openChat("Trading");
+  if(!ibkrData){bubble("a","Loading positions…");loadIBKR();return;}
+  const rows=(ibkrData.positions||[]).map(x=>"**"+x.symbol+"** — "+x.qty+" · value "+x.value+" · P&L "+x.pnl).join("\n");
+  bubble("a",render("Today's P&L: "+ibkrData.pnl+" "+(ibkrData.currency||"USD")+"\n\n"+(rows||"No open positions.")));
+}
+if(IBKR.connected){setInterval(loadIBKR,60000);setTimeout(loadIBKR,3000);}
+
+/* ===== Hands-free voice mode =====
+   Tap mic once: listens, sends when you pause, reads AMI's reply aloud (British English voice), listens again.
+   Tap the bar to interrupt AMI; tap Stop (or the mic) to end. Saying "stop" also ends it. */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let vOn=false,vRec=null,vVoice=null,vEmpty=0,vSpeaking=false;
+function pickVoice(){if(!("speechSynthesis" in window))return;const vs=speechSynthesis.getVoices();
+  vVoice=vs.find(v=>/en[-_]GB/i.test(v.lang)&&/Daniel|Arthur|Male/i.test(v.name))||vs.find(v=>/en[-_]GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null;}
+if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}
+function vState(t,kind){document.getElementById("vstate").textContent=t;document.getElementById("vdot").className="dot"+(kind?" "+kind:"");}
+function toggleVoice(){vOn?stopVoice():startVoice();}
+function startVoice(){
+  if(!SR){const f=document.getElementById(chatOpen()?"q":"home-q");f.focus();
+    if(!chatOpen())openChat("Ask AMI");bubble("a","Voice mode isn't supported in this browser. Use Safari or Chrome, or tap the keyboard's mic key.");return;}
+  if("speechSynthesis" in window){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(" ");u.volume=0;speechSynthesis.speak(u);}catch(_){}}
+  if(!chatOpen())openChat("Ask AMI");
+  vOn=true;vEmpty=0;document.getElementById("vbar").classList.add("show");
+  document.querySelectorAll('[aria-label="Voice mode"]').forEach(b=>b.classList.add("on"));
+  listen();
+}
+function stopVoice(){
+  vOn=false;vSpeaking=false;
+  if(vRec){try{vRec.abort();}catch(_){}vRec=null;}
+  if("speechSynthesis" in window)try{speechSynthesis.cancel();}catch(_){}
+  document.getElementById("vbar").classList.remove("show");
+  document.querySelectorAll('[aria-label="Voice mode"]').forEach(b=>b.classList.remove("on"));
+}
+function vTap(){if(vSpeaking){vSpeaking=false;speechSynthesis.cancel();listen();}}
+function listen(){
+  if(!vOn)return;
+  if(vRec){try{vRec.abort();}catch(_){}}
+  const q=document.getElementById("q");q.value="";
+  vState("Listening… speak now");
+  const r=new SR();r.lang="en-GB";r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+  let fin="";
+  r.onresult=e=>{let t="";for(let i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}q.value=t;
+    if(e.results[e.results.length-1].isFinal)fin=t;};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){stopVoice();
+    bubble("a","Microphone is blocked for this page. Allow microphone access in your browser settings, then tap the mic again.");}};
+  r.onend=async()=>{
+    if(vRec===r)vRec=null;
+    if(!vOn)return;
+    const t=(fin||q.value).trim();q.value="";
+    if(!t){if(++vEmpty>=6){stopVoice();bubble("a","Voice paused — tap the mic when you want to talk.");return;}setTimeout(listen,300);return;}
+    vEmpty=0;
+    if(/^(stop|stop listening|that's all|thats all|goodbye|bye)[.!]?$/i.test(t)){stopVoice();return;}
+    vState("AMI is thinking…","thk");
+    const reply=await ask(t);
+    if(!vOn)return;
+    speak(reply||"Sorry, I didn't get a reply.",listen);
+  };
+  vRec=r;
+  try{r.start();}catch(_){setTimeout(listen,600);}
+}
+function speakable(t){return String(t).replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,"$1").replace(/https?:\/\/\S+/g,"link")
+  .replace(/[*_#`>|]/g,"").replace(/\n+/g,". ").replace(/\s+/g," ").trim().slice(0,1800);}
+function speak(text,then){
+  if(!("speechSynthesis" in window)){then();return;}
+  const parts=speakable(text).match(/[^.!?]+[.!?]*/g)||[" "];
+  const chunks=[];let cur="";
+  parts.forEach(p=>{if((cur+p).length>220){if(cur)chunks.push(cur);cur=p;}else cur+=p;});if(cur)chunks.push(cur);
+  vSpeaking=true;vState("AMI speaking… tap to interrupt","spk");
+  speechSynthesis.cancel();
+  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c.trim());
+    if(vVoice){u.voice=vVoice;u.lang=vVoice.lang;}else u.lang="en-GB";u.rate=1.02;
+    if(i===chunks.length-1){u.onend=()=>{if(vSpeaking&&vOn){vSpeaking=false;then();}};}
+    u.onerror=()=>{if(i===chunks.length-1&&vSpeaking&&vOn){vSpeaking=false;then();}};
+    speechSynthesis.speak(u);});
 }
 </script>
 </body>
