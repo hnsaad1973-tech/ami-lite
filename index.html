@@ -32,7 +32,7 @@
     border:1px solid var(--panelbd);border-radius:14px;overflow:hidden;background:var(--bg2);}
   .ticker{height:50px;flex:0 0 auto;border-bottom:1px solid var(--line);overflow:hidden;}
   .tabs{height:30px;flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);}
-  .tabs button{flex:1;border:none;background:none;color:var(--muted);font:500 11.5px "Inter",sans-serif;cursor:pointer;
+  .tabs button{flex:1 1 auto;min-width:0;padding:0 4px;border:none;background:none;color:var(--muted);font:500 11px "Inter",sans-serif;cursor:pointer;
     border-bottom:2px solid transparent;white-space:nowrap;}
   .tabs button.on{color:var(--gold2);border-bottom-color:var(--gold2);background:rgba(199,154,60,.06);}
   .charts{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;}
@@ -40,6 +40,38 @@
   .cell+.cell{border-left:1px solid var(--line);}
   .cell .tradingview-widget-container__widget,.cell iframe{width:100%!important;height:100%!important;}
   .tradingview-widget-copyright{display:none!important;}
+  .tabs button.my{color:var(--gold2);font-weight:600;}
+  .trade{grid-column:1/-1;display:flex;flex-direction:column;min-height:0;height:100%;}
+  .trh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .trh b{color:var(--ink);font-size:12px;letter-spacing:0;text-transform:none;}
+  .trh .pl{margin-left:auto;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;}
+  .trl{flex:1;overflow-y:auto;min-height:0;}
+  .trr{display:grid;grid-template-columns:1.2fr .9fr .8fr auto;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;}
+  .trr .sy{font-weight:600;}.trr .sy small{display:block;font-weight:400;color:var(--muted);font-size:10px;}
+  .trr .px{text-align:right;}.trr .ch{text-align:right;font-weight:600;}
+  .up{color:#29bf78;}.dn{color:#e65050;}
+  .bs{display:flex;gap:4px;}
+  .bs button{border:none;border-radius:6px;padding:4px 7px;font:600 10.5px "Inter",sans-serif;cursor:pointer;}
+  .bs .b{background:rgba(41,191,120,.18);color:#29bf78;}.bs .s{background:rgba(230,80,80,.18);color:#e65050;}
+  .bs button:disabled{opacity:.35;cursor:default;}
+  .tre{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 18px;gap:6px;}
+  .tre .t1{font-family:"Cormorant Garamond",serif;font-size:18px;font-weight:600;color:var(--gold2);}
+  .tre .t2{font-size:11.5px;color:var(--muted);line-height:1.45;}
+  .tre .bs{margin-top:4px;}
+  .ticket{position:fixed;inset:0;z-index:70;background:rgba(8,12,21,.85);backdrop-filter:blur(5px);display:none;align-items:flex-end;justify-content:center;}
+  .ticket.show{display:flex;}
+  .tk{width:100%;max-width:440px;background:var(--bg2);border:1px solid var(--panelbd);border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));}
+  .tk h3{font-family:"Cormorant Garamond",serif;font-size:22px;margin-bottom:10px;}
+  .tk h3 .buy{color:#29bf78;}.tk h3 .sell{color:#e65050;}
+  .tk label{display:block;font-size:11px;color:var(--muted);margin:8px 0 4px;letter-spacing:.06em;text-transform:uppercase;}
+  .tk input,.tk select{width:100%;border:1px solid var(--panelbd);border-radius:10px;padding:10px 12px;font-size:15px;background:rgba(255,255,255,.04);color:var(--ink);outline:none;}
+  .tk .row{display:flex;gap:10px;}.tk .row>div{flex:1;}
+  .tk .sum{margin-top:12px;font-size:13px;line-height:1.5;padding:10px 12px;border-radius:10px;background:rgba(199,154,60,.07);border:1px solid var(--panelbd);}
+  .tk .warn{color:#e65050;font-size:12px;margin-top:8px;min-height:15px;}
+  .tk .btns{display:flex;gap:10px;margin-top:12px;}
+  .tk .btns button{flex:1;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;border:1px solid var(--panelbd);background:none;color:var(--ink);}
+  .tk .btns .go{border:none;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));}
+  .tk .btns .go:disabled{opacity:.35;cursor:default;}
   .ibk{margin-left:auto;border:1px solid var(--panelbd);border-radius:10px;padding:4px 8px;background:var(--panel);
     cursor:pointer;text-align:left;color:var(--ink);flex:0 0 auto;}
   .ibk .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:5px;}
@@ -200,6 +232,23 @@
     </div>
   </div>
 
+  <div class="ticket" id="ticket" onclick="if(event.target===this)closeTicket()">
+    <div class="tk">
+      <h3 id="tkh">Order</h3>
+      <div class="row">
+        <div><label>Symbol</label><input id="tksym" autocapitalize="characters" oninput="tkCalc()"></div>
+        <div><label>Quantity</label><input id="tkqty" type="number" min="1" step="1" inputmode="numeric" oninput="tkCalc()"></div>
+      </div>
+      <div class="row">
+        <div><label>Order type</label><select id="tktype" onchange="tkCalc()"><option value="LMT">Limit</option><option value="MKT">Market</option></select></div>
+        <div><label>Limit price (USD)</label><input id="tkpx" type="number" step="0.01" inputmode="decimal" oninput="tkCalc()"></div>
+      </div>
+      <div class="sum" id="tksum">—</div>
+      <div class="warn" id="tkwarn"></div>
+      <div class="btns"><button onclick="closeTicket()">Cancel</button><button class="go" id="tkgo" onclick="placeOrder()">Confirm order</button></div>
+    </div>
+  </div>
+
   <div class="login" id="login">
     <div class="card">
       <h1>AMI</h1>
@@ -237,7 +286,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=27;
+const AMI_LEVEL=32;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -353,13 +402,17 @@ function gotPhoto(inp){
 const TABS=[["Indices",[["FOREXCOM:SPXUSD"],["FOREXCOM:NSXUSD"]]],
   ["Global",[["FOREXCOM:DJI"],["FOREXCOM:UKXGBP"]]],
   ["Commodities",[["TVC:GOLD"],["TVC:USOIL"]]],
-  ["FX & Crypto",[["BINANCE:BTCUSDT"],["FX:EURUSD"]]]];
+  ["FX·Crypto",[["BINANCE:BTCUSDT"],["FX:EURUSD"]]],
+  ["My Trades","trade"]];
+const TRADE_TAB=TABS.length-1;
 function buildTabs(){const t=document.getElementById("tabs");
-  TABS.forEach((x,i)=>{const b=document.createElement("button");b.textContent=x[0];b.onclick=()=>showTab(i);t.appendChild(b);});
+  TABS.forEach((x,i)=>{const b=document.createElement("button");b.textContent=x[0];if(x[1]==="trade")b.className="my";b.onclick=()=>showTab(i);t.appendChild(b);});
   let i=0;try{i=+localStorage.getItem("amiTab")||0;}catch(_){}showTab(i<TABS.length?i:0);}
 function showTab(i){
   document.querySelectorAll("#tabs button").forEach((b,k)=>b.classList.toggle("on",k===i));
   const g=document.getElementById("charts");g.innerHTML="";
+  try{localStorage.setItem("amiTab",i);}catch(_){}
+  if(TABS[i][1]==="trade"){renderTrade();return;}
   TABS[i][1].forEach(([sym])=>{
     const box=document.createElement("div");box.className="cell tradingview-widget-container";
     const w=document.createElement("div");w.className="tradingview-widget-container__widget";box.appendChild(w);
@@ -373,27 +426,80 @@ function showTab(i){
 }
 buildTabs();
 
-/* ===== Trading corner — Interactive Brokers placeholder =====
+/* ===== Trading — Interactive Brokers (placeholder until the account is live) =====
    Flip IBKR.connected to true once the account is approved and the `ibkr` function is built.
-   It must return JSON: {pnl:number, currency:"USD", positions:[{symbol,qty,value,pnl}]} */
-const IBKR={connected:false,endpoint:SB_URL+"/functions/v1/ibkr"};
-let ibkrData=null;
+   GET  `ibkr`               -> {pnl, currency, positions:[{symbol,name,qty,price,change_pct,value,pnl}]}
+   POST `ibkr` {action:"order", symbol, side:"BUY"|"SELL", qty, type:"LMT"|"MKT", limit} -> {ok, id, message}
+   Safety: every order needs Confirm, and no single order may exceed IBKR.maxTrade (USD). */
+const IBKR={connected:false,endpoint:SB_URL+"/functions/v1/ibkr",maxTrade:10000};
+let ibkrData=null,tkSide="BUY";
 async function loadIBKR(){
   if(!IBKR.connected||!token)return;
-  try{const r=await fetch(IBKR.endpoint,{headers:{"Authorization":"Bearer "+token}});const d=await r.json();ibkrData=d;
+  try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"positions",token})});
+    const d=await r.json();ibkrData=d;
     const v=document.getElementById("ibkv"),p=+d.pnl||0;
-    v.textContent=(p>=0?"+":"")+p.toLocaleString("en-US",{maximumFractionDigits:0})+" "+(d.currency||"USD")+" today";
-    v.className="v "+(p>=0?"up":"dn");document.getElementById("ibkd").className="live";}
-  catch(_){document.getElementById("ibkv").textContent="Connection error";}
+    v.textContent=(p>=0?"+":"")+p.toLocaleString("en-US",{maximumFractionDigits:0})+" "+(d.currency||"USD");
+    v.className="v "+(p>=0?"up":"dn");document.getElementById("ibkd").className="live";
+    if(document.querySelector(".trade"))renderTrade();}
+  catch(_){document.getElementById("ibkv").textContent="Conn. error";}
 }
-function ibkr(){
-  if(!IBKR.connected){openChat("Trading","Trading corner — reserved for your Interactive Brokers account. It shows “Awaiting activation” until the account is approved and connected. From then on it shows your live positions and today's P&L here.");return;}
-  openChat("Trading");
-  if(!ibkrData){bubble("a","Loading positions…");loadIBKR();return;}
-  const rows=(ibkrData.positions||[]).map(x=>"**"+x.symbol+"** — "+x.qty+" · value "+x.value+" · P&L "+x.pnl).join("\n");
-  bubble("a",render("Today's P&L: "+ibkrData.pnl+" "+(ibkrData.currency||"USD")+"\n\n"+(rows||"No open positions.")));
+function fmt(n,d){return (+n||0).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
+function renderTrade(){
+  const g=document.getElementById("charts");
+  const wrap=document.createElement("div");wrap.className="trade";
+  if(!IBKR.connected){
+    wrap.innerHTML='<div class="trh"><b>Interactive Brokers</b><span class="pl" style="color:#d9a441">● Awaiting</span></div>'+
+      '<div class="tre"><div class="t1">Your trading panel</div>'+
+      '<div class="t2">Once your Interactive Brokers account is approved and connected, your stocks show here, green going up and red going down, with today\'s P&amp;L above.</div>'+
+      '<div class="bs"><button class="b" disabled>Buy</button><button class="s" disabled>Sell</button></div>'+
+      '<div class="t2" style="font-size:10.5px">Every order shows the full details and needs your Confirm · max $'+fmt(IBKR.maxTrade,0)+' per trade</div></div>';
+  }else{
+    const d=ibkrData||{positions:[]},p=+d.pnl||0;
+    let h='<div class="trh"><b>My Trades</b> · '+(d.positions||[]).length+' positions<span class="pl '+(p>=0?"up":"dn")+'">'+(p>=0?"+":"")+fmt(p,0)+' '+(d.currency||"USD")+' today</span></div><div class="trl">';
+    (d.positions||[]).slice().sort((a,b)=>(+b.change_pct||0)-(+a.change_pct||0)).forEach(x=>{
+      const c=+x.change_pct||0;
+      h+='<div class="trr"><div class="sy">'+esc(String(x.symbol))+'<small>'+fmt(x.qty,0)+' · P&amp;L '+(x.pnl>=0?"+":"")+fmt(x.pnl,0)+'</small></div>'+
+        '<div class="px">'+fmt(x.price,2)+'</div><div class="ch '+(c>=0?"up":"dn")+'">'+(c>=0?"▲ +":"▼ ")+fmt(c,2)+'%</div>'+
+        '<div class="bs"><button class="b" onclick="openTicket(\'BUY\',\''+esc(String(x.symbol))+'\','+(+x.price||0)+')">Buy</button><button class="s" onclick="openTicket(\'SELL\',\''+esc(String(x.symbol))+'\','+(+x.price||0)+')">Sell</button></div></div>';});
+    if(!(d.positions||[]).length)h+='<div class="tre"><div class="t2">No open positions.</div></div>';
+    h+='</div><div class="trh" style="border-top:1px solid var(--line);border-bottom:none"><div class="bs" style="margin-left:auto"><button class="b" onclick="openTicket(\'BUY\',\'\',0)">New Buy</button><button class="s" onclick="openTicket(\'SELL\',\'\',0)">New Sell</button></div></div>';
+    wrap.innerHTML=h;
+  }
+  g.appendChild(wrap);
 }
-if(IBKR.connected){setInterval(loadIBKR,60000);setTimeout(loadIBKR,3000);}
+function openTicket(side,sym,px){
+  if(!IBKR.connected)return;
+  tkSide=side;
+  document.getElementById("tkh").innerHTML=(side==="BUY"?'<span class="buy">Buy</span>':'<span class="sell">Sell</span>')+" order";
+  document.getElementById("tksym").value=sym||"";document.getElementById("tkqty").value="";
+  document.getElementById("tktype").value="LMT";document.getElementById("tkpx").value=px?(+px).toFixed(2):"";
+  tkCalc();document.getElementById("ticket").classList.add("show");
+}
+function closeTicket(){document.getElementById("ticket").classList.remove("show");}
+function tkCalc(){
+  const sym=document.getElementById("tksym").value.trim().toUpperCase(),q=+document.getElementById("tkqty").value||0;
+  const type=document.getElementById("tktype").value,px=+document.getElementById("tkpx").value||0;
+  document.getElementById("tkpx").disabled=type==="MKT";
+  const est=q*px,w=document.getElementById("tkwarn"),go=document.getElementById("tkgo");let msg="";
+  if(!sym||q<1)msg="Enter a symbol and a quantity.";
+  else if(type==="LMT"&&!px)msg="Enter a limit price.";
+  else if(est>IBKR.maxTrade)msg="Over your $"+fmt(IBKR.maxTrade,0)+" limit per trade.";
+  w.textContent=msg;go.disabled=!!msg;
+  document.getElementById("tksum").innerHTML=sym&&q?('<b>'+(tkSide==="BUY"?"BUY":"SELL")+' '+fmt(q,0)+' '+esc(sym)+'</b> · '+(type==="MKT"?"at market price":"limit $"+fmt(px,2))+
+    (px?'<br>Estimated value: <b>$'+fmt(est,2)+'</b>':'')+'<br><span style="color:var(--muted)">Placed through Interactive Brokers only after you tap Confirm.</span>'):"—";
+}
+async function placeOrder(){
+  const go=document.getElementById("tkgo");go.disabled=true;go.textContent="Placing…";
+  const body={action:"order",token,symbol:document.getElementById("tksym").value.trim().toUpperCase(),side:tkSide,
+    qty:+document.getElementById("tkqty").value,type:document.getElementById("tktype").value,limit:+document.getElementById("tkpx").value||null};
+  try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(body)});const d=await r.json();
+    document.getElementById("tkwarn").textContent=d.ok?"":(d.message||"Order not placed.");
+    if(d.ok){closeTicket();loadIBKR();alert("Order sent: "+(d.message||d.id||"ok"));}}
+  catch(e){document.getElementById("tkwarn").textContent="Connection error — order not placed.";}
+  finally{go.textContent="Confirm order";tkCalc();}
+}
+function ibkr(){showTab(TRADE_TAB);}
+if(IBKR.connected){setInterval(loadIBKR,30000);setTimeout(loadIBKR,3000);}
 
 /* ===== Hands-free voice mode =====
    Tap mic once: listens, sends when you pause, reads AMI's reply aloud (British English voice), listens again.
