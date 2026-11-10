@@ -237,7 +237,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=25;
+const AMI_LEVEL=27;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -315,6 +315,7 @@ async function ask(text,image){
   try{
     const body={message:text,section};
     if(image)body.image=image;
+    if(vOn)body.voice=true;
     const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",
       headers:{"Content-Type":"text/plain","Authorization":"Bearer "+token},
       body:JSON.stringify(body)});
@@ -399,8 +400,16 @@ if(IBKR.connected){setInterval(loadIBKR,60000);setTimeout(loadIBKR,3000);}
    Tap the bar to interrupt AMI; tap Stop (or the mic) to end. Saying "stop" also ends it. */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let vOn=false,vRec=null,vVoice=null,vEmpty=0,vSpeaking=false;
-function pickVoice(){if(!("speechSynthesis" in window))return;const vs=speechSynthesis.getVoices();
-  vVoice=vs.find(v=>/en[-_]GB/i.test(v.lang)&&/Daniel|Arthur|Male/i.test(v.name))||vs.find(v=>/en[-_]GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null;}
+function pickVoice(){if(!("speechSynthesis" in window))return;const vs=speechSynthesis.getVoices();let best=null,bs=-99;
+  vs.forEach(v=>{let sc=0;const n=v.name,l=v.lang||"";
+    if(/en[-_]GB/i.test(l))sc+=4;else if(/^en/i.test(l))sc+=1;else sc-=50;
+    if(/Premium|Enhanced|Natural|Neural|Online/i.test(n))sc+=8;
+    if(/Siri/i.test(n))sc+=6;
+    if(/Google UK English/i.test(n))sc+=4;
+    if(/Sonia|Libby|Ryan|Serena|Daniel|Arthur|Kate|Jamie|Martha/i.test(n))sc+=1;
+    if(/compact|eSpeak|Fred|Albert|Bad|Bells|Boing|Bubbles|Cellos|Jester|Organ|Trinoids|Whisper|Zarvox|Superstar|Wobble|Grandma|Grandpa|Rocko|Shelley|Sandy|Eddy|Flo|Reed/i.test(n))sc-=20;
+    if(sc>bs){bs=sc;best=v;}});
+  vVoice=best;}
 if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}
 function vState(t,kind){document.getElementById("vstate").textContent=t;document.getElementById("vdot").className="dot"+(kind?" "+kind:"");}
 function toggleVoice(){vOn?stopVoice():startVoice();}
@@ -453,11 +462,11 @@ function speak(text,then){
   if(!("speechSynthesis" in window)){then();return;}
   const parts=speakable(text).match(/[^.!?]+[.!?]*/g)||[" "];
   const chunks=[];let cur="";
-  parts.forEach(p=>{if((cur+p).length>220){if(cur)chunks.push(cur);cur=p;}else cur+=p;});if(cur)chunks.push(cur);
+  parts.forEach(p=>{if((cur+p).length>420){if(cur)chunks.push(cur);cur=p;}else cur+=p;});if(cur)chunks.push(cur);
   vSpeaking=true;vState("AMI speaking… tap to interrupt","spk");
   speechSynthesis.cancel();
   chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c.trim());
-    if(vVoice){u.voice=vVoice;u.lang=vVoice.lang;}else u.lang="en-GB";u.rate=1.02;
+    if(vVoice){u.voice=vVoice;u.lang=vVoice.lang;}else u.lang="en-GB";u.rate=1.05;u.pitch=1;
     if(i===chunks.length-1){u.onend=()=>{if(vSpeaking&&vOn){vSpeaking=false;then();}};}
     u.onerror=()=>{if(i===chunks.length-1&&vSpeaking&&vOn){vSpeaking=false;then();}};
     speechSynthesis.speak(u);});
