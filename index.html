@@ -157,6 +157,9 @@
   .crow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;}
   .td .ti{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.45;transition:opacity .2s;}
   .td .ti span{flex:1;min-width:0;overflow-wrap:anywhere;}
+  .td .ti.urg span{color:#f0a640;font-weight:600;}
+  .td button.ug{flex:none;border:1px solid rgba(240,166,64,.5);background:transparent;color:#f0a640;border-radius:9px;padding:6px 10px;font-weight:600;font-size:12.5px;cursor:pointer;}
+  .td button.ug.on{background:rgba(240,166,64,.18);}
   .td button.dn{flex:none;border:1px solid rgba(41,191,120,.5);background:rgba(41,191,120,.12);color:#29bf78;border-radius:9px;padding:6px 12px;font-weight:600;font-size:12.5px;cursor:pointer;}
   .td button.cf{margin-top:8px;border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));}
   .rb.on{background:#e65050;border-color:#e65050;color:#fff;animation:pulse 1.4s infinite;}
@@ -409,7 +412,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=44;
+const AMI_LEVEL=45;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -595,7 +598,7 @@ let TODO=[];
 async function openTodo(){
   openChat("To-do list");
   const w=bubble("a","Loading your to-do list…");
-  try{const d=await api({action:"todo"});TODO=d.lists||[];renderTodo(w);}
+  try{const d=await todox({action:"list"});TODO=d.lists||[];renderTodo(w);}
   catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
 }
 function todoItems(x){const done=x.done_items||[];
@@ -605,7 +608,11 @@ function renderTodo(w){
   TODO.forEach((x,i)=>{const items=todoItems(x);if(!items.length)return;
     const t=x.sent_at?new Date(x.sent_at).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
     h+=(n++?'<hr style="border:none;border-top:1px solid var(--line);margin:12px 0">':'')+'<b>'+(x.kind==="evening"?"Tomorrow's list":x.kind==="inbox"?"From your email":"Orders")+'</b> <span style="color:var(--muted);font-size:12px">'+esc(t)+'</span>';
-    items.forEach(l=>{h+='<div class="ti"><span>'+esc(l.replace(/^\d+[.)]\s*|^[-•*]\s*/,""))+'</span><button class="dn" data-i="'+i+'" data-l="'+esc(l)+'" onclick="todoDone(this)">✓ Done</button></div>';});});
+    const urg=x.urgent_items||[];
+    items.sort((a,b)=>urg.includes(b)-urg.includes(a)).forEach(l=>{const u=urg.includes(l);
+      h+='<div class="ti'+(u?' urg':'')+'"><span>'+(u?'⚠️ ':'')+esc(l.replace(/^\d+[.)]\s*|^[-•*]\s*/,""))+'</span>'+
+        '<button class="ug'+(u?' on':'')+'" data-i="'+i+'" data-l="'+esc(l)+'" onclick="todoUrgent(this)">'+(u?'⚠️ Urgent':'Urgent')+'</button>'+
+        '<button class="dn" data-i="'+i+'" data-l="'+esc(l)+'" onclick="todoDone(this)">✓ Done</button></div>';});});
   w.innerHTML=n?h+'</div>':"✅ All clear, Chairman — nothing left on your To-do list.";w.style.maxWidth="100%";
 }
 async function todoDone(btn){const x=TODO[+btn.dataset.i],l=btn.dataset.l,row=btn.parentNode;
@@ -613,6 +620,17 @@ async function todoDone(btn){const x=TODO[+btn.dataset.i],l=btn.dataset.l,row=bt
   try{const d=await api({action:"todo_done",call_sid:x.call_sid,item:l});if(!d.ok)throw new Error(d.reply||"not saved");
     x.done_items=d.done_items;setTimeout(()=>renderTodo(row.closest(".td").parentNode),250);}
   catch(e){btn.disabled=false;row.style.opacity="";toast("Error: "+e.message);}}
+
+async function todox(body){
+  if(!token){document.getElementById("login").classList.add("show");throw new Error("Not signed in");}
+  const r=await fetch(SB_URL+"/functions/v1/todox",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({token},body))});
+  return r.json();
+}
+async function todoUrgent(btn){const x=TODO[+btn.dataset.i],l=btn.dataset.l,on=!(x.urgent_items||[]).includes(l);
+  btn.disabled=true;
+  try{const d=await todox({action:"urgent",call_sid:x.call_sid,item:l,on});if(!d.ok)throw new Error(d.reply||"not saved");
+    x.urgent_items=d.urgent_items;toast(on?"⚠️ Marked urgent — AMI sent it to your WhatsApp":"Urgent removed");renderTodo(btn.closest(".td").parentNode);}
+  catch(e){btn.disabled=false;toast("Error: "+e.message);}}
 
 function chatOpen(){return document.getElementById("chat").classList.contains("show");}
 function openChat(title,greet){
