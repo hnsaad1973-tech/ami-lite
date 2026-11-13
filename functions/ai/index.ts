@@ -1,4 +1,4 @@
-// AMI `ai` edge function — v4.3 (13 Nov 2026) — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
+// AMI `ai` edge function — v4.4.1 (13 Nov 2026) — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
 import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, googleReady, sheetTabs, brainImportReady } from "./google.ts";
 // Includes: "clear chat", "ami status", server-checked send claims,
 // direct WhatsApp via Twilio (delivery check + template fallback), YES required before messaging others,
@@ -116,6 +116,7 @@ function positionFromSheet(tabs: any, masterUrl: string) {
 const STUDIO_RULE = `
 DESIGN STUDIO (sketches, renders, elevations, floor plans, 3D views, logos, any picture): you DO the work yourself — never hand him a prompt, never tell him to use another tool or app.
 - FLOOR PLANS / PARTITION PLANS / office or room LAYOUTS: use the draw_plan tool (real PDF + AutoCAD DXF saved in Drive), NOT image generation. If he means an existing plan, find its PDF with drive_search first and pass base_file_id. Changes to the last drawing: draw_plan with revise "true". Tell him the PDF and AutoCAD links come on WhatsApp in about 3 minutes.
+- ELEVATIONS / SECTIONS / FACADES / 3D MASSING of a building: use the draw_elevations tool (4 elevations + section + 3D view, with levels and measurements, PDF + AutoCAD). A full drawing set = draw_plan for each floor + draw_elevations + one photoreal render (generate_image below, describing the exact massing, floors, glass facade, roof terrace and setting in Monrovia). The set is for the architect to finish and certify.
 - New image: execute_zapier_write_action, selected_api "ChatGPTCLIAPI", action "generate_image" (tool_name "chatgpt_openai_generate_an_image"), params {"prompt": "<your detailed description>", "size": "1536x1024", "quality": "medium", "output_format": "jpeg", "results_number": 1}.
 - Change HIS sketch/photo (adjust, render it, make it 3D, add materials): execute_zapier_write_action, selected_api "ChatGPTCLIAPI", action "create_image_edit" (tool_name "chatgpt_openai_create_image_edit"), params {"image": "<the sketch link given in the message>", "prompt": "<what to do>", "size": "1536x1024", "output_format": "jpeg", "results_number": 1}.
 - For 3D: produce a photoreal 3D perspective or axonometric render of the design (and say it is a 3D-style render image, not a CAD model).
@@ -357,7 +358,7 @@ Deno.serve(async (req) => {
       message = brainRefreshPrompt(brainCfg);
     }
     // Design Studio: his sketch/photo gets a private link so the image tools can work on it
-    const studio = section === "Design Studio" || /\b(sketch|render|rendering|draw|drawing|elevation|floor ?plan|3d|three[- ]d|mock ?-?up|logo|picture|image of|visuali[sz]e|partition|partitioning|layout|lay out|dxf|autocad|cad)\b/i.test(message);
+    const studio = section === "Design Studio" || /\b(sketch|render|rendering|draw|drawing|elevation|floor ?plan|3d|three[- ]d|mock ?-?up|logo|picture|image of|visuali[sz]e|partition|partitioning|layout|lay out|dxf|autocad|cad|elevations|section|sections|facade|massing|drawing set|re-?draw|redrawn|plans?|structural|mezzanine)\b/i.test(message);
     if (image && studio) {
       try {
         const bin = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
@@ -502,7 +503,7 @@ Deno.serve(async (req) => {
     // "ami status" shows which connections AMI can actually see (never the values)
     if (!image && /^\s*(ami\s+)?status\s*$/i.test(message)) {
       const has = (k: string) => (Deno.env.get(k) ? "✅" : "❌ missing");
-      return json({ reply: `AMI status (v4.3 — drawing (PDF + AutoCAD), pricing database, direct Google, master brain, studio, calendar, inbox brief + buttons, to-do, phone calls, camera, voice):\n- ANTHROPIC_API_KEY: ${has("ANTHROPIC_API_KEY")}\n- TWILIO_ACCOUNT_SID: ${has("TWILIO_ACCOUNT_SID")}\n- TWILIO_AUTH_TOKEN: ${has("TWILIO_AUTH_TOKEN")}\n- Google direct (Gmail/Drive/Sheets/Calendar): ${googleReady() ? "✅" : "❌ keys missing"}\n- ZAPIER_MCP_URL: ${has("ZAPIER_MCP_URL")}\n- ZAPIER_MCP_TOKEN: ${has("ZAPIER_MCP_TOKEN")}\n- WhatsApp sending: ${TW_SID && TW_TOKEN ? "direct via Twilio ✅" : "via Zapier only"}\n- Sender: ${TW_FROM}\n- Company brain: ${brain ? "loaded (" + brain.updated + ") ✅" : "❌ not loaded"}` });
+      return json({ reply: `AMI status (v4.4 — drawing: plans, elevations, sections, 3D (PDF + AutoCAD), pricing database, direct Google, master brain, studio, calendar, inbox brief + buttons, to-do, phone calls, camera, voice):\n- ANTHROPIC_API_KEY: ${has("ANTHROPIC_API_KEY")}\n- TWILIO_ACCOUNT_SID: ${has("TWILIO_ACCOUNT_SID")}\n- TWILIO_AUTH_TOKEN: ${has("TWILIO_AUTH_TOKEN")}\n- Google direct (Gmail/Drive/Sheets/Calendar): ${googleReady() ? "✅" : "❌ keys missing"}\n- ZAPIER_MCP_URL: ${has("ZAPIER_MCP_URL")}\n- ZAPIER_MCP_TOKEN: ${has("ZAPIER_MCP_TOKEN")}\n- WhatsApp sending: ${TW_SID && TW_TOKEN ? "direct via Twilio ✅" : "via Zapier only"}\n- Sender: ${TW_FROM}\n- Company brain: ${brain ? "loaded (" + brain.updated + ") ✅" : "❌ not loaded"}` });
     }
 
     // The main job. Background jobs (morning brief, call orders) run after we answer, so the 150-second gateway limit never cuts them off.
@@ -671,6 +672,9 @@ Deno.serve(async (req) => {
     if (confirmed.length) text += "\n\n✅ Confirmed by Twilio:\n- " + confirmed.join("\n- ");
     if (!sendAttempted && /\b(sent|sending|delivered|i've sent|message (has been|was) sent)\b/i.test(text) && /whatsapp|message|email/i.test(text))
       toolErrors.push("No send was actually attempted in this reply. Nothing was sent. Ask again or type: ami status");
+    // drawings: never claim a drawing is being made unless a drawing tool really ran
+    if (!toolsUsed.some((t) => /draw_plan|draw_elevations/.test(t)) && /(being (re)?drawn|drawing (it|them|now)|will (arrive|come) on whats ?app|pdf and autocad|autocad dxf)/i.test(text) && /draw|plan|elevation|dxf|autocad/i.test(text))
+      toolErrors.push("No drawing was actually started in this reply (the drawing tool did not run). Nothing is coming on WhatsApp. Ask again with the word 'draw'.");
     if (toolErrors.length) text += "\n\n⚠️ System check — tool errors:\n- " + [...new Set(toolErrors)].join("\n- ");
 
     // History stores text only (photos are not kept), so memory stays small

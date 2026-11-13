@@ -1,4 +1,4 @@
-// drawplan v1.3 — AMI's drawing engine: floor / partition plans as PDF (to view & print) + DXF (AutoCAD), saved to Drive.
+// drawplan v1.4 — AMI's drawing engine: floor / partition plans as PDF (to view & print) + DXF (AutoCAD), saved to Drive.
 // POST (x-internal-key): {brief, base_file_id?, folder_id?, company?, title?, async?, notify?}
 //  - base_file_id: a vector PDF plan in Drive (e.g. from AutoCAD). Its lines are read and scaled to metres from the dimension labels.
 //  - without a base file the whole plan is drawn from the brief.
@@ -206,6 +206,7 @@ const SPEC = `Return ONLY one JSON object (no markdown). ALL coordinates in METR
  "close":[[x0,y0,x1,y1]],                // existing doors / openings to be walled up (line across the opening)
  "furniture":[{"label":"VISA COUNTER","x":..,"y":..,"w":..,"h":..}],  // x,y = bottom-left
  "markers":[{"text":"MAIN ENTRANCE","x":..,"y":..,"dx":-2.5,"dy":0}],  // arrow pointing at x,y from x+dx,y+dy (outside the space)
+ "shell":{"outline":[[x,y],...],"columns":[[x,y],...],"column_size":0.4},  // ONLY when there is NO base plan: the building outline polygon (inner face of outer walls, counter-clockwise, origin at its south-west corner) incl. any projecting core, and every column centre
  "notes":["short note", ...]}            // how you read the brief, assumptions, anything that does not fit`;
 const RULES = `HOW TO LAY IT OUT (follow strictly):
 1. First study the grid drawing: the main space (green outline), the columns, the EXISTING enclosed rooms (WCs, kitchenette, server, stairs, lift) with their real positions, and where the entrance door and fire exit door are in the outer walls. List the kept existing rooms in "existing" with their true rectangles. New rooms must NEVER overlap existing rooms or each other.
@@ -233,7 +234,7 @@ async function askAI(content: any[], budget: number) {
 }
 async function aiLayout(brief: string, base: any, pdfB64: string | null) {
   const user: any[] = [];
-  let ctx = "NO BASE PLAN: there is no existing plan; the main space is defined by the brief. Put its outer walls in rooms as needed; origin at the south-west corner.";
+  let ctx = "NO BASE PLAN: design the whole floor from the brief. The MAIN SPACE is the main floor plate, origin (0,0) at its south-west inner corner. Give the building outline and the columns in \"shell\" (they are drawn as the existing structure); list the stair/lift core and any other fixed shafts in \"existing\" (they get walls drawn); rooms may sit outside the main space only inside the outline (e.g. in a projecting core).";
   if (base) {
     user.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64enc(gridPdf(base)) } });
     if (pdfB64) user.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfB64 } });
@@ -273,11 +274,24 @@ function check(L: any, base: any) {
   }
   const cor = rooms.filter((r: any) => /corridor/i.test(r.n));
   for (const c of cor) { const w = Math.min(c.x1 - c.x0, c.y1 - c.y0); if (w > 1.7) errs.push(`${c.n} is ${r2(w)} m wide - keep it 1.2-1.5 m`); }
+  if (!base && !((L.shell?.outline || []).length >= 3)) errs.push("shell.outline is missing - give the building outline polygon");
   return [...new Set(errs)];
 }
 // rectangles -> partition centre-lines (merged, door gaps cut), doors, labels with true sizes; then onto the base plan
+function shellSegs(L: any) {
+  const segs: number[][] = []; const sh = L.shell || {};
+  const pts = (sh.outline || []).map((p: any) => [num(p[0]), num(p[1])]);
+  for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; segs.push([a[0], a[1], b[0], b[1]]);
+    // outer wall thickness 0.2 m drawn outside the inner face
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = dy / l * 0.2, ny = -dx / l * 0.2; segs.push([a[0] + nx, a[1] + ny, b[0] + nx, b[1] + ny]); }
+  const c = num(sh.column_size) || 0.4, h = c / 2;
+  for (const p of sh.columns || []) { const x = num(p[0]), y = num(p[1]); segs.push([x - h, y - h, x + h, y - h], [x + h, y - h, x + h, y + h], [x + h, y + h, x - h, y + h], [x - h, y + h, x - h, y - h]); }
+  for (const e of L.existing || []) { const R = rect(e); segs.push([R.x0, R.y0, R.x1, R.y0], [R.x1, R.y0, R.x1, R.y1], [R.x1, R.y1, R.x0, R.y1], [R.x0, R.y1, R.x0, R.y0]); }
+  return segs;
+}
 function build(L: any, base: any) {
-  const o = base?.office || { x0: 0, y0: 0, x1: 1e9, y1: 1e9 }; const ox = o.x0, oy = o.y0, W = o.x1 - o.x0, H = o.y1 - o.y0;
+  let o = base?.office || { x0: 0, y0: 0, x1: 1e9, y1: 1e9 };
+  if (!base && (L.shell?.outline || []).length >= 3) { const xs = L.shell.outline.map((p: any) => num(p[0])), ys = L.shell.outline.map((p: any) => num(p[1])); const x0m = Math.min(...xs); const yW = L.shell.outline.filter((p: any) => Math.abs(num(p[0]) - x0m) < 0.01).map((p: any) => num(p[1])); o = { x0: 0, y0: 0, x1: Math.max(...xs), y1: yW.length ? Math.max(...yW) : Math.max(...ys) }; } const ox = o.x0, oy = o.y0, W = o.x1 - o.x0, H = o.y1 - o.y0;
   const T = 0.12; const ex = (L.existing || []).map(rect);
   const lines = new Map<string, number[][]>(); // key "h:y" / "v:x" -> [lo,hi] intervals
   const add = (hz: boolean, at: number, lo: number, hi: number) => {
@@ -315,8 +329,9 @@ function build(L: any, base: any) {
   return { title: L.title, summary: L.summary, plan: L.plan, notes: L.notes || [], walls, doors, rooms: labels,
     close: (L.close || []).filter((w: any) => Array.isArray(w) && w.length === 4).map((w: number[]) => [num(w[0]) + ox, num(w[1]) + oy, num(w[2]) + ox, num(w[3]) + oy]),
     furniture: (L.furniture || []).map(sh), markers: (L.markers || []).map(sh),
-    dims: base ? [{ x0: o.x0, y0: o.y0 - 0.9, x1: o.x1, y1: o.y0 - 0.9, text: `${r2(W)} m` }, { x0: o.x1 + 0.9, y0: o.y0, x1: o.x1 + 0.9, y1: o.y1, text: `${r2(H)} m` }] : [],
-    raw: { rooms: L.rooms, existing: L.existing, existing_doors: L.existing_doors } };
+    dims: o.x1 < 1e8 ? [{ x0: o.x0, y0: o.y0 - 0.9, x1: o.x1, y1: o.y0 - 0.9, text: `${r2(W)} m` }, { x0: o.x1 + 0.9, y0: o.y0, x1: o.x1 + 0.9, y1: o.y1, text: `${r2(H)} m` }] : [],
+    shell: base ? null : shellSegs(L),
+    raw: { rooms: L.rooms, existing: L.existing, existing_doors: L.existing_doors, shell: L.shell } };
 }
 
 // ---------------- output: PDF (vector, Helvetica) ----------------
@@ -388,7 +403,7 @@ function makePdf(base: any, L: any, title: string, sub: string) {
   o.push("0 0 0 rg");
   rawText(M, PH - 45, 16, title, true);
   rawText(M, PH - 64, 9, sub);
-  rawText(M, BOT - 30, 8, "LEGEND: grey = existing (base plan)   red = new partitions, doors and closed openings   blue = counters / furniture   green = entrance / exits", true);
+  rawText(M, BOT - 30, 8, "LEGEND: grey = existing / structure   red = new partitions, doors and closed openings   blue = counters / furniture   green = entrance / exits", true);
   (L.notes || []).slice(0, 7).forEach((n: string, i: number) => rawText(M, BOT - 46 - i * 11, 8, `${i + 1}. ${n}`.slice(0, 210)));
   return pdfFile(o.join("\n"), PW, PH);
 }
@@ -464,7 +479,8 @@ async function run(b: any) {
   const title = asc(b.title || L.title || "Partition plan");
   const day = new Date().toISOString().slice(0, 10);
   const sub = `${baseName ? "Base plan: " + baseName + "  |  " : ""}Scale: fit to A3  |  Dimensions in metres  |  ${day}  |  verify all sizes on site`;
-  const pdf = makePdf(base, L, title, sub), dxf = makeDxf(base, L, title);
+  const drawBase = base || (L.shell && L.shell.length ? { segs: L.shell } : null);
+  const pdf = makePdf(drawBase, L, title, sub), dxf = makeDxf(drawBase, L, title);
   const name = `${title} (${day})`;
   const [pdfLink, dxfLink] = await Promise.all([upload(pdf, name + ".pdf", "application/pdf", folder), upload(dxf, name + ".dxf", "application/dxf", folder)]);
   const out = { title, summary: L.summary || "", pdf: pdfLink, dxf: dxfLink, folder, scale_pt_per_m: base?.k || null, rooms: (L.rooms || []).map((r: any) => `${String(r.name).replace(/\n|\\n/g, " ")} ${r.size || ""}`.trim()), notes: L.notes || [] };

@@ -219,6 +219,16 @@ export async function drawPlan(p: { brief: string; base_file_id?: string; folder
   return { started: true, note: "Drawing started. The PDF and AutoCAD (DXF) links come to his WhatsApp in about 3 minutes and are saved in Drive next to the base plan (or in the company folder)." };
 }
 
+// ---------- Elevations / section / 3D (drawelev) ----------
+export async function drawElevations(p: { brief: string; folder_id?: string; title?: string; use_last_plan?: any }) {
+  const SBU = Deno.env.get("SUPABASE_URL") || "", SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const key = (await (await fetch(`${SBU}/rest/v1/ami_settings?key=eq.wake_key&select=value`, { headers: { apikey: SRK, Authorization: `Bearer ${SRK}` } })).json())?.[0]?.value;
+  const r = await fetch(`${SBU}/functions/v1/drawelev`, { method: "POST", headers: { "Content-Type": "application/json", "x-internal-key": key || "" },
+    body: JSON.stringify({ brief: p.brief, folder_id: p.folder_id || undefined, title: p.title || undefined, use_last_plan: p.use_last_plan ?? "true", async: true }) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "drawelev " + r.status);
+  return { started: true, note: "Elevations (4 sides), section and 3D massing view started. PDF + AutoCAD links come to his WhatsApp in about 1 minute, saved in the same Drive folder as the floor plan." };
+}
+
 // ---------- Tool definitions for the model ----------
 export const GOOGLE_TOOLS = [
   { name: "inbox_digest", description: "List emails from his Gmail (sender, subject, date, short preview, id, threadId). Uses Gmail search syntax, e.g. 'in:inbox newer_than:1d category:primary', 'from:ecobank', 'subject:invoice newer_than:30d'.",
@@ -242,6 +252,8 @@ export const GOOGLE_TOOLS = [
     input_schema: { type: "object", properties: { query: { type: "string" }, currency: { type: "string" }, max: { type: "string" } }, required: ["query"] } },
   { name: "draw_plan", description: "Draw a FLOOR PLAN / PARTITION PLAN / office or room LAYOUT as real CAD files: a PDF to view and print plus a DXF that opens in AutoCAD, saved in Drive. Use this (not image generation) whenever he asks to draw, lay out, partition or re-plan a floor, office, apartment or building. If he refers to an existing plan in Drive, first find it with drive_search and pass its PDF file id as base_file_id (it must be a PDF exported from AutoCAD, not a photo). Put the whole request in brief: rooms wanted, sizes, where the entrance / fire exit / columns are, what to keep. For changes to the last drawing pass revise 'true' and only the changes in brief. It runs in the background: tell him the PDF and AutoCAD links will come on WhatsApp in about 3 minutes.",
     input_schema: { type: "object", properties: { brief: { type: "string" }, base_file_id: { type: "string" }, folder_id: { type: "string" }, company: { type: "string" }, title: { type: "string" }, revise: { type: "string" } }, required: ["brief"] } },
+  { name: "draw_elevations", description: "Draw the ELEVATIONS (all four sides), a SECTION through the middle and a 3D massing view of a building, with levels, grid and all measurements, as one PDF + one AutoCAD DXF in Drive. Use whenever he asks for elevations, sections, facades, heights or a 3D/massing view of a building. Put in brief: footprint size, column grid, every floor with its height (e.g. 3.5 m floor to floor), partial floors such as a mezzanine and where it sits, double-height areas, roof terrace and any rooftop restaurant/pavilion, the stair/lift core position, facade type (glass curtain wall / windows / solid) and the entrance. It uses the last floor plan AMI drew for the outline and core unless use_last_plan is 'false'.",
+    input_schema: { type: "object", properties: { brief: { type: "string" }, folder_id: { type: "string" }, title: { type: "string" }, use_last_plan: { type: "string" } }, required: ["brief"] } },
   { name: "drive_save_image", description: "Save a file from a web link (e.g. a generated image) into a Drive folder.",
     input_schema: { type: "object", properties: { url: { type: "string" }, folder_id: { type: "string" }, name: { type: "string" } }, required: ["url", "folder_id", "name"] } },
 ];
@@ -259,6 +271,7 @@ export async function runGoogleTool(name: string, p: any): Promise<any> {
     case "calendar_add": return await calendarAdd(p);
     case "price_lookup": return await priceLookup(p);
     case "draw_plan": return await drawPlan(p);
+    case "draw_elevations": return await drawElevations(p);
     case "drive_save_image": return await driveSaveFromUrl({ url: p.url, folder_id: p.folder_id, name: p.name });
   }
   throw new Error("Unknown tool " + name);
