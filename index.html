@@ -808,7 +808,6 @@ function showTab(i){
     box.appendChild(sc);g.appendChild(box);});
   try{localStorage.setItem("amiTab",i);}catch(_){}
 }
-buildTabs();
 
 /* ===== Trading — Interactive Brokers (placeholder until the account is live) =====
    Flip IBKR.connected to true once the account is approved and the `ibkr` function is built.
@@ -817,6 +816,7 @@ buildTabs();
    Safety: every order needs Confirm, and no single order may exceed IBKR.maxTrade (USD). */
 const IBKR={connected:false,endpoint:SB_URL+"/functions/v1/ibkr",maxTrade:10000};
 let ibkrData=null,tkSide="BUY";
+buildTabs(); // after IBKR is set up: opening on "My Trades" used to stop the whole app (vOn error)
 async function loadIBKR(){
   if(!IBKR.connected||!token)return;
   try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"positions",token})});
