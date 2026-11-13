@@ -346,8 +346,11 @@
       <button onclick="studioDo('render')">🏛️ Render</button>
       <button onclick="studioDo('3d')">🧊 3D</button>
       <button onclick="studioDo('adjust')">🛠️ Adjust</button>
+      <button onclick="drawDo('plan')">📐 Floor plan</button>
+      <button onclick="drawDo('elev')">🏢 Elevations</button>
+      <button onclick="drawDo('set')">📚 Full set</button>
     </div>
-    <div class="schip" id="schip"><img id="schipimg" alt=""><span>Sketch ready — tap Render, 3D or Adjust, or type what to do and send.</span><button onclick="clearSketch()" aria-label="Remove">✕</button></div>
+    <div class="schip" id="schip"><img id="schipimg" alt=""><span>Sketch ready — tap Render, 3D, Adjust, Floor plan, Elevations or Full set, or type what to do and send.</span><button onclick="clearSketch()" aria-label="Remove">✕</button></div>
     <div class="cbar">
       <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
@@ -720,6 +723,14 @@ function studioDo(kind){if(busy)return;
   if(!studioImg){afterPick=kind;pickSketch();return;}
   const q=document.getElementById("q");const extra=q.value.trim();q.value="";
   const im=studioImg;clearSketch();ask(STUDIO_ASK[kind]+(extra?" Also: "+extra:""),im);}
+/* CAD drawings: floor plans, elevations/section/3D, full drawing set (PDF + AutoCAD in Drive, links on WhatsApp) */
+const DRAW_ASK={plan:"Draw the floor plan as PDF + AutoCAD (draw_plan). Details: ",
+  elev:"Draw the elevations, section and 3D view as PDF + AutoCAD (draw_elevations). Details: ",
+  set:"Make the full drawing set: draw_plan for each floor, then draw_elevations, then one photoreal render. Details: "};
+function drawDo(kind){if(busy)return;const q=document.getElementById("q");const extra=q.value.trim();
+  const pre=Object.values(DRAW_ASK).find(p=>extra.startsWith(p));const body=pre?extra.slice(pre.length).trim():extra;
+  if(!body){q.value=DRAW_ASK[kind];q.focus();toast("Type or say the sizes, floors and rooms, then send.",4000);return;}
+  q.value="";const im=studioImg;if(im)clearSketch();ask(DRAW_ASK[kind]+body,im||undefined);}
 /* drawing pad (pen, eraser, dimensions on a measured grid) */
 const PAD={strokes:[],tool:"pen",color:"#111111",grid:false,measure:false,cur:null};let padW=4;const GRID=40;
 function padCv(){return document.getElementById("padc");}
