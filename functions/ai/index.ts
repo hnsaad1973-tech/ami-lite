@@ -1,4 +1,4 @@
-// AMI `ai` edge function — v4.4.1 (13 Nov 2026) — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
+// AMI `ai` edge function — v4.4.2 (13 Nov 2026) — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
 import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, googleReady, sheetTabs, brainImportReady } from "./google.ts";
 // Includes: "clear chat", "ami status", server-checked send claims,
 // direct WhatsApp via Twilio (delivery check + template fallback), YES required before messaging others,
@@ -117,6 +117,8 @@ const STUDIO_RULE = `
 DESIGN STUDIO (sketches, renders, elevations, floor plans, 3D views, logos, any picture): you DO the work yourself — never hand him a prompt, never tell him to use another tool or app.
 - FLOOR PLANS / PARTITION PLANS / office or room LAYOUTS: use the draw_plan tool (real PDF + AutoCAD DXF saved in Drive), NOT image generation. If he means an existing plan, find its PDF with drive_search first and pass base_file_id. Changes to the last drawing: draw_plan with revise "true". Tell him the PDF and AutoCAD links come on WhatsApp in about 3 minutes.
 - ELEVATIONS / SECTIONS / FACADES / 3D MASSING of a building: use the draw_elevations tool (4 elevations + section + 3D view, with levels and measurements, PDF + AutoCAD). A full drawing set = draw_plan for each floor + draw_elevations + one photoreal render (generate_image below, describing the exact massing, floors, glass facade, roof terrace and setting in Monrovia). The set is for the architect to finish and certify.
+- STUDIO BUTTONS (Render / 3D / Adjust): when the message starts with "Turn this sketch" or "Clean up and adjust this sketch" and a sketch link is given, call create_image_edit IMMEDIATELY with that link — no questions, no plan, no talk of partitions; earlier chat in this section does not matter. Then drive_save_image.
+- NEVER write an image link or a Drive link that did not come back from a tool in THIS reply. If a tool fails, say it failed.
 - New image: execute_zapier_write_action, selected_api "ChatGPTCLIAPI", action "generate_image" (tool_name "chatgpt_openai_generate_an_image"), params {"prompt": "<your detailed description>", "size": "1536x1024", "quality": "medium", "output_format": "jpeg", "results_number": 1}.
 - Change HIS sketch/photo (adjust, render it, make it 3D, add materials): execute_zapier_write_action, selected_api "ChatGPTCLIAPI", action "create_image_edit" (tool_name "chatgpt_openai_create_image_edit"), params {"image": "<the sketch link given in the message>", "prompt": "<what to do>", "size": "1536x1024", "output_format": "jpeg", "results_number": 1}.
 - For 3D: produce a photoreal 3D perspective or axonometric render of the design (and say it is a 3D-style render image, not a CAD model).
@@ -517,6 +519,9 @@ Deno.serve(async (req) => {
     const history = hRes.ok && !(internalKey && (storeKey || (deliver === "whatsapp" && section !== "WhatsApp"))) ? (await hRes.json()).reverse() : [];
     const facts = mRes.ok ? (await mRes.json()).map((r: any) => r.fact) : [];
     while (history.length && history[0].role !== "user") history.shift();
+    // Studio buttons (Render / 3D / Adjust): start clean so old chat in the section can't turn the job into questions
+    const studioBtn = !!image && /^\s*(Turn this sketch|Clean up and adjust this sketch)/i.test(message);
+    if (studioBtn) history.length = 0;
 
     // Camera: a photo goes in as an image block alongside the text
     const userContent: any = image
@@ -546,6 +551,7 @@ Deno.serve(async (req) => {
     const toolsUsed: string[] = [];
     const brainReadIds = new Set<string>(); let brainTabs: any = null;
     const confirmed: string[] = [];
+    let toolText = ""; // every tool result, to check links in the reply are real
     let sendAttempted = false;
     let data: any = null;
     let useFast = fast;
@@ -582,6 +588,7 @@ Deno.serve(async (req) => {
         }
         if (b.type === "mcp_tool_use") toolsUsed.push((b.name || "") + (b.input?.action ? ":" + String(b.input.action).replace(/^code_action_\w+?__/, "") : ""));
         if (b.type === "mcp_tool_use" && /whatsapp|sms|send_email|reply_to|forward/i.test(b.name || "")) sendAttempted = true;
+        if (b.type === "mcp_tool_result") toolText += " " + (Array.isArray(b.content) ? b.content.map((c: any) => c.text || "").join(" ") : String(b.content || ""));
         if (b.type === "mcp_tool_result" && b.is_error) {
           const t = Array.isArray(b.content) ? b.content.map((c: any) => c.text || "").join(" ") : String(b.content || "");
           toolErrors.push("Zapier: " + t.slice(0, 300));
@@ -601,7 +608,7 @@ Deno.serve(async (req) => {
         const gRes = new Map<string, any>();
         await Promise.all(uses.filter((u: any) => GOOGLE_NAMES.has(u.name)).map(async (u: any) => {
           toolsUsed.push(u.name);
-          try { const out = await runGoogleTool(u.name, u.input || {}); let t = JSON.stringify(out); if (t.length > 60000) t = t.slice(0, 60000) + "…(cut)"; gRes.set(u.id, { type: "tool_result", tool_use_id: u.id, content: t }); }
+          try { const out = await runGoogleTool(u.name, u.input || {}); let t = JSON.stringify(out); if (t.length > 60000) t = t.slice(0, 60000) + "…(cut)"; toolText += " " + t; gRes.set(u.id, { type: "tool_result", tool_use_id: u.id, content: t }); }
           catch (e) { const m = (e as Error).message; toolErrors.push(u.name + ": " + m.slice(0, 200)); gRes.set(u.id, { type: "tool_result", tool_use_id: u.id, content: "ERROR: " + m, is_error: true }); }
         }));
         for (const u of uses) {
@@ -632,6 +639,12 @@ Deno.serve(async (req) => {
         continue;
       }
       break;
+    }
+    // studio button but no image tool ran: try once more with a direct order
+    if (studioBtn && attempt === 0 && !toolsUsed.some((t) => /image|edit/i.test(t))) {
+      console.log("studio: image tool not called, retrying");
+      msgs.splice(0, msgs.length, { role: "user", content: [userContent[0], { type: "text", text: message + "\n\nIMPORTANT: call create_image_edit NOW with the sketch link above, then drive_save_image. Do not ask questions. Do not write any link yourself." }] });
+      toolErrors.length = 0; continue;
     }
     // the brief must come from Gmail itself: if the inbox tool never ran, try once more, then report it plainly
     if (needDigest && !toolsUsed.some((t) => /digest/i.test(t)) && attempt === 0) {
@@ -672,8 +685,15 @@ Deno.serve(async (req) => {
     if (confirmed.length) text += "\n\n✅ Confirmed by Twilio:\n- " + confirmed.join("\n- ");
     if (!sendAttempted && /\b(sent|sending|delivered|i've sent|message (has been|was) sent)\b/i.test(text) && /whatsapp|message|email/i.test(text))
       toolErrors.push("No send was actually attempted in this reply. Nothing was sent. Ask again or type: ami status");
+    // links: an image or Drive link must come from a tool result in this reply, otherwise it is invented — remove it
+    const fake: string[] = [];
+    text = text.replace(/https?:\/\/(?:drive\.google\.com|docs\.google\.com|cdn\.openai\.com|[\w.-]*oaiusercontent\.com|[\w.-]*oaidalleapi[\w.-]*|[\w.-]*\.blob\.core\.windows\.net)\/[^\s)\]"'<>]+/g, (u) => {
+      const id = (u.match(/\/d\/([\w-]{20,})/) || u.match(/\/folders\/([\w-]{20,})/) || u.match(/[?&]id=([\w-]{20,})/) || [])[1];
+      if (toolText.includes(u) || (id && (toolText.includes(id) || history.some((m: any) => String(m.content || "").includes(id)) || String(message || "").includes(id) || JSON.stringify(facts || "").includes(id) || BRAIN.includes(id) || COMPANY.includes(id) || STUDIO_RULE.includes(id)))) return u;
+      fake.push(u); return "[link removed - not produced by a tool]"; });
+    if (fake.length) toolErrors.push(`${fake.length} link(s) in this reply were not produced by any tool and were removed. Nothing was made or saved - ask again.`);
     // drawings: never claim a drawing is being made unless a drawing tool really ran
-    if (!toolsUsed.some((t) => /draw_plan|draw_elevations/.test(t)) && /(being (re)?drawn|drawing (it|them|now)|will (arrive|come) on whats ?app|pdf and autocad|autocad dxf)/i.test(text) && /draw|plan|elevation|dxf|autocad/i.test(text))
+    if (!toolsUsed.some((t) => /draw_plan|draw_elevations/.test(t)) && /(being (re)?drawn|drawing (it|them) now|will (arrive|come) on whats ?app in about)/i.test(text) && /draw|plan|elevation|dxf|autocad/i.test(text))
       toolErrors.push("No drawing was actually started in this reply (the drawing tool did not run). Nothing is coming on WhatsApp. Ask again with the word 'draw'.");
     if (toolErrors.length) text += "\n\n⚠️ System check — tool errors:\n- " + [...new Set(toolErrors)].join("\n- ");
 
