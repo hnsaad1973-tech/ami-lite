@@ -175,7 +175,7 @@
   .vbar .vs{flex:1;font-size:13px;}
   .vbar .vx{border:1px solid var(--panelbd);border-radius:10px;background:none;color:var(--gold2);font-size:12px;padding:5px 11px;cursor:pointer;}
 
-  .login{position:fixed;inset:0;background:rgba(8,12,21,.92);backdrop-filter:blur(6px);z-index:60;
+  .login{position:fixed;inset:0;background:#080c15;z-index:9999;
     display:none;align-items:center;justify-content:center;padding:24px;}
   .login.show{display:flex;}
   .login .card{width:100%;max-width:340px;border:1px solid var(--panelbd);border-radius:18px;background:var(--bg2);padding:26px 22px;text-align:center;}
@@ -395,7 +395,7 @@
     </div>
   </div>
 
-  <div class="login" id="login">
+  <div class="login show" id="login">
     <div class="card">
       <h1>AMI Platinum</h1>
       <p>Private access. Enter your email and I'll send you a sign-in link.</p>
@@ -416,11 +416,15 @@ async function initAuth(){
   setSession(data.session);
   sb.auth.onAuthStateChange((_e,s)=>setSession(s));
 }
-function setSession(s){token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);}
+const OWNER="hnsaad1973@gmail.com";
+function setSession(s){
+  if(s&&String(s.user?.email||"").toLowerCase()!==OWNER){sb.auth.signOut();s=null;}
+  token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);}
 async function sendLink(){
   const email=document.getElementById("email").value.trim();
   if(!email)return;
-  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(email.toLowerCase()!==OWNER){document.getElementById("lmsg").textContent="Private. Access is by invitation only.";return;}
+  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
   document.getElementById("lmsg").textContent=error?error.message:"Check your email for the link.";
 }
 initAuth();
