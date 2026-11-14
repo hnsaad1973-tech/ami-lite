@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1B33">
+<title>AMI — Your business assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#0B1B33;--card:#13284A;--line:#1F355C;--edge:#2B4470;--gold:#D4A84B;--text:#F5F1E6;--soft:#C9D2E0;--muted:#A9B4C6}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--navy);color:var(--text);font-family:Inter,system-ui,sans-serif}
+  button,input,textarea{font-family:inherit}
+  .wrap{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
+  .logo{font-family:'Space Grotesk',Inter,sans-serif;font-weight:700;font-size:26px;letter-spacing:3px;color:var(--gold)}
+  .sub{font-size:11px;color:var(--muted)}
+  .badge{font-size:12px;font-weight:700;color:var(--navy);background:var(--gold);padding:6px 12px;border-radius:999px}
+  .tabs{display:flex;gap:8px;padding:6px 16px 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .tab{flex-shrink:0;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--edge);background:transparent;color:var(--soft);font-size:14px;font-weight:600;cursor:pointer}
+  .tab[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+  main{flex:1;padding:18px;display:flex;flex-direction:column;gap:14px}
+  h1{font-family:'Space Grotesk',Inter,sans-serif;font-size:28px;line-height:1.15;margin:0}
+  h2{font-family:'Space Grotesk',Inter,sans-serif;font-size:22px;margin:0}
+  p{margin:0;line-height:1.5;color:var(--soft)}
+  label{font-size:13px;font-weight:600;color:var(--soft)}
+  input,textarea{width:100%;min-height:50px;padding:0 14px;border-radius:12px;border:1px solid var(--edge);background:var(--card);color:var(--text);font-size:16px}
+  textarea{padding:14px;min-height:52px;resize:none}
+  .btn{min-height:52px;width:100%;border:none;border-radius:12px;background:var(--gold);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid var(--gold);color:var(--gold)}
+  .btn:disabled{opacity:.55;cursor:default}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .k{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--gold)}
+  .field{display:flex;flex-direction:column;gap:8px}
+  .err{color:#F6B4A0;font-size:14px;min-height:20px}
+  .ok{color:#9FE3BF;font-size:14px}
+  .chat{flex:1;display:flex;flex-direction:column;gap:10px;padding-bottom:96px}
+  .msg{max-width:88%;padding:12px 14px;border-radius:16px;line-height:1.5;font-size:15px;white-space:pre-wrap;word-wrap:break-word}
+  .me{align-self:flex-end;background:var(--gold);color:var(--navy);border-bottom-right-radius:4px}
+  .ai{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .askbar{position:fixed;left:0;right:0;bottom:0;background:var(--navy);border-top:1px solid var(--line);padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
+  .askrow{max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+  .send{width:52px;height:52px;flex-shrink:0;border:none;border-radius:999px;background:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .bar{height:10px;border-radius:999px;background:var(--navy);overflow:hidden}
+  .bar>div{height:100%;background:var(--gold);border-radius:999px}
+  .plan{border-radius:16px;padding:18px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+  .plan.pop{border:2px solid var(--gold)}
+  .price{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700}
+  ul{margin:0;padding-left:18px;color:var(--soft);line-height:1.7;font-size:14px}
+  .hidden{display:none!important}
+  .tour{position:fixed;left:14px;right:14px;bottom:18px;max-width:532px;margin:0 auto;z-index:50;background:#FBF8F0;color:var(--navy);border-radius:20px;padding:18px;box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px}
+  .tour p{color:#1F2A3A;font-size:17px;font-weight:600}
+  .tour .row button{min-height:46px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer}
+  .dots{display:flex;gap:6px}.dots i{height:8px;width:8px;border-radius:999px;background:#C7CED9}.dots i.on{background:var(--navy);width:24px}
+  .typing{opacity:.7;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><div class="logo">AMI</div><div class="sub">Your business assistant</div></div>
+    <div id="trialBadge" class="badge hidden"></div>
+  </header>
+
+  <nav id="tabs" class="tabs hidden" aria-label="Sections">
+    <button class="tab" data-v="home" aria-pressed="true">Ask AMI</button>
+    <button class="tab" data-v="settings" aria-pressed="false">Settings</button>
+    <button class="tab" data-v="plans" aria-pressed="false">Plans</button>
+    <button class="tab" id="tourBtn" aria-pressed="false">Tour</button>
+  </nav>
+
+  <main>
+    <!-- SIGN IN: email -->
+    <section id="vEmail" class="hidden">
+      <h1>Start your 30-day free trial</h1>
+      <p style="margin:10px 0 18px">Your emails, meetings, documents and accounts, handled by one assistant on WhatsApp and the web. No card needed.</p>
+      <div class="field"><label for="email">Your email</label><input id="email" type="email" autocomplete="email" inputmode="email" placeholder="you@company.com"></div>
+      <div class="err" id="emailErr"></div>
+      <button class="btn" id="sendCode">Email me a sign-in code</button>
+    </section>
+
+    <!-- SIGN IN: code -->
+    <section id="vCode" class="hidden">
+      <h1>Check your email</h1>
+      <p style="margin:10px 0 18px">We sent a 6-digit code to <b id="codeTo"></b>. Type it below.</p>
+      <div class="field"><label for="code">Sign-in code</label><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123456"></div>
+      <div class="err" id="codeErr"></div>
+      <button class="btn" id="verify">Sign in</button>
+      <button class="btn ghost" id="back" style="margin-top:10px">Use a different email</button>
+    </section>
+
+    <!-- FIRST TIME: invite -->
+    <section id="vSetup" class="hidden">
+      <h1>Set up your company</h1>
+      <p style="margin:10px 0 18px">Enter your invite code to start your 30-day trial.</p>
+      <div class="field"><label for="fname">Your name</label><input id="fname" autocomplete="name" placeholder="Full name"></div>
+      <div class="field" style="margin-top:12px"><label for="company">Company name</label><input id="company" autocomplete="organization" placeholder="Company name"></div>
+      <div class="field" style="margin-top:12px"><label for="invite">Invite code</label><input id="invite" autocapitalize="characters" placeholder="AMI-XXXX-0000"></div>
+      <div class="err" id="setupErr"></div>
+      <button class="btn" id="startTrial">Start my free trial</button>
+    </section>
+
+    <!-- HOME: chat -->
+    <section id="vHome" class="hidden" style="display:flex;flex-direction:column;flex:1">
+      <div class="chat" id="chat"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="vSettings" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+      <h2>Settings</h2>
+      <div class="card">
+        <div class="k">YOUR ACCOUNT</div>
+        <div id="acct" style="font-size:15px;line-height:1.6"></div>
+      </div>
+      <div class="card">
+        <div class="row"><div style="font-weight:600">WhatsApp</div><div id="waState" class="sub"></div></div>
+        <p style="font-size:14px">Everyone chats with the same AMI number. Add your number and AMI will know it is you.</p>
+        <div class="row" style="background:var(--navy);border-radius:10px;padding:10px 12px"><span class="sub">AMI's number</span><b style="color:var(--gold)">+1 681 735 1374</b></div>
+        <label for="wa">Your WhatsApp number</label>
+        <input id="wa" type="tel" placeholder="+231 77 000 0000" autocomplete="tel">
+        <button class="btn" id="saveWa">Save my number</button>
+        <div id="waMsg" class="ok"></div>
+      </div>
+      <div class="card">
+        <div class="row"><div style="font-weight:600">Questions today</div><div id="usageTxt" class="sub"></div></div>
+        <div class="bar"><div id="usageBar" style="width:0%"></div></div>
+        <div class="sub">Resets at midnight. Upgrade for a higher daily limit.</div>
+      </div>
+      <button class="btn ghost" id="signOut">Sign out</button>
+    </section>
+
+    <!-- PLANS -->
+    <section id="vPlans" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+      <h2>Plans</h2>
+      <div id="planNow" class="sub"></div>
+      <div class="plan"><div class="row"><b style="font-size:17px">Basic</b></div><div class="price">$29<span class="sub">/month</span></div>
+        <ul><li>Daily brief on WhatsApp</li><li>Email summaries</li><li>Calendar and reminders</li><li>20 questions a day</li></ul></div>
+      <div class="plan pop"><div class="row"><b style="font-size:17px">Pro</b><span class="badge">Most popular</span></div><div class="price">$59<span class="sub">/month</span></div>
+        <ul><li>Everything in Basic</li><li>Documents and file storage</li><li>Letters and contracts drafting</li><li>Accounting module</li><li>60 questions a day</li></ul></div>
+      <div class="plan"><div class="row"><b style="font-size:17px">Business</b></div><div class="price">$99<span class="sub">/user/month</span></div>
+        <ul><li>Everything in Pro</li><li>Several staff, shared company setup</li><li>Multi-company accounting</li><li>Priority support</li></ul></div>
+      <div class="card"><div class="k">HOW TO PAY</div><p style="font-size:14px">Pay monthly by Liberian mobile money or a Liberian bank card. Payments open before your trial ends; we will message you on WhatsApp.</p></div>
+    </section>
+  </main>
+</div>
+
+<!-- Ask bar -->
+<div class="askbar hidden" id="askbar">
+  <div class="askrow">
+    <label for="q" class="hidden">Ask AMI</label>
+    <textarea id="q" rows="1" placeholder="Ask AMI anything..."></textarea>
+    <button class="send" id="send" aria-label="Send">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B1B33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Tutorial -->
+<div class="tour hidden" id="tour" role="dialog" aria-label="AMI tutorial">
+  <div class="row"><div class="dots" id="tourDots"></div><button id="tourSkip" style="border:none;background:none;color:#4A5568;font-weight:600;min-height:44px;cursor:pointer">Skip</button></div>
+  <p id="tourText"></p>
+  <div class="row">
+    <button id="tourBack" style="flex:1;border:1px solid #0B1B33;background:none;color:#0B1B33">Back</button>
+    <button id="tourNext" style="flex:2;border:none;background:#0B1B33;color:#F5F1E6">Next</button>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SB_URL = "https://xxdqrvcpxhsepwzfmnjs.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZHFydmNweGhzZXB3emZtbmpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2MTQxNzQsImV4cCI6MjExMDE5MDE3NH0.ZjN4PXCs7IilwaO16o6kg1Bu1K66V_vfoUILHMjgGBU";
+const sb = createClient(SB_URL, SB_KEY);
+const $ = (id) => document.getElementById(id);
+const views = ["vEmail","vCode","vSetup","vHome","vSettings","vPlans"];
+let me = null, email = "";
+
+function show(v){
+  views.forEach(x => $(x).classList.toggle("hidden", x !== v));
+  const inApp = ["vHome","vSettings","vPlans"].includes(v);
+  $("tabs").classList.toggle("hidden", !inApp);
+  $("askbar").classList.toggle("hidden", v !== "vHome");
+  document.querySelectorAll(".tab[data-v]").forEach(b => b.setAttribute("aria-pressed", String("v"+b.dataset.v[0].toUpperCase()+b.dataset.v.slice(1) === v)));
+}
+function bubble(text, who){
+  const d = document.createElement("div");
+  d.className = "msg " + who; d.textContent = text;
+  $("chat").appendChild(d); window.scrollTo(0, document.body.scrollHeight); return d;
+}
+
+// ---------- Sign in ----------
+$("sendCode").onclick = async () => {
+  email = $("email").value.trim().toLowerCase();
+  $("emailErr").textContent = "";
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $("emailErr").textContent = "Please enter a valid email."; return; }
+  $("sendCode").disabled = true; $("sendCode").textContent = "Sending...";
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  $("sendCode").disabled = false; $("sendCode").textContent = "Email me a sign-in code";
+  if (error) { $("emailErr").textContent = error.message; return; }
+  $("codeTo").textContent = email; show("vCode"); $("code").focus();
+};
+$("verify").onclick = async () => {
+  const token = $("code").value.replace(/\D/g, "");
+  $("codeErr").textContent = "";
+  if (token.length < 6) { $("codeErr").textContent = "Enter the code from your email."; return; }
+  $("verify").disabled = true;
+  const { error } = await sb.auth.verifyOtp({ email, token, type: "email" });
+  $("verify").disabled = false;
+  if (error) { $("codeErr").textContent = "That code didn't work. Check it, or ask for a new one."; return; }
+  await route();
+};
+$("back").onclick = () => show("vEmail");
+
+// ---------- First-time setup ----------
+$("startTrial").onclick = async () => {
+  const name = $("fname").value.trim(), company = $("company").value.trim(), invite = $("invite").value.trim();
+  $("setupErr").textContent = "";
+  if (!name || !company || !invite) { $("setupErr").textContent = "Please fill in all three."; return; }
+  $("startTrial").disabled = true;
+  const { error } = await sb.rpc("start_trial", { p_company: company, p_invite: invite, p_full_name: name });
+  $("startTrial").disabled = false;
+  if (error) { $("setupErr").textContent = error.message.includes("Invite") ? "That invite code is not valid or already used." : error.message; return; }
+  await route(true);
+};
+
+// ---------- App ----------
+async function loadMe(){
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return null;
+  const { data } = await sb.from("members").select("org_id, role, full_name, email, whatsapp_phone, whatsapp_verified, orgs(name)").eq("user_id", user.id).limit(1);
+  if (!data || !data.length) return { user, member: null };
+  const m = data[0];
+  const [{ data: sub }, { data: use }] = await Promise.all([
+    sb.from("subscriptions").select("plan_id,status,trial_end, plans(name,daily_question_cap)").eq("org_id", m.org_id).maybeSingle(),
+    sb.from("usage_daily").select("questions").eq("org_id", m.org_id).eq("user_id", user.id).eq("day", new Date().toISOString().slice(0,10)).maybeSingle(),
+  ]);
+  return { user, member: m, sub, used: use?.questions || 0 };
+}
+function paint(){
+  const s = me.sub || {};
+  const days = s.trial_end ? Math.max(0, Math.ceil((new Date(s.trial_end) - Date.now()) / 864e5)) : 0;
+  const b = $("trialBadge");
+  b.textContent = s.status === "trial" ? `Trial: ${days} day${days === 1 ? "" : "s"} left` : (s.plans?.name || "");
+  b.classList.toggle("hidden", !b.textContent);
+  $("acct").innerHTML = "";
+  [["Name", me.member.full_name], ["Company", me.member.orgs?.name], ["Email", me.member.email], ["Plan", s.plans?.name]].forEach(([k, v]) => {
+    const d = document.createElement("div"); d.innerHTML = `<span class="sub">${k}:</span> `; d.append(document.createTextNode(v || "-")); $("acct").appendChild(d);
+  });
+  $("planNow").textContent = `Your plan now: ${s.plans?.name || "-"}${s.status === "trial" ? ` (${days} days left)` : ""}`;
+  const cap = s.plans?.daily_question_cap || 30;
+  $("usageTxt").textContent = `${me.used} of ${cap} used`;
+  $("usageBar").style.width = Math.min(100, me.used / cap * 100) + "%";
+  $("wa").value = me.member.whatsapp_phone || "";
+  $("waState").textContent = me.member.whatsapp_phone ? (me.member.whatsapp_verified ? "Verified" : "Saved") : "Not added";
+}
+async function loadChat(){
+  $("chat").innerHTML = "";
+  const { data } = await sb.from("messages").select("role,content").eq("org_id", me.member.org_id).eq("user_id", me.user.id).order("created_at", { ascending: false }).limit(30);
+  const rows = (data || []).reverse();
+  if (!rows.length) bubble(`Welcome${me.member.full_name ? ", " + me.member.full_name.split(" ")[0] : ""}! I'm AMI. Ask me anything about your business: draft a letter, plan your week, explain a tax rule, or check today's news.`, "ai");
+  rows.forEach(r => bubble(r.content, r.role === "user" ? "me" : "ai"));
+}
+async function route(first = false){
+  me = await loadMe();
+  if (!me) { show("vEmail"); return; }
+  if (!me.member) { show("vSetup"); return; }
+  paint(); await loadChat(); show("vHome");
+  let seen = false; try { seen = localStorage.getItem("ami_tour_done") === "1"; } catch (_) {}
+  if (first || !seen) startTour();
+}
+
+// Ask AMI
+async function ask(){
+  const text = $("q").value.trim(); if (!text) return;
+  $("q").value = ""; $("send").disabled = true;
+  bubble(text, "me"); const wait = bubble("AMI is thinking...", "ai typing");
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch(`${SB_URL}/functions/v1/ask`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token, apikey: SB_KEY }, body: JSON.stringify({ message: text }) });
+    const j = await r.json().catch(() => ({}));
+    wait.classList.remove("typing"); wait.textContent = j.reply || "Sorry, something went wrong. Please try again.";
+    if (j.used) { me.used = j.used; paint(); }
+  } catch (e) { wait.classList.remove("typing"); wait.textContent = "No connection. Please try again."; }
+  $("send").disabled = false;
+}
+$("send").onclick = ask;
+$("q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
+
+// Settings
+$("saveWa").onclick = async () => {
+  let n = $("wa").value.replace(/[^\d+]/g, ""); if (n && !n.startsWith("+")) n = "+" + n;
+  $("waMsg").textContent = "";
+  if (!/^\+\d{8,15}$/.test(n)) { $("waMsg").textContent = "Enter your number with country code, e.g. +231770000000."; return; }
+  const { error } = await sb.from("members").update({ whatsapp_phone: n, whatsapp_verified: false }).eq("user_id", me.user.id).eq("org_id", me.member.org_id);
+  $("waMsg").textContent = error ? (error.message.includes("duplicate") ? "That number is already used by another account." : error.message) : "Saved. You can now message AMI on WhatsApp from this number.";
+  if (!error) { me.member.whatsapp_phone = n; paint(); }
+};
+$("signOut").onclick = async () => { await sb.auth.signOut(); me = null; show("vEmail"); $("trialBadge").classList.add("hidden"); };
+
+// Tabs
+document.querySelectorAll(".tab[data-v]").forEach(b => b.onclick = () => { const v = b.dataset.v; show(v === "home" ? "vHome" : v === "settings" ? "vSettings" : "vPlans"); });
+$("tourBtn").onclick = () => startTour();
+
+// ---------- Tutorial ----------
+const steps = [
+  ["vHome", "Welcome to AMI. Four quick tips and you're ready."],
+  ["vHome", "Type any question in the box at the bottom and tap the gold arrow."],
+  ["vSettings", "Add your WhatsApp number here to chat with AMI on WhatsApp too."],
+  ["vPlans", "Your trial is free for 30 days. Pick a plan here before it ends."],
+];
+let ts = 0;
+function startTour(){ ts = 0; drawTour(); $("tour").classList.remove("hidden"); }
+function endTour(){ $("tour").classList.add("hidden"); show("vHome"); try { localStorage.setItem("ami_tour_done", "1"); } catch (_) {} }
+function drawTour(){
+  show(steps[ts][0]); $("tourText").textContent = steps[ts][1];
+  $("tourDots").innerHTML = steps.map((_, i) => `<i class="${i === ts ? "on" : ""}"></i>`).join("");
+  $("tourBack").style.visibility = ts ? "visible" : "hidden";
+  $("tourNext").textContent = ts === steps.length - 1 ? "Start using AMI" : "Next";
+}
+$("tourNext").onclick = () => { if (ts >= steps.length - 1) endTour(); else { ts++; drawTour(); } };
+$("tourBack").onclick = () => { if (ts) { ts--; drawTour(); } };
+$("tourSkip").onclick = endTour;
+
+route();
+</script>
+</body>
+</html>
