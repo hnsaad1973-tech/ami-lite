@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>AMI</title>
+<title>AMI Platinum</title>
+<meta name="apple-mobile-web-app-title" content="AMI Platinum">
+<meta name="application-name" content="AMI Platinum">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -349,7 +351,7 @@
     <div class="drvh"><input id="drvq" placeholder="Search Drive by file name…" onkeydown="if(event.key==='Enter')drvLoad()"><button onclick="drvLoad()">Search</button><button onclick="closeDrive()" aria-label="Close">✕</button></div>
     <div id="drvlist"></div></div></div>
   <div class="chat" id="chat">
-    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI</div></div>
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI Platinum</div></div>
     <div class="msgs" id="msgs"></div>
     <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
     <div class="stools" id="stools">
@@ -395,7 +397,7 @@
 
   <div class="login" id="login">
     <div class="card">
-      <h1>AMI</h1>
+      <h1>AMI Platinum</h1>
       <p>Private access. Enter your email and I'll send you a sign-in link.</p>
       <input id="email" type="email" placeholder="your email" autocomplete="email">
       <button onclick="sendLink()">Send sign-in link</button>
@@ -653,7 +655,7 @@ async function todoUrgent(btn){const x=TODO[+btn.dataset.i],l=btn.dataset.l,on=!
 function chatOpen(){return document.getElementById("chat").classList.contains("show");}
 function openChat(title,greet){
   section=title||"Ask AMI";
-  document.getElementById("ctitle").textContent=section==="Ask AMI"?"AMI":section;
+  document.getElementById("ctitle").textContent=section==="Ask AMI"?"AMI Platinum":section;
   document.getElementById("msgs").innerHTML="";
   document.getElementById("stools").classList.toggle("show",section==="Design Studio");
   if(section!=="Design Studio")clearSketch();
@@ -696,6 +698,10 @@ async function ask(text,image){
   if(!chatOpen())openChat("Ask AMI");
   if(studioFile&&section==="Design Studio"){text+="\n[Attached Drive file: "+studioFile.name+" — file id "+studioFile.id+" — "+studioFile.link+"]";clearFile();}
   bubble("u",(image?'<img src="data:image/jpeg;base64,'+image+'" alt="photo">':"")+esc(text));
+  // "call me" / "ring me" / "phone me": AMI rings his phone straight away
+  if(!image&&/^\s*(please\s+)?(ask\s+)?(ami[,\s]+)?(to\s+)?(can you\s+|could you\s+)?(call|ring|phone)\s+me\b[\s\S]{0,40}$/i.test(text)){
+    try{const d=await api({action:"callme"});bubble("a",esc(d.reply||"Calling you now, Chairman."));}catch(e){bubble("a",esc("Couldn't start the call: "+e.message));}
+    return null;}
   const label=image?"Reading the photo":"Working";
   const wait=bubble("a",'<div class="pg"><div class="pgt"><span>'+label+'</span><b>0%</b></div><div class="pgb"><i></i></div></div>');
   const pct=wait.querySelector("b"),fill=wait.querySelector("i");let p=0;const t0=Date.now();
