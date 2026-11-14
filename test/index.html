@@ -1062,7 +1062,9 @@ $("tourSkip").onclick = endTour;
   if (sEm) $("email").value = sEm;
   if (sInv) $("invite").value = sInv;
 })();
-route();
+if (new URLSearchParams(location.search).get("signout") === "1") {
+  sb.auth.signOut().finally(() => { history.replaceState(null, "", location.pathname); route(); });
+} else route();
 </script>
 </body>
 </html>
