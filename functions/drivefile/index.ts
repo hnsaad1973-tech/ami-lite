@@ -1,4 +1,4 @@
-// drivefile v1.5 (trash: own test outputs only; put: gz:true = b64 is gzip) — move small files between Drive and Claude's workspace (internal key only).
+// drivefile v1.7 (doc_insert: text into a Google Doc without Zapier; thumb: Drive thumbnail at size s; trash: own test outputs only; put: gz:true = b64 is gzip) — move small files between Drive and Claude's workspace (internal key only).
 // {action:'get', file_id} -> {name, mimeType, b64}
 // {action:'vision', file_id, prompt, model?} -> {text}
 // {action:'pdfops', file_id, offset?, max?} -> decoded PDF content streams
@@ -61,6 +61,14 @@ Deno.serve(async (req) => {
     const k = await (await db('ami_settings?key=eq.wake_key&select=value')).json();
     if (!k?.[0]?.value || req.headers.get('x-internal-key') !== k[0].value) return Response.json({ error: 'denied' }, { status: 403 });
     const b = await req.json(); const T = await token(); const H = { Authorization: 'Bearer ' + T };
+    if (b.action === 'thumb') { // small preview of any Drive file: {file_id, s?: px of the long side}
+      const m = await (await fetch(`https://www.googleapis.com/drive/v3/files/${b.file_id}?fields=name,thumbnailLink`, { headers: H })).json();
+      if (!m.thumbnailLink) return Response.json({ error: 'no thumbnail' }, { status: 404 });
+      const u = String(m.thumbnailLink).replace(/=s\d+$/, '') + '=s' + (+b.s || 1600);
+      let r = await fetch(u, { headers: H }); if (!r.ok) r = await fetch(u);
+      if (!r.ok) return Response.json({ error: 'thumb ' + r.status }, { status: 500 });
+      return Response.json({ name: m.name, mimeType: r.headers.get('content-type'), b64: b64enc(new Uint8Array(await r.arrayBuffer())) });
+    }
     if (['get', 'vision', 'pdfops', 'pdfsegs'].includes(b.action)) {
       const m = await (await fetch(`https://www.googleapis.com/drive/v3/files/${b.file_id}?fields=name,mimeType,size`, { headers: H })).json();
       if (+m.size > 6e6) return Response.json({ error: 'too large', size: m.size });
@@ -88,6 +96,11 @@ Deno.serve(async (req) => {
       const u = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', { method: 'POST', headers: { ...H, 'Content-Type': `multipart/related; boundary=${bd}` }, body });
       const j = await u.json(); if (!u.ok) return Response.json({ error: j?.error?.message || u.status }, { status: 500 });
       return Response.json({ id: j.id, name: j.name, link: j.webViewLink });
+    }
+    if (b.action === 'doc_insert') { // {doc_id, text, index?=1}
+      const u = await fetch(`https://docs.googleapis.com/v1/documents/${b.doc_id}:batchUpdate`, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: [{ insertText: { location: { index: +b.index || 1 }, text: String(b.text || '') } }] }) });
+      const j = await u.json(); return Response.json(u.ok ? { inserted: true, doc_id: b.doc_id, chars: String(b.text || '').length } : { error: j?.error?.message || u.status }, { status: u.ok ? 200 : 500 });
     }
     if (b.action === 'trash') { // moves to Drive bin (recoverable 30 days) - never deletes
       const u = await fetch(`https://www.googleapis.com/drive/v3/files/${b.file_id}?fields=id,name,trashed`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) });
