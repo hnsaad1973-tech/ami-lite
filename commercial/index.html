@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B1B33">
-<title>AMI — Your business assistant</title>
+<title>AMI — Asset Management Innovations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -66,13 +66,26 @@
   .tile b{font-size:15px}
   .tile small{font-size:12px;color:var(--muted)}
   .tile small.lock{color:var(--gold)}
+  .soon.live{background:#9FE3BF}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start}
+  .item.done{opacity:.55}.item.done .it{text-decoration:line-through}
+  .item .it{font-weight:600;font-size:15px}
+  .item .im{font-size:13px;color:var(--muted);margin-top:2px;white-space:pre-wrap;word-wrap:break-word}
+  .item .urg{color:#F2B8A0;font-weight:700}
+  .chk{width:44px;height:44px;flex-shrink:0;border-radius:12px;border:2px solid var(--gold);background:transparent;color:var(--gold);font-size:20px;font-weight:700;cursor:pointer}
+  .chk.on{background:var(--gold);color:var(--navy)}
+  .del{min-height:44px;padding:0 10px;border:none;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0}
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tot{display:flex;justify-content:space-between;font-size:14px;color:var(--soft)}
+  .tot b{color:var(--text)}
+  .bl{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--soft);padding:10px 12px;border:1px solid var(--edge);border-radius:10px;background:transparent;text-align:left;cursor:pointer;width:100%}
   .qa{min-height:48px;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--text);font-size:15px;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div><div class="logo">AMI</div><div class="sub">Your business assistant</div></div>
+    <div><div class="logo">AMI</div><div class="sub">Asset Management Innovations</div></div>
     <div id="trialBadge" class="badge hidden"></div>
   </header>
 
@@ -120,9 +133,9 @@
     <!-- HOME: chat -->
     <section id="vHome" class="hidden" style="display:flex;flex-direction:column;flex:1;gap:14px">
       <div class="card">
-        <div class="row"><div class="k">TODAY'S BRIEF</div><span class="soon">Coming soon</span></div>
+        <div class="row"><div class="k">TODAY'S BRIEF</div><span class="soon live" id="briefDate"></span></div>
         <div id="brief" style="display:flex;flex-direction:column;gap:10px"></div>
-        <div class="sub">Every morning AMI will also send this brief to your WhatsApp.</div>
+        <div class="sub">Tap a line to open that section. Soon AMI will also send this brief to your WhatsApp every morning.</div>
       </div>
       <div class="k" style="margin-top:4px">ASK AMI</div>
       <div class="chat" id="chat"></div>
@@ -139,6 +152,8 @@
       <button class="btn ghost" id="secBack" style="min-height:44px;width:auto;align-self:flex-start;padding:0 16px">&larr; All sections</button>
       <div class="row"><h2 id="secTitle"></h2><span class="soon" id="secBadge">Coming soon</span></div>
       <p id="secText"></p>
+      <div class="card" id="secLive" style="display:none"></div>
+      <div id="secList" style="display:flex;flex-direction:column;gap:10px"></div>
       <div class="card" id="secPreview"></div>
       <div class="k">TRY ASKING AMI NOW</div>
       <div id="secAsks" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -299,8 +314,6 @@ function paint(){
   $("usageBar").style.width = Math.min(100, me.used / cap * 100) + "%";
   const bt = me.member.orgs?.business_type || "general";
   $("btype2").value = bt;
-  $("brief").innerHTML = "";
-  (BRIEF_BY_TYPE[bt] || BRIEF_BY_TYPE.general).forEach(([k, v]) => { const d = document.createElement("div"); d.className = "ph"; d.innerHTML = `<span class="phk"></span><span></span>`; d.children[0].textContent = k; d.children[1].textContent = v; $("brief").appendChild(d); });
   $("wa").value = me.member.whatsapp_phone || "";
   $("waState").textContent = me.member.whatsapp_phone ? (me.member.whatsapp_verified ? "Verified" : "Saved") : "Not added";
 }
@@ -315,7 +328,7 @@ async function route(first = false){
   me = await loadMe();
   if (!me) { show("vEmail"); return; }
   if (!me.member) { show("vSetup"); return; }
-  paint(); drawTiles(); await loadChat(); show("vHome");
+  paint(); drawTiles(); loadBrief(); await loadChat(); show("vHome");
   let seen = false; try { seen = localStorage.getItem("ami_tour_done") === "1"; } catch (_) {}
   if (first || !seen) startTour();
 }
@@ -331,6 +344,7 @@ async function ask(){
     const j = await r.json().catch(() => ({}));
     wait.classList.remove("typing"); wait.textContent = j.reply || "Sorry, something went wrong. Please try again.";
     if (j.used) { me.used = j.used; paint(); }
+    if (j.tasks_changed) loadBrief();
   } catch (e) { wait.classList.remove("typing"); wait.textContent = "No connection. Please try again."; }
   $("send").disabled = false;
 }
@@ -351,118 +365,284 @@ $("signOut").onclick = async () => { await sb.auth.signOut(); me = null; show("v
 // Tabs
 document.querySelectorAll(".tab[data-v]").forEach(b => b.onclick = () => { const v = b.dataset.v; show({ home: "vHome", sections: "vSections", settings: "vSettings", plans: "vPlans" }[v]); });
 
-// ---------- Sections (placeholders) ----------
-const SECTIONS = [
-  { id: "todo", mk: "T", name: "To-do list", note: "Your tasks, ticked off", pro: false,
-    text: "Tell AMI what needs doing, by typing or on WhatsApp. It keeps your list, puts dated items in your calendar and reminds you before they are due.",
-    preview: [["Today", "Your tasks for today will show here"], ["Overdue", "Anything you missed"], ["Done", "Ticked-off tasks"]],
-    asks: ["Make me a to-do list: pay rent Friday, call the bank Monday, send the quote to the client today", "Turn this into a to-do list: we need to renew the licence, hire a driver and fix the generator"] },
-  { id: "calendar", mk: "C", name: "Calendar", note: "Meetings and reminders", pro: false,
-    text: "AMI keeps your meetings, plans your week and reminds you on WhatsApp 15 minutes before each one. Birthdays and renewals too.",
-    preview: [["Today", "Your meetings will show here"], ["This week", "Your week at a glance"], ["Reminders", "Renewals, payments, birthdays"]],
-    asks: ["Help me plan my week: I have 3 site visits, 2 meetings and a report due Friday", "What should I prepare for a meeting with a new supplier?"] },
-  { id: "accounting", mk: "$", name: "Accounting", note: "", pro: true,
-    text: "Run your books by message: invoices, receipt photos, bank and mobile money, USD and LRD, profit and loss and balance sheet.",
-    preview: [["Cash", "USD and LRD balances"], ["Due this week", "Money in and out"], ["Overdue", "Invoices not yet paid"], ["Reports", "Profit and loss, balance sheet"]],
-    asks: ["Explain the difference between a profit and loss statement and a balance sheet", "What records should a small business in Liberia keep for tax?"] },
-  { id: "email", mk: "E", name: "Email", note: "Summaries and drafts", pro: false,
-    text: "AMI tells you which emails need you each morning and drafts replies for you to approve.",
+// ---------- Sections (live) ----------
+const F = {
+  title: (l) => ({ k: "title", l, t: "text", req: true }),
+  notes: (l) => ({ k: "notes", l, t: "area" }),
+  client: { k: "client", l: "Client", t: "text" },
+  date: (l) => ({ k: "on_date", l, t: "date" }),
+  time: { k: "at_time", l: "Time", t: "time" },
+  amount: (l) => ({ k: "amount", l, t: "num" }),
+  paid: { k: "paid", l: "Paid so far", t: "num" },
+  cur: { k: "currency", l: "Currency", t: "sel", o: ["USD", "LRD", "SLE"] },
+  phone: { k: "kind", l: "Phone", t: "text" },
+  inout: { k: "kind", l: "Money", t: "sel", o: ["in", "out"], ol: ["Money in", "Money out"] },
+};
+const S = {
+  todo: { id: "todo", mk: "T", name: "To-do list", note: "Your tasks, ticked off", live: "tasks",
+    text: "Add tasks here or just tell AMI: \"add to my list: call the bank Monday\". Tick them off when done.",
+    asks: ["Make me a to-do list: pay rent Friday, call the bank Monday, send the quote to the client today", "What is still open on my to-do list?"] },
+  calendar: { id: "calendar", mk: "C", name: "Calendar", note: "Meetings and events", live: "items", tick: true,
+    fields: [F.title("What"), F.date("Date"), F.time, F.notes("Notes")],
+    text: "Your meetings and events. Add them here or tell AMI: \"meeting with the bank Tuesday at 10\".",
+    asks: ["Add to my calendar: meeting with the supplier next Tuesday at 10am", "What is on my calendar this week?"] },
+  accounting: { id: "accounting", mk: "$", name: "Accounting", note: "Money in and out", live: "items", pro: true,
+    fields: [F.title("What for"), F.inout, F.amount("Amount"), F.cur, F.date("Date")],
+    text: "Record money in and money out. AMI totals it by currency. Full books (invoices, bank, reports) come next.",
+    asks: ["Record money in: $500 from a client today", "How did we do this month?"] },
+  contacts: { id: "contacts", mk: "P", name: "Contacts", note: "People and suppliers", live: "items",
+    fields: [F.title("Name"), F.phone, F.notes("Details")],
+    text: "Clients, suppliers and people you work with, with their numbers.",
+    asks: ["Save a contact: John Doe, supplier of cement, 0777 123 456", "Who are my suppliers?"] },
+  documents: { id: "documents", mk: "D", name: "Documents", note: "Files, private to you", live: "docs",
+    text: "Upload contracts, invoices and photos. They are stored privately for your company. AMI drafting works now in chat.",
+    asks: ["Write a simple one-page tenancy agreement for an office in Monrovia", "Draft a formal letter asking a supplier for a better price"] },
+  email: { id: "email", mk: "E", name: "Email", note: "Coming soon",
+    text: "Soon AMI will tell you which emails need you each morning and draft replies. For now, ask AMI to draft any email.",
     preview: [["Inbox", "Emails that need you"], ["Drafts", "Replies ready to check"]],
     asks: ["Draft a polite reminder to a client who has not paid an invoice", "Write a short reply accepting a meeting next Tuesday at 10am"] },
-  { id: "documents", mk: "D", name: "Documents", note: "Files and drafting", pro: false,
-    text: "Upload contracts, invoices and photos. AMI stores them privately for your company, reads them, and drafts letters and contracts.",
-    preview: [["Files", "Your company files will show here"], ["Storage", "Private to your company"]],
-    asks: ["Write a simple one-page tenancy agreement for an office in Monrovia", "Draft a formal letter asking a supplier for a better price"] },
-  { id: "whatsapp", mk: "W", name: "WhatsApp", note: "Chat with AMI by phone", pro: false,
-    text: "Message AMI on WhatsApp from your registered number and it answers just like here, with the same memory.",
+  whatsapp: { id: "whatsapp", mk: "W", name: "WhatsApp", note: "Coming soon",
+    text: "Soon you will message AMI on WhatsApp from your registered number. Add your number in Settings now.",
     preview: [["AMI's number", "+1 681 735 1374"], ["Your number", "Add it in Settings"]],
     asks: ["What can I ask AMI to do on WhatsApp?"] },
-];
-const SECTIONS_BY_TYPE = {
-  fashion: [
-    { id: "clients", mk: "C", name: "Clients", note: "Sizes and style notes", pro: false,
-      text: "Every client in one place: measurements, sizes, favourite colours, body notes and what you made for them before. Tell AMI the measurements and it remembers them.",
-      preview: [["Clients", "Your client list will show here"], ["Measurements", "Saved for each client"], ["History", "Past orders and looks"]],
-      asks: ["Remember client Grace: bust 36, waist 30, hips 40, length 42, loves emerald green", "What measurements should I take for a fitted kaftan and a wrap dress?"] },
-    { id: "orders", mk: "O", name: "Orders & fittings", note: "Due dates and deposits", pro: false,
-      text: "Track every order from deposit to collection: what is being made, fabric, fitting dates, due date, deposit paid and balance owed.",
-      preview: [["In progress", "Orders being made"], ["Fittings", "Next fitting dates"], ["Due", "Orders due this week"], ["Balances", "Money still owed by clients"]],
-      asks: ["Price this order: an Ankara wedding gown with a lace overlay and lining, about 3 days of work", "Write a polite WhatsApp message asking a client to pay the balance before collection"] },
-    { id: "calendar", mk: "D", name: "Calendar", note: "Fittings, shoots, events", pro: false,
-      text: "Fittings, photo shoots, client consultations and events in one calendar, with a WhatsApp reminder before each one.",
-      preview: [["Today", "Fittings and appointments today"], ["This week", "Shoots and deadlines"], ["Events", "Weddings and occasions you are styling"]],
-      asks: ["Plan my week: 4 fittings, a photo shoot on Thursday and 2 orders due Saturday", "Make a checklist for styling a bride on her wedding day"] },
-    { id: "todo", mk: "T", name: "To-do list", note: "Your tasks, ticked off", pro: false,
-      text: "Tell AMI what needs doing: buy fabric, call a client, finish a hem. It keeps the list and reminds you.",
-      preview: [["Today", "Your tasks for today"], ["Overdue", "Anything you missed"], ["Done", "Ticked-off tasks"]],
-      asks: ["Make me a to-do list: buy 6 yards of lace, finish Mary's dress by Friday, post new photos on Instagram", "What should I do every week to keep my fashion business organised?"] },
-    { id: "lookbook", mk: "L", name: "Designs & lookbook", note: "Ideas and mood boards", pro: false,
-      text: "Keep your sketches, photos and mood boards. AMI helps you develop design ideas, describe looks for clients and plan collections.",
-      preview: [["Designs", "Your sketches and photos"], ["Mood boards", "Ideas by client or occasion"], ["Collections", "Seasonal plans"]],
-      asks: ["Give me 5 outfit ideas for a wedding guest in Monrovia using Ankara and lace", "Help me plan a small 6-piece collection for Independence Day"] },
-    { id: "fabrics", mk: "F", name: "Fabrics & supplies", note: "Stock and suppliers", pro: false,
-      text: "Know what fabric, lining, zips and trims you have, what each costs and which supplier has the best price.",
-      preview: [["In stock", "Fabrics and trims you have"], ["Running low", "What to buy next"], ["Suppliers", "Who sells what, and prices"]],
-      asks: ["How many yards of fabric do I need for a long A-line dress with sleeves for a size 14?", "Which fabrics are best for outfits in hot, humid weather?"] },
-    { id: "social", mk: "S", name: "Social media", note: "Posts and captions", pro: false,
-      text: "AMI writes your Instagram, TikTok and Facebook captions, plans a posting calendar and suggests content ideas to bring in new clients.",
-      preview: [["This week", "Posts planned"], ["Ideas", "Content to bring in clients"], ["Captions", "Ready to copy"]],
-      asks: ["Write an Instagram caption for a photo of a red Ankara mermaid dress I just finished", "Give me a 2-week posting plan to get more bridal clients"] },
-    { id: "accounting", mk: "$", name: "Accounting", note: "", pro: true,
-      text: "Deposits in, fabric and labour out, profit per order. Track money in USD and LRD and see how each month went.",
-      preview: [["Deposits", "Received this month"], ["Balances", "Owed by clients"], ["Costs", "Fabric, trims, tailors"], ["Profit", "Per order and per month"]],
-      asks: ["How do I work out the profit on one dress, including my time?", "What records should a small fashion business in Liberia keep for tax?"] },
-  ],
-  general: null,
+  clients: { id: "clients", mk: "C", name: "Clients", note: "Sizes and style notes", live: "items",
+    fields: [F.title("Client name"), F.phone, F.notes("Measurements and notes")],
+    text: "Every client with measurements, sizes and style notes. Or tell AMI: \"Grace: bust 36, waist 30, loves green\".",
+    asks: ["Remember client Grace: bust 36, waist 30, hips 40, length 42, loves emerald green", "What measurements should I take for a fitted kaftan?"] },
+  orders: { id: "orders", mk: "O", name: "Orders & fittings", note: "Due dates and balances", live: "items", tick: true, money: true,
+    fields: [F.title("What is being made"), F.client, F.date("Due date"), F.amount("Price"), F.paid, F.cur, F.notes("Fabric and fitting notes")],
+    text: "Every order from deposit to collection. AMI shows what each client still owes.",
+    asks: ["New order: Mary, Ankara wedding gown, due 20 December, price $350, deposit $175", "Who still owes me money?"] },
+  fcalendar: { id: "fcalendar", sec: "calendar", mk: "D", name: "Calendar", note: "Fittings, shoots, events", live: "items", tick: true,
+    fields: [F.title("What"), F.client, F.date("Date"), F.time, F.notes("Notes")],
+    text: "Fittings, photo shoots and events. Add them here or tell AMI: \"fitting with Mary Friday at 3\".",
+    asks: ["Add a fitting with Mary on Friday at 3pm", "Plan my week: 4 fittings, a shoot on Thursday and 2 orders due Saturday"] },
+  lookbook: { id: "lookbook", mk: "L", name: "Designs & lookbook", note: "Ideas and mood boards", live: "items",
+    fields: [F.title("Design or idea"), F.notes("Description")],
+    text: "Your design ideas and looks. AMI helps develop them.",
+    asks: ["Give me 5 outfit ideas for a wedding guest in Monrovia using Ankara and lace, and save the best one to my lookbook", "Help me plan a small 6-piece collection for Independence Day"] },
+  fabrics: { id: "fabrics", mk: "F", name: "Fabrics & supplies", note: "Stock and suppliers", live: "items",
+    fields: [F.title("Fabric or item"), F.notes("Quantity and supplier"), F.amount("Cost"), F.cur],
+    text: "What you have in stock, what it cost and who sells it.",
+    asks: ["How many yards do I need for a long A-line dress with sleeves, size 14?", "Add to fabrics: 6 yards red lace from Waterside market, $90"] },
+  social: { id: "social", mk: "S", name: "Social media", note: "Posts and captions", live: "items", tick: true,
+    fields: [F.title("Post"), F.date("Post date"), F.notes("Caption")],
+    text: "Plan your posts and keep captions ready to copy. Tick a post when it is published.",
+    asks: ["Write an Instagram caption for a red Ankara mermaid dress and save it as a post for Saturday", "Give me a 2-week posting plan to get more bridal clients"] },
 };
-const BRIEF_BY_TYPE = {
-  fashion: [["Fittings", "Today's fittings and appointments will show here"], ["Orders due", "Orders due this week will show here"], ["Balances", "Clients who still owe you will show here"]],
-  general: [["Emails", "Emails that need you will show here"], ["Meetings", "Today's meetings will show here"], ["To-do", "Your tasks for today will show here"]],
+S.faccounting = { ...S.accounting, id: "faccounting", sec: "accounting", note: "Deposits, costs, profit",
+  text: "Record deposits in and fabric, trims and tailor costs out. AMI totals it by currency." };
+const SECTIONS_BY_TYPE = {
+  fashion: ["clients", "orders", "fcalendar", "todo", "lookbook", "fabrics", "social", "faccounting", "documents", "whatsapp"],
+  general: ["todo", "calendar", "accounting", "contacts", "documents", "email", "whatsapp"],
 };
 const TYPE_NAMES = { general: "General business", fashion: "Fashion (stylist, designer, tailor)", construction: "Construction", property: "Property", retail: "Shop / trading", beauty: "Salon / beauty" };
+function sectionsFor(){ return (SECTIONS_BY_TYPE[me?.member?.orgs?.business_type] || SECTIONS_BY_TYPE.general).map(k => S[k]); }
+function hasPro(){ const p = me?.sub?.plan_id, st = me?.sub?.status; return p === "pro" || p === "business" || st === "trial"; }
+const money = (n, c) => (c === "LRD" ? "L$" : c === "SLE" ? "Le " : "$") + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+const fmtDate = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
+const today = () => new Date().toISOString().slice(0, 10);
+let cur = null;
 
-function sectionsFor(){ return SECTIONS_BY_TYPE[me?.member?.orgs?.business_type] || SECTIONS; }
 $("btype2").onchange = async () => {
   const v = $("btype2").value;
   const { error } = await sb.from("orgs").update({ business_type: v }).eq("id", me.member.org_id);
   $("btMsg").textContent = error ? error.message : "Saved. Your sections now match " + TYPE_NAMES[v] + ".";
-  if (!error) { me.member.orgs.business_type = v; paint(); drawTiles(); }
+  if (!error) { me.member.orgs.business_type = v; paint(); drawTiles(); loadBrief(); }
 };
-function hasPro(){ const p = me?.sub?.plan_id; return p === "pro" || p === "business"; }
 function drawTiles(){
   const box = $("tiles"); box.innerHTML = "";
   sectionsFor().forEach(s => {
     const b = document.createElement("button"); b.className = "tile"; b.type = "button";
     const locked = s.pro && !hasPro();
-    b.innerHTML = `<div class="mk">${s.mk}</div><div><b></b><br><small class="${locked ? "lock" : ""}"></small></div>`;
+    b.innerHTML = `<div class="mk"></div><div><b></b><br><small class="${locked ? "lock" : ""}"></small></div>`;
+    b.querySelector(".mk").textContent = s.mk;
     b.querySelector("b").textContent = s.name;
-    b.querySelector("small").textContent = locked ? "Pro plan" : (s.note || "Coming soon");
+    b.querySelector("small").textContent = locked ? "Pro plan" : s.note;
     b.onclick = () => openSection(s);
     box.appendChild(b);
   });
 }
+function el(tag, cls, txt){ const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function buildForm(s){
+  const box = $("secLive"); box.innerHTML = ""; box.style.display = "flex";
+  box.appendChild(el("div", "k", "ADD NEW"));
+  const fields = s.live === "tasks" ? [F.title("Task"), F.date("Due date"), { k: "urgent", l: "Urgent", t: "chk" }] : s.fields;
+  const inputs = {};
+  fields.forEach(f => {
+    const wrap = el("div", "field"); const id = "f_" + f.k;
+    if (f.t === "chk") { const lab = el("label"); lab.style.display = "flex"; lab.style.gap = "10px"; lab.style.alignItems = "center"; const c = document.createElement("input"); c.type = "checkbox"; c.style.width = "22px"; c.style.minHeight = "22px"; lab.append(c, document.createTextNode(f.l)); inputs[f.k] = c; wrap.appendChild(lab); box.appendChild(wrap); return; }
+    const lab = el("label", null, f.l); lab.htmlFor = id; wrap.appendChild(lab);
+    let inp;
+    if (f.t === "area") { inp = document.createElement("textarea"); inp.rows = 3; inp.style.minHeight = "80px"; }
+    else if (f.t === "sel") { inp = document.createElement("select"); f.o.forEach((o, i) => { const op = el("option", null, f.ol ? f.ol[i] : o); op.value = o; inp.appendChild(op); }); }
+    else { inp = document.createElement("input"); inp.type = f.t === "num" ? "number" : f.t; if (f.t === "num") { inp.step = "0.01"; inp.inputMode = "decimal"; } }
+    inp.id = id; inputs[f.k] = inp; wrap.appendChild(inp); box.appendChild(wrap);
+  });
+  const err = el("div", "err"); const btn = el("button", "btn", "Save"); btn.type = "button";
+  btn.onclick = async () => {
+    err.textContent = "";
+    const row = {};
+    for (const f of fields) {
+      const v = f.t === "chk" ? inputs[f.k].checked : inputs[f.k].value.trim();
+      if (f.req && !v) { err.textContent = f.l + " is needed."; return; }
+      if (v === "" || v === false) continue;
+      row[s.live === "tasks" && f.k === "on_date" ? "due_date" : f.k] = f.t === "num" ? Number(v) : v;
+    }
+    btn.disabled = true;
+    const { error } = s.live === "tasks"
+      ? await sb.from("tasks").insert({ ...row, org_id: me.member.org_id, created_by: me.user.id })
+      : await sb.from("items").insert({ ...row, org_id: me.member.org_id, created_by: me.user.id, section: s.sec || s.id });
+    btn.disabled = false;
+    if (error) { err.textContent = error.message; return; }
+    fields.forEach(f => { if (f.t === "chk") inputs[f.k].checked = false; else if (f.t !== "sel") inputs[f.k].value = ""; });
+    loadList(s); loadBrief();
+  };
+  box.append(err, btn);
+}
+async function loadList(s){
+  const box = $("secList"); box.innerHTML = "";
+  box.appendChild(el("div", "sub", "Loading..."));
+  let rows = [], error = null;
+  if (s.live === "tasks") ({ data: rows, error } = await sb.from("tasks").select("*").eq("org_id", me.member.org_id).order("done").order("urgent", { ascending: false }).order("due_date", { nullsFirst: false }).limit(200));
+  else ({ data: rows, error } = await sb.from("items").select("*").eq("org_id", me.member.org_id).eq("section", s.sec || s.id).order("done").order("on_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(300));
+  box.innerHTML = "";
+  if (error) { box.appendChild(el("div", "err", error.message)); return; }
+  if (!rows.length) { box.appendChild(el("div", "sub", "Nothing here yet. Add the first one above, or ask AMI.")); return; }
+  // totals
+  if (s.money || s.id.endsWith("accounting")) {
+    const t = el("div", "card");
+    const by = {};
+    rows.forEach(r => { const c = r.currency || "USD"; by[c] = by[c] || { a: 0, p: 0, i: 0, o: 0 }; if (s.money) { if (!r.done) { by[c].a += +r.amount || 0; by[c].p += +r.paid || 0; } } else { if (r.kind === "out") by[c].o += +r.amount || 0; else by[c].i += +r.amount || 0; } });
+    Object.entries(by).forEach(([c, v]) => {
+      const line = el("div", "tot");
+      if (s.money) { line.append(el("span", null, `Open orders (${c})`)); const b = el("b", null, `${money(v.a, c)} · owed ${money(v.a - v.p, c)}`); line.append(b); }
+      else { line.append(el("span", null, `In ${money(v.i, c)} · Out ${money(v.o, c)}`)); line.append(el("b", null, `Net ${money(v.i - v.o, c)}`)); }
+      t.appendChild(line);
+    });
+    box.appendChild(t);
+  }
+  rows.forEach(r => {
+    const it = el("div", "item" + (r.done ? " done" : ""));
+    const canTick = s.live === "tasks" || s.tick;
+    if (canTick) {
+      const c = el("button", "chk" + (r.done ? " on" : ""), r.done ? "✓" : ""); c.type = "button"; c.setAttribute("aria-label", r.done ? "Mark not done" : "Mark done");
+      c.onclick = async () => { await sb.from(s.live === "tasks" ? "tasks" : "items").update(s.live === "tasks" ? { done: !r.done, done_at: r.done ? null : new Date().toISOString() } : { done: !r.done }).eq("id", r.id); loadList(s); loadBrief(); };
+      it.appendChild(c);
+    }
+    const body = el("div"); body.style.flex = "1"; body.style.minWidth = "0";
+    const t = el("div", "it"); t.textContent = r.title;
+    if (r.urgent) { const u = el("span", "urg", "  URGENT"); t.appendChild(u); }
+    body.appendChild(t);
+    const meta = [];
+    const d = r.due_date || r.on_date; if (d) meta.push(fmtDate(d) + (r.at_time ? " " + String(r.at_time).slice(0, 5) : ""));
+    if (r.client) meta.push(r.client);
+    if (r.kind && s.id.endsWith("accounting")) meta.push(r.kind === "out" ? "Money out" : "Money in");
+    else if (r.kind) meta.push(r.kind);
+    if (r.amount != null) meta.push(s.money ? `${money(r.amount, r.currency)} · paid ${money(r.paid, r.currency)} · owes ${money((+r.amount || 0) - (+r.paid || 0), r.currency)}` : money(r.amount, r.currency));
+    if (meta.length) body.appendChild(el("div", "im", meta.join(" · ")));
+    if (r.notes) body.appendChild(el("div", "im", r.notes));
+    it.appendChild(body);
+    const del = el("button", "del", "Delete"); del.type = "button";
+    del.onclick = async () => { if (!confirmDelete(del)) return; await sb.from(s.live === "tasks" ? "tasks" : "items").delete().eq("id", r.id); loadList(s); loadBrief(); };
+    it.appendChild(del);
+    box.appendChild(it);
+  });
+}
+function confirmDelete(b){ if (b.dataset.sure) return true; b.dataset.sure = "1"; b.textContent = "Tap again"; b.style.color = "#F2B8A0"; setTimeout(() => { delete b.dataset.sure; b.textContent = "Delete"; b.style.color = ""; }, 3000); return false; }
+// Documents
+async function loadDocs(){
+  const box = $("secLive"); box.innerHTML = ""; box.style.display = "flex";
+  box.appendChild(el("div", "k", "UPLOAD A FILE"));
+  const inp = document.createElement("input"); inp.type = "file"; inp.style.paddingTop = "12px"; inp.setAttribute("aria-label", "Choose a file");
+  const msg = el("div", "ok");
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    if (f.size > 50 * 1024 * 1024) { msg.textContent = "That file is over 50 MB."; return; }
+    msg.textContent = "Uploading...";
+    const path = `${me.member.org_id}/${Date.now()}-${f.name.replace(/[^\w.\- ]/g, "_")}`;
+    const up = await sb.storage.from("customer-files").upload(path, f, { contentType: f.type || "application/octet-stream" });
+    if (up.error) { msg.textContent = up.error.message; return; }
+    const { error } = await sb.from("documents").insert({ org_id: me.member.org_id, uploaded_by: me.user.id, name: f.name, mime_type: f.type, size_bytes: f.size, storage_path: path });
+    msg.textContent = error ? error.message : "Uploaded: " + f.name; inp.value = ""; listDocs();
+  };
+  box.append(inp, msg);
+  listDocs();
+}
+async function listDocs(){
+  const box = $("secList"); box.innerHTML = "";
+  const { data, error } = await sb.from("documents").select("*").eq("org_id", me.member.org_id).order("created_at", { ascending: false }).limit(200);
+  if (error) { box.appendChild(el("div", "err", error.message)); return; }
+  if (!data.length) { box.appendChild(el("div", "sub", "No files yet.")); return; }
+  data.forEach(d => {
+    const it = el("div", "item");
+    const body = el("div"); body.style.flex = "1"; body.style.minWidth = "0";
+    body.appendChild(el("div", "it", d.name));
+    body.appendChild(el("div", "im", `${new Date(d.created_at).toLocaleDateString("en-GB")} · ${Math.max(1, Math.round((d.size_bytes || 0) / 1024))} KB`));
+    const open = el("button", "del", "Open"); open.type = "button"; open.style.color = "var(--gold)";
+    open.onclick = async () => { const { data: u, error } = await sb.storage.from("customer-files").createSignedUrl(d.storage_path, 300); if (u?.signedUrl) window.open(u.signedUrl, "_blank", "noopener"); else alertMsg(error?.message); };
+    const del = el("button", "del", "Delete"); del.type = "button";
+    del.onclick = async () => { if (!confirmDelete(del)) return; await sb.storage.from("customer-files").remove([d.storage_path]); await sb.from("documents").delete().eq("id", d.id); listDocs(); };
+    it.append(body, open, del); box.appendChild(it);
+  });
+}
+function alertMsg(m){ const b = $("secList"); b.prepend(el("div", "err", m || "Could not open the file.")); }
 function openSection(s){
+  cur = s;
   const locked = s.pro && !hasPro();
   $("secTitle").textContent = s.name;
-  $("secBadge").textContent = locked ? "Pro plan" : "Coming soon";
-  $("secBadge").className = "soon" + (locked ? " pro" : "");
+  $("secBadge").textContent = locked ? "Pro plan" : (s.live ? "Live" : "Coming soon");
+  $("secBadge").className = "soon" + (locked ? " pro" : s.live ? " live" : "");
   $("secText").textContent = s.text;
-  $("secPreview").innerHTML = "";
-  s.preview.forEach(([k, v]) => { const d = document.createElement("div"); d.className = "ph"; d.innerHTML = `<span class="phk"></span><span></span>`; d.children[0].textContent = k; d.children[1].textContent = v; $("secPreview").appendChild(d); });
+  $("secLive").style.display = "none"; $("secLive").innerHTML = ""; $("secList").innerHTML = "";
+  $("secPreview").innerHTML = ""; $("secPreview").style.display = "none";
+  if (locked) { $("secPreview").style.display = "flex"; $("secPreview").appendChild(el("div", "ph", "Accounting is part of the Pro plan.")); }
+  else if (s.live === "docs") loadDocs();
+  else if (s.live) { buildForm(s); loadList(s); }
+  else if (s.preview) { $("secPreview").style.display = "flex"; s.preview.forEach(([k, v]) => { const d = el("div", "ph"); d.append(el("span", "phk", k), el("span", null, v)); $("secPreview").appendChild(d); }); }
   $("secAsks").innerHTML = "";
-  s.asks.forEach(q => { const b = document.createElement("button"); b.className = "qa"; b.type = "button"; b.textContent = q; b.onclick = () => { show("vHome"); $("q").value = q; ask(); }; $("secAsks").appendChild(b); });
+  s.asks.forEach(q => { const b = el("button", "qa", q); b.type = "button"; b.onclick = () => { show("vHome"); $("q").value = q; ask(); }; $("secAsks").appendChild(b); });
   $("secUpgrade").style.display = locked ? "block" : "none";
   show("vSection");
 }
-$("secBack").onclick = () => show("vSections");
+$("secBack").onclick = () => { cur = null; show("vSections"); };
 $("secUpgrade").onclick = () => show("vPlans");
+
+// ---------- Today's brief (real data) ----------
+async function loadBrief(){
+  if (!me?.member) return;
+  const org = me.member.org_id, t = today();
+  const in7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+  const fashion = me.member.orgs?.business_type === "fashion";
+  $("briefDate").textContent = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const [tk, cal, ord] = await Promise.all([
+    sb.from("tasks").select("title,urgent,due_date").eq("org_id", org).eq("done", false).order("urgent", { ascending: false }).order("due_date", { nullsFirst: false }).limit(50),
+    sb.from("items").select("title,at_time,client").eq("org_id", org).eq("section", "calendar").eq("on_date", t).order("at_time", { nullsFirst: false }),
+    fashion ? sb.from("items").select("title,client,on_date,amount,paid,currency").eq("org_id", org).eq("section", "orders").eq("done", false) : Promise.resolve({ data: [] }),
+  ]);
+  const box = $("brief"); box.innerHTML = "";
+  const line = (k, v, sec) => { const b = el("button", "bl"); b.type = "button"; b.append(el("span", "phk", k), el("span", null, v)); b.onclick = () => openSection(S[sec]); box.appendChild(b); };
+  const c = cal.data || [];
+  line(fashion ? "Fittings" : "Today", c.length ? c.map(x => (x.at_time ? String(x.at_time).slice(0, 5) + " " : "") + x.title + (x.client ? " (" + x.client + ")" : "")).join("; ") : "Nothing in the calendar today", fashion ? "fcalendar" : "calendar");
+  const tasks = tk.data || [];
+  const urg = tasks.filter(x => x.urgent).length, due = tasks.filter(x => x.due_date && x.due_date <= t).length;
+  line("To-do", tasks.length ? `${tasks.length} open${urg ? `, ${urg} urgent` : ""}${due ? `, ${due} due today or late` : ""}: ${tasks.slice(0, 3).map(x => x.title).join("; ")}` : "No open tasks", "todo");
+  if (fashion) {
+    const o = ord.data || [];
+    const soon = o.filter(x => x.on_date && x.on_date <= in7);
+    line("Orders due", soon.length ? soon.map(x => `${x.title}${x.client ? " (" + x.client + ")" : ""} ${fmtDate(x.on_date)}`).join("; ") : "No orders due this week", "orders");
+    const owed = {}; o.forEach(x => { const d = (+x.amount || 0) - (+x.paid || 0); if (d > 0) owed[x.currency || "USD"] = (owed[x.currency || "USD"] || 0) + d; });
+    const ow = Object.entries(owed);
+    line("Balances", ow.length ? "Clients owe " + ow.map(([cc, v]) => money(v, cc)).join(" + ") : "No balances owed", "orders");
+  }
+}
 $("tourBtn").onclick = () => startTour();
 
 // ---------- Tutorial ----------
 const steps = [
-  ["vHome", "Welcome to AMI. Five quick tips and you're ready."],
+  ["vHome", "Welcome to AMI. Five quick tips and you're ready. Today's brief at the top shows your day."],
   ["vHome", "Type any question in the box at the bottom and tap the gold arrow."],
-  ["vSections", "Each tile is a part of AMI. Tap one to see what it does and try it."],
+  ["vSections", "Each tile keeps real records: add them yourself, or just tell AMI in the chat and it saves them for you."],
   ["vSettings", "Add your WhatsApp number here to chat with AMI on WhatsApp too."],
   ["vPlans", "Your trial is free for 30 days. Pick a plan here before it ends."],
 ];
