@@ -11,7 +11,8 @@
   :root{--navy:#0B1B33;--card:#13284A;--line:#1F355C;--edge:#2B4470;--gold:#D4A84B;--text:#F5F1E6;--soft:#C9D2E0;--muted:#A9B4C6}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--navy);color:var(--text);font-family:Inter,system-ui,sans-serif}
-  button,input,textarea{font-family:inherit}
+  button,input,textarea,select{font-family:inherit}
+  select{appearance:none;-webkit-appearance:none}
   .wrap{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
   header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
   .logo{font-family:'Space Grotesk',Inter,sans-serif;font-weight:700;font-size:26px;letter-spacing:3px;color:var(--gold)}
@@ -25,7 +26,7 @@
   h2{font-family:'Space Grotesk',Inter,sans-serif;font-size:22px;margin:0}
   p{margin:0;line-height:1.5;color:var(--soft)}
   label{font-size:13px;font-weight:600;color:var(--soft)}
-  input,textarea{width:100%;min-height:50px;padding:0 14px;border-radius:12px;border:1px solid var(--edge);background:var(--card);color:var(--text);font-size:16px}
+  input,textarea,select{width:100%;min-height:50px;padding:0 14px;border-radius:12px;border:1px solid var(--edge);background:var(--card);color:var(--text);font-size:16px}
   textarea{padding:14px;min-height:52px;resize:none}
   .btn{min-height:52px;width:100%;border:none;border-radius:12px;background:var(--gold);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer}
   .btn.ghost{background:transparent;border:1px solid var(--gold);color:var(--gold)}
@@ -109,6 +110,8 @@
       <p style="margin:10px 0 18px">Enter your invite code to start your 30-day trial.</p>
       <div class="field"><label for="fname">Your name</label><input id="fname" autocomplete="name" placeholder="Full name"></div>
       <div class="field" style="margin-top:12px"><label for="company">Company name</label><input id="company" autocomplete="organization" placeholder="Company name"></div>
+      <div class="field" style="margin-top:12px"><label for="btype">Type of business</label>
+        <select id="btype"><option value="general">General business</option><option value="fashion">Fashion (stylist, designer, tailor)</option><option value="construction">Construction</option><option value="property">Property</option><option value="retail">Shop / trading</option><option value="beauty">Salon / beauty</option></select></div>
       <div class="field" style="margin-top:12px"><label for="invite">Invite code</label><input id="invite" autocapitalize="characters" placeholder="AMI-XXXX-0000"></div>
       <div class="err" id="setupErr"></div>
       <button class="btn" id="startTrial">Start my free trial</button>
@@ -118,9 +121,7 @@
     <section id="vHome" class="hidden" style="display:flex;flex-direction:column;flex:1;gap:14px">
       <div class="card">
         <div class="row"><div class="k">TODAY'S BRIEF</div><span class="soon">Coming soon</span></div>
-        <div class="ph"><span class="phk">Emails</span><span>Emails that need you will show here</span></div>
-        <div class="ph"><span class="phk">Meetings</span><span>Today's meetings will show here</span></div>
-        <div class="ph"><span class="phk">To-do</span><span>Your tasks for today will show here</span></div>
+        <div id="brief" style="display:flex;flex-direction:column;gap:10px"></div>
         <div class="sub">Every morning AMI will also send this brief to your WhatsApp.</div>
       </div>
       <div class="k" style="margin-top:4px">ASK AMI</div>
@@ -150,6 +151,12 @@
       <div class="card">
         <div class="k">YOUR ACCOUNT</div>
         <div id="acct" style="font-size:15px;line-height:1.6"></div>
+      </div>
+      <div class="card">
+        <label for="btype2" style="font-size:15px">Type of business</label>
+        <select id="btype2"><option value="general">General business</option><option value="fashion">Fashion (stylist, designer, tailor)</option><option value="construction">Construction</option><option value="property">Property</option><option value="retail">Shop / trading</option><option value="beauty">Salon / beauty</option></select>
+        <div class="sub">AMI's sections and advice match your type of business.</div>
+        <div id="btMsg" class="ok"></div>
       </div>
       <div class="card">
         <div class="row"><div style="font-weight:600">WhatsApp</div><div id="waState" class="sub"></div></div>
@@ -257,7 +264,7 @@ $("startTrial").onclick = async () => {
   $("setupErr").textContent = "";
   if (!name || !company || !invite) { $("setupErr").textContent = "Please fill in all three."; return; }
   $("startTrial").disabled = true;
-  const { error } = await sb.rpc("start_trial", { p_company: company, p_invite: invite, p_full_name: name });
+  const { error } = await sb.rpc("start_trial", { p_company: company, p_invite: invite, p_full_name: name, p_business_type: $("btype").value });
   $("startTrial").disabled = false;
   if (error) { $("setupErr").textContent = error.message.includes("Invite") ? "That invite code is not valid or already used." : error.message; return; }
   await route(true);
@@ -267,7 +274,7 @@ $("startTrial").onclick = async () => {
 async function loadMe(){
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
-  const { data } = await sb.from("members").select("org_id, role, full_name, email, whatsapp_phone, whatsapp_verified, orgs(name)").eq("user_id", user.id).limit(1);
+  const { data } = await sb.from("members").select("org_id, role, full_name, email, whatsapp_phone, whatsapp_verified, orgs(name,business_type)").eq("user_id", user.id).limit(1);
   if (!data || !data.length) return { user, member: null };
   const m = data[0];
   const [{ data: sub }, { data: use }] = await Promise.all([
@@ -290,6 +297,10 @@ function paint(){
   const cap = s.plans?.daily_question_cap || 30;
   $("usageTxt").textContent = `${me.used} of ${cap} used`;
   $("usageBar").style.width = Math.min(100, me.used / cap * 100) + "%";
+  const bt = me.member.orgs?.business_type || "general";
+  $("btype2").value = bt;
+  $("brief").innerHTML = "";
+  (BRIEF_BY_TYPE[bt] || BRIEF_BY_TYPE.general).forEach(([k, v]) => { const d = document.createElement("div"); d.className = "ph"; d.innerHTML = `<span class="phk"></span><span></span>`; d.children[0].textContent = k; d.children[1].textContent = v; $("brief").appendChild(d); });
   $("wa").value = me.member.whatsapp_phone || "";
   $("waState").textContent = me.member.whatsapp_phone ? (me.member.whatsapp_verified ? "Verified" : "Saved") : "Not added";
 }
@@ -297,7 +308,7 @@ async function loadChat(){
   $("chat").innerHTML = "";
   const { data } = await sb.from("messages").select("role,content").eq("org_id", me.member.org_id).eq("user_id", me.user.id).order("created_at", { ascending: false }).limit(30);
   const rows = (data || []).reverse();
-  if (!rows.length) bubble(`Welcome${me.member.full_name ? ", " + me.member.full_name.split(" ")[0] : ""}! I'm AMI. Ask me anything about your business: draft a letter, plan your week, explain a tax rule, or check today's news.`, "ai");
+  if (!rows.length) bubble(`Welcome${me.member.full_name ? ", " + me.member.full_name.split(" ")[0] : ""}! I'm AMI. ${(me.member.orgs?.business_type === "fashion") ? "I'm here for your fashion business: client measurements, pricing orders, fittings, fabric, designs and your social media posts. What are you working on today?" : "Ask me anything about your business: draft a letter, plan your week, explain a tax rule, or check today's news."}`, "ai");
   rows.forEach(r => bubble(r.content, r.role === "user" ? "me" : "ai"));
 }
 async function route(first = false){
@@ -367,10 +378,60 @@ const SECTIONS = [
     preview: [["AMI's number", "+1 681 735 1374"], ["Your number", "Add it in Settings"]],
     asks: ["What can I ask AMI to do on WhatsApp?"] },
 ];
+const SECTIONS_BY_TYPE = {
+  fashion: [
+    { id: "clients", mk: "C", name: "Clients", note: "Sizes and style notes", pro: false,
+      text: "Every client in one place: measurements, sizes, favourite colours, body notes and what you made for them before. Tell AMI the measurements and it remembers them.",
+      preview: [["Clients", "Your client list will show here"], ["Measurements", "Saved for each client"], ["History", "Past orders and looks"]],
+      asks: ["Remember client Grace: bust 36, waist 30, hips 40, length 42, loves emerald green", "What measurements should I take for a fitted kaftan and a wrap dress?"] },
+    { id: "orders", mk: "O", name: "Orders & fittings", note: "Due dates and deposits", pro: false,
+      text: "Track every order from deposit to collection: what is being made, fabric, fitting dates, due date, deposit paid and balance owed.",
+      preview: [["In progress", "Orders being made"], ["Fittings", "Next fitting dates"], ["Due", "Orders due this week"], ["Balances", "Money still owed by clients"]],
+      asks: ["Price this order: an Ankara wedding gown with a lace overlay and lining, about 3 days of work", "Write a polite WhatsApp message asking a client to pay the balance before collection"] },
+    { id: "calendar", mk: "D", name: "Calendar", note: "Fittings, shoots, events", pro: false,
+      text: "Fittings, photo shoots, client consultations and events in one calendar, with a WhatsApp reminder before each one.",
+      preview: [["Today", "Fittings and appointments today"], ["This week", "Shoots and deadlines"], ["Events", "Weddings and occasions you are styling"]],
+      asks: ["Plan my week: 4 fittings, a photo shoot on Thursday and 2 orders due Saturday", "Make a checklist for styling a bride on her wedding day"] },
+    { id: "todo", mk: "T", name: "To-do list", note: "Your tasks, ticked off", pro: false,
+      text: "Tell AMI what needs doing: buy fabric, call a client, finish a hem. It keeps the list and reminds you.",
+      preview: [["Today", "Your tasks for today"], ["Overdue", "Anything you missed"], ["Done", "Ticked-off tasks"]],
+      asks: ["Make me a to-do list: buy 6 yards of lace, finish Mary's dress by Friday, post new photos on Instagram", "What should I do every week to keep my fashion business organised?"] },
+    { id: "lookbook", mk: "L", name: "Designs & lookbook", note: "Ideas and mood boards", pro: false,
+      text: "Keep your sketches, photos and mood boards. AMI helps you develop design ideas, describe looks for clients and plan collections.",
+      preview: [["Designs", "Your sketches and photos"], ["Mood boards", "Ideas by client or occasion"], ["Collections", "Seasonal plans"]],
+      asks: ["Give me 5 outfit ideas for a wedding guest in Monrovia using Ankara and lace", "Help me plan a small 6-piece collection for Independence Day"] },
+    { id: "fabrics", mk: "F", name: "Fabrics & supplies", note: "Stock and suppliers", pro: false,
+      text: "Know what fabric, lining, zips and trims you have, what each costs and which supplier has the best price.",
+      preview: [["In stock", "Fabrics and trims you have"], ["Running low", "What to buy next"], ["Suppliers", "Who sells what, and prices"]],
+      asks: ["How many yards of fabric do I need for a long A-line dress with sleeves for a size 14?", "Which fabrics are best for outfits in hot, humid weather?"] },
+    { id: "social", mk: "S", name: "Social media", note: "Posts and captions", pro: false,
+      text: "AMI writes your Instagram, TikTok and Facebook captions, plans a posting calendar and suggests content ideas to bring in new clients.",
+      preview: [["This week", "Posts planned"], ["Ideas", "Content to bring in clients"], ["Captions", "Ready to copy"]],
+      asks: ["Write an Instagram caption for a photo of a red Ankara mermaid dress I just finished", "Give me a 2-week posting plan to get more bridal clients"] },
+    { id: "accounting", mk: "$", name: "Accounting", note: "", pro: true,
+      text: "Deposits in, fabric and labour out, profit per order. Track money in USD and LRD and see how each month went.",
+      preview: [["Deposits", "Received this month"], ["Balances", "Owed by clients"], ["Costs", "Fabric, trims, tailors"], ["Profit", "Per order and per month"]],
+      asks: ["How do I work out the profit on one dress, including my time?", "What records should a small fashion business in Liberia keep for tax?"] },
+  ],
+  general: null,
+};
+const BRIEF_BY_TYPE = {
+  fashion: [["Fittings", "Today's fittings and appointments will show here"], ["Orders due", "Orders due this week will show here"], ["Balances", "Clients who still owe you will show here"]],
+  general: [["Emails", "Emails that need you will show here"], ["Meetings", "Today's meetings will show here"], ["To-do", "Your tasks for today will show here"]],
+};
+const TYPE_NAMES = { general: "General business", fashion: "Fashion (stylist, designer, tailor)", construction: "Construction", property: "Property", retail: "Shop / trading", beauty: "Salon / beauty" };
+
+function sectionsFor(){ return SECTIONS_BY_TYPE[me?.member?.orgs?.business_type] || SECTIONS; }
+$("btype2").onchange = async () => {
+  const v = $("btype2").value;
+  const { error } = await sb.from("orgs").update({ business_type: v }).eq("id", me.member.org_id);
+  $("btMsg").textContent = error ? error.message : "Saved. Your sections now match " + TYPE_NAMES[v] + ".";
+  if (!error) { me.member.orgs.business_type = v; paint(); drawTiles(); }
+};
 function hasPro(){ const p = me?.sub?.plan_id; return p === "pro" || p === "business"; }
 function drawTiles(){
   const box = $("tiles"); box.innerHTML = "";
-  SECTIONS.forEach(s => {
+  sectionsFor().forEach(s => {
     const b = document.createElement("button"); b.className = "tile"; b.type = "button";
     const locked = s.pro && !hasPro();
     b.innerHTML = `<div class="mk">${s.mk}</div><div><b></b><br><small class="${locked ? "lock" : ""}"></small></div>`;
