@@ -254,7 +254,11 @@ export async function imageMake(p: { prompt: string; image_url?: string; name?: 
     r = await fetch("https://api.openai.com/v1/images/generations", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: "gpt-image-1", prompt: p.prompt, size, quality: "medium", output_format: "jpeg", n: 1 }) });
   }
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error("OpenAI image: " + (j?.error?.message || r.status));
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error("OpenAI image failed (" + (j?.error?.message || r.status) + "). FALLBACK NOW: execute_zapier_write_action, selected_api \"ChatGPTCLIAPI\", " + (p.image_url
+    ? `action "create_image_edit" (tool_name "chatgpt_openai_create_image_edit"), params {"image": "${p.image_url}", "prompt": <same prompt>, "size": "1536x1024", "output_format": "jpeg", "results_number": 1}`
+    : `action "generate_image" (tool_name "chatgpt_openai_generate_an_image"), params {"prompt": <same prompt>, "size": "1536x1024", "quality": "medium", "output_format": "jpeg", "results_number": 1}`)
+    + `, then drive_save_image {"url": <image link>, "folder_id": "${p.folder_id || "16IOI6ngn5ITaGuUtI84v_hgtkINNBi_T"}", "name": "${String(p.name || "AMI image").replace(/"/g, "")}.jpg"}.`);
   const b64 = j?.data?.[0]?.b64_json; if (!b64) throw new Error("OpenAI returned no image.");
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const name = (String(p.name || "AMI image").replace(/\.(jpe?g|png)$/i, "").slice(0, 80) || "AMI image") + ".jpg";
