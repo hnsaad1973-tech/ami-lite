@@ -289,7 +289,7 @@ $("startTrial").onclick = async () => {
 async function loadMe(){
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
-  const { data } = await sb.from("members").select("org_id, role, full_name, email, whatsapp_phone, whatsapp_verified, orgs(name,business_type)").eq("user_id", user.id).limit(1);
+  const { data } = await sb.from("members").select("org_id, role, full_name, email, whatsapp_phone, whatsapp_verified, orgs(name,business_type,base_currency)").eq("user_id", user.id).limit(1);
   if (!data || !data.length) return { user, member: null };
   const m = data[0];
   const [{ data: sub }, { data: use }] = await Promise.all([
@@ -344,7 +344,7 @@ async function ask(){
     const j = await r.json().catch(() => ({}));
     wait.classList.remove("typing"); wait.textContent = j.reply || "Sorry, something went wrong. Please try again.";
     if (j.used) { me.used = j.used; paint(); }
-    if (j.tasks_changed) loadBrief();
+    if (j.tasks_changed) { loadBrief(); ACC = null; }
   } catch (e) { wait.classList.remove("typing"); wait.textContent = "No connection. Please try again."; }
   $("send").disabled = false;
 }
@@ -386,10 +386,9 @@ const S = {
     fields: [F.title("What"), F.date("Date"), F.time, F.notes("Notes")],
     text: "Your meetings and events. Add them here or tell AMI: \"meeting with the bank Tuesday at 10\".",
     asks: ["Add to my calendar: meeting with the supplier next Tuesday at 10am", "What is on my calendar this week?"] },
-  accounting: { id: "accounting", mk: "$", name: "Accounting", note: "Money in and out", live: "items", pro: true,
-    fields: [F.title("What for"), F.inout, F.amount("Amount"), F.cur, F.date("Date")],
-    text: "Record money in and money out. AMI totals it by currency. Full books (invoices, bank, reports) come next.",
-    asks: ["Record money in: $500 from a client today", "How did we do this month?"] },
+  accounting: { id: "accounting", mk: "$", name: "Accounting", note: "Books, invoices, reports", live: "acc", pro: true,
+    text: "Proper books, kept simply: money in and out, invoices and bills, transfers, and reports (profit and loss, balance sheet). Or just tell AMI what happened.",
+    asks: ["I received $500 from Client A for consulting, paid into the bank", "Show me my profit and loss for this month"] },
   contacts: { id: "contacts", mk: "P", name: "Contacts", note: "People and suppliers", live: "items",
     fields: [F.title("Name"), F.phone, F.notes("Details")],
     text: "Clients, suppliers and people you work with, with their numbers.",
@@ -430,8 +429,7 @@ const S = {
     text: "Plan your posts and keep captions ready to copy. Tick a post when it is published.",
     asks: ["Write an Instagram caption for a red Ankara mermaid dress and save it as a post for Saturday", "Give me a 2-week posting plan to get more bridal clients"] },
 };
-S.faccounting = { ...S.accounting, id: "faccounting", sec: "accounting", note: "Deposits, costs, profit",
-  text: "Record deposits in and fabric, trims and tailor costs out. AMI totals it by currency." };
+S.faccounting = { ...S.accounting, id: "faccounting", note: "Deposits, costs, profit" };
 const SECTIONS_BY_TYPE = {
   fashion: ["clients", "orders", "fcalendar", "todo", "lookbook", "fabrics", "social", "faccounting", "documents", "whatsapp"],
   general: ["todo", "calendar", "accounting", "contacts", "documents", "email", "whatsapp"],
@@ -510,7 +508,7 @@ async function loadList(s){
   if (error) { box.appendChild(el("div", "err", error.message)); return; }
   if (!rows.length) { box.appendChild(el("div", "sub", "Nothing here yet. Add the first one above, or ask AMI.")); return; }
   // totals
-  if (s.money || s.id.endsWith("accounting")) {
+  if (s.money) {
     const t = el("div", "card");
     const by = {};
     rows.forEach(r => { const c = r.currency || "USD"; by[c] = by[c] || { a: 0, p: 0, i: 0, o: 0 }; if (s.money) { if (!r.done) { by[c].a += +r.amount || 0; by[c].p += +r.paid || 0; } } else { if (r.kind === "out") by[c].o += +r.amount || 0; else by[c].i += +r.amount || 0; } });
@@ -598,6 +596,7 @@ function openSection(s){
   $("secPreview").innerHTML = ""; $("secPreview").style.display = "none";
   if (locked) { $("secPreview").style.display = "flex"; $("secPreview").appendChild(el("div", "ph", "Accounting is part of the Pro plan.")); }
   else if (s.live === "docs") loadDocs();
+  else if (s.live === "acc") openAccounting();
   else if (s.live) { buildForm(s); loadList(s); }
   else if (s.preview) { $("secPreview").style.display = "flex"; s.preview.forEach(([k, v]) => { const d = el("div", "ph"); d.append(el("span", "phk", k), el("span", null, v)); $("secPreview").appendChild(d); }); }
   $("secAsks").innerHTML = "";
@@ -635,6 +634,187 @@ async function loadBrief(){
     const ow = Object.entries(owed);
     line("Balances", ow.length ? "Clients owe " + ow.map(([cc, v]) => money(v, cc)).join(" + ") : "No balances owed", "orders");
   }
+}
+// ---------- Accounting (double-entry books) ----------
+let ACC = null, accTab = "overview";
+const accCur = () => me?.member?.orgs?.base_currency || "USD";
+const m$ = (n) => money(n, accCur());
+async function accLoad(){
+  const { data } = await sb.from("acc_accounts").select("code,name,type,subtype").eq("org_id", me.member.org_id).eq("active", true).order("code");
+  ACC = data || [];
+}
+const accOpts = (filter) => (ACC || []).filter(filter).map(a => [a.code, a.code + " " + a.name]);
+const PAYACC = (a) => ["cash", "bank", "mobile"].includes(a.subtype);
+function selEl(id, opts, val){ const s = document.createElement("select"); s.id = id; opts.forEach(([v, l]) => { const o = el("option", null, l); o.value = v; s.appendChild(o); }); if (val) s.value = val; return s; }
+function inEl(id, type, val, ph){ const i = document.createElement("input"); i.id = id; i.type = type; if (type === "number") { i.step = "0.01"; i.inputMode = "decimal"; } if (val != null) i.value = val; if (ph) i.placeholder = ph; return i; }
+function fld(label, input){ const w = el("div", "field"); const l = el("label", null, label); l.htmlFor = input.id; w.append(l, input); return w; }
+async function rpcRun(fn, args, okMsg, msgEl){
+  msgEl.className = "ok"; msgEl.textContent = "Saving...";
+  const { error } = await sb.rpc(fn, args);
+  if (error) { msgEl.className = "err"; msgEl.textContent = error.message.replace(/^.*?:\s*/, "") || error.message; return false; }
+  msgEl.textContent = okMsg; loadBrief(); return true;
+}
+async function openAccounting(){
+  if (!ACC) await accLoad();
+  const live = $("secLive"); live.style.display = "flex"; live.innerHTML = "";
+  const bar = el("div"); bar.style.display = "flex"; bar.style.gap = "8px"; bar.style.flexWrap = "wrap";
+  [["overview", "Overview"], ["in", "Money in"], ["out", "Money out"], ["invoices", "Invoices"], ["bills", "Bills"], ["transfer", "Transfer"], ["entries", "Entries"], ["reports", "Reports"], ["opening", "Opening balances"]].forEach(([k, l]) => {
+    const b = el("button", "tab", l); b.type = "button"; b.setAttribute("aria-pressed", String(accTab === k)); b.onclick = () => { accTab = k; openAccounting(); }; bar.appendChild(b);
+  });
+  live.appendChild(bar);
+  $("secList").innerHTML = "";
+  ({ overview: accOverview, in: () => accMoney("in"), out: () => accMoney("out"), invoices: () => accInvoices("sale"), bills: () => accInvoices("bill"), transfer: accTransfer, entries: accEntries, reports: accReports, opening: accOpening })[accTab]();
+}
+async function accOverview(){
+  const box = $("secList"); box.appendChild(el("div", "sub", "Loading..."));
+  const t = today(), m1 = t.slice(0, 8) + "01";
+  const [c, p] = await Promise.all([sb.rpc("acc_report", { p_org: me.member.org_id, p_kind: "cash", p_from: null, p_to: t }), sb.rpc("acc_report", { p_org: me.member.org_id, p_kind: "pl", p_from: m1, p_to: t })]);
+  box.innerHTML = "";
+  if (c.error) { box.appendChild(el("div", "err", c.error.message)); return; }
+  const card = el("div", "card"); card.appendChild(el("div", "k", "MONEY YOU HAVE"));
+  (c.data.accounts || []).forEach(a => { const r = el("div", "tot"); r.append(el("span", null, a.name), el("b", null, m$(a.amount))); card.appendChild(r); });
+  const tot = el("div", "tot"); tot.append(el("span", null, "Total"), el("b", null, m$(c.data.total))); card.appendChild(tot);
+  box.appendChild(card);
+  const c2 = el("div", "card");
+  [["Customers owe you", c.data.receivable], ["You owe suppliers", c.data.payable]].forEach(([k, v]) => { const r = el("div", "tot"); r.append(el("span", null, k), el("b", null, m$(v))); c2.appendChild(r); });
+  box.appendChild(c2);
+  if (!p.error) {
+    const c3 = el("div", "card"); c3.appendChild(el("div", "k", "THIS MONTH"));
+    [["Income", p.data.total_income], ["Expenses", p.data.total_expenses], ["Profit", p.data.net_profit]].forEach(([k, v]) => { const r = el("div", "tot"); r.append(el("span", null, k), el("b", null, m$(v))); c3.appendChild(r); });
+    box.appendChild(c3);
+  }
+  box.appendChild(el("div", "sub", "Start with Opening balances (what you have and owe today), then record money in and out. Or just tell AMI in the chat."));
+}
+function accMoney(dir){
+  const box = $("secList"); const c = el("div", "card");
+  c.appendChild(el("div", "k", dir === "in" ? "MONEY RECEIVED" : "MONEY PAID"));
+  const amt = inEl("am", "number", "", "0.00");
+  const acct = selEl("aa", accOpts(PAYACC), "1000");
+  const cat = selEl("ac", dir === "in" ? accOpts(a => a.type === "income" || a.code === "2100" || a.code === "3000") : accOpts(a => a.type === "expense" || ["1200", "1500", "3100", "2100", "2200"].includes(a.code)), dir === "in" ? "4000" : "6990");
+  const party = inEl("ap", "text", "", dir === "in" ? "Who paid you" : "Who you paid");
+  const memo = inEl("amm", "text", "", "What for");
+  const dt = inEl("ad", "date", today());
+  const msg = el("div", "ok"); const b = el("button", "btn", "Save"); b.type = "button";
+  b.onclick = async () => { if (!(+amt.value > 0)) { msg.className = "err"; msg.textContent = "Enter the amount."; return; }
+    b.disabled = true; if (await rpcRun("acc_money", { p_org: me.member.org_id, p_dir: dir, p_date: dt.value, p_amount: +amt.value, p_paid_code: acct.value, p_category_code: cat.value, p_party: party.value || null, p_memo: memo.value || null }, "Saved.", msg)) { amt.value = ""; party.value = ""; memo.value = ""; } b.disabled = false; };
+  c.append(fld("Amount (" + accCur() + ")", amt), fld(dir === "in" ? "Received into" : "Paid from", acct), fld(dir === "in" ? "Type of income" : "Type of expense", cat), fld(dir === "in" ? "From" : "To", party), fld("Note", memo), fld("Date", dt), msg, b);
+  box.appendChild(c);
+}
+async function accInvoices(kind){
+  const box = $("secList"); box.innerHTML = "";
+  const c = el("div", "card"); c.appendChild(el("div", "k", kind === "sale" ? "NEW INVOICE (CUSTOMER WILL PAY LATER)" : "NEW BILL (YOU WILL PAY LATER)"));
+  const party = inEl("ip", "text", "", kind === "sale" ? "Customer name" : "Supplier name");
+  const desc = inEl("idc", "text", "", "What for");
+  const amt = inEl("ia", "number", "", "0.00");
+  const cat = selEl("ic", kind === "sale" ? accOpts(a => a.type === "income") : accOpts(a => a.type === "expense" || ["1200", "1500"].includes(a.code)), kind === "sale" ? "4000" : "6990");
+  const dt = inEl("idt", "date", today()); const due = inEl("idu", "date", "");
+  const msg = el("div", "ok"); const b = el("button", "btn", kind === "sale" ? "Create invoice" : "Record bill"); b.type = "button";
+  b.onclick = async () => { if (!party.value.trim() || !(+amt.value > 0)) { msg.className = "err"; msg.textContent = "Name and amount are needed."; return; }
+    b.disabled = true; if (await rpcRun("acc_invoice", { p_org: me.member.org_id, p_kind: kind, p_party: party.value, p_date: dt.value, p_due: due.value || null, p_desc: desc.value || null, p_amount: +amt.value, p_account_code: cat.value }, "Saved.", msg)) { party.value = ""; desc.value = ""; amt.value = ""; due.value = ""; listInv(kind, list); } b.disabled = false; };
+  c.append(fld(kind === "sale" ? "Customer" : "Supplier", party), fld("Description", desc), fld("Amount (" + accCur() + ")", amt), fld(kind === "sale" ? "Income type" : "Expense type", cat), fld("Date", dt), fld("Due date", due), msg, b);
+  box.appendChild(c);
+  const list = el("div"); list.style.display = "flex"; list.style.flexDirection = "column"; list.style.gap = "10px";
+  box.appendChild(list); listInv(kind, list);
+}
+async function listInv(kind, list){
+  list.innerHTML = "";
+  const { data, error } = await sb.from("acc_invoice_status").select("*").eq("org_id", me.member.org_id).eq("kind", kind).order("inv_date", { ascending: false }).limit(200);
+  if (error) { list.appendChild(el("div", "err", error.message)); return; }
+  if (!data.length) { list.appendChild(el("div", "sub", kind === "sale" ? "No invoices yet." : "No bills yet.")); return; }
+  data.forEach(i => {
+    const it = el("div", "item" + (i.state === "paid" || i.state === "void" ? " done" : ""));
+    const body = el("div"); body.style.flex = "1"; body.style.minWidth = "0";
+    const t = el("div", "it", `${i.number} · ${i.party}`); if (i.state === "overdue") t.appendChild(el("span", "urg", "  OVERDUE")); body.appendChild(t);
+    body.appendChild(el("div", "im", `${m$(i.total)} · paid ${m$(i.paid)} · balance ${m$(i.balance)} · ${i.state}${i.due_date ? " · due " + fmtDate(i.due_date) : ""}`));
+    if (i.description) body.appendChild(el("div", "im", i.description));
+    it.appendChild(body);
+    if (i.state === "open" || i.state === "overdue") {
+      const pb = el("button", "del", kind === "sale" ? "Receive" : "Pay"); pb.type = "button"; pb.style.color = "var(--gold)";
+      pb.onclick = () => {
+        if (it.querySelector(".payf")) return;
+        const f = el("div", "payf"); f.style.display = "flex"; f.style.flexDirection = "column"; f.style.gap = "8px"; f.style.marginTop = "8px";
+        const a = inEl("pa" + i.id, "number", i.balance); const ac = selEl("pc" + i.id, accOpts(PAYACC), "1010"); const d = inEl("pd" + i.id, "date", today());
+        const m = el("div", "ok"); const go = el("button", "btn", "Save payment"); go.type = "button";
+        go.onclick = async () => { go.disabled = true; if (await rpcRun("acc_pay", { p_org: me.member.org_id, p_invoice: i.id, p_date: d.value, p_amount: +a.value, p_paid_code: ac.value }, "Payment saved.", m)) listInv(kind, list); go.disabled = false; };
+        f.append(fld("Amount", a), fld(kind === "sale" ? "Received into" : "Paid from", ac), fld("Date", d), m, go); body.appendChild(f);
+      };
+      it.appendChild(pb);
+    }
+    list.appendChild(it);
+  });
+}
+function accTransfer(){
+  const box = $("secList"); const c = el("div", "card"); c.appendChild(el("div", "k", "MOVE MONEY BETWEEN CASH, BANK AND MOBILE MONEY"));
+  const amt = inEl("ta", "number", "", "0.00"); const f = selEl("tf", accOpts(PAYACC), "1010"); const t = selEl("tt", accOpts(PAYACC), "1000");
+  const memo = inEl("tm", "text", "", "e.g. Cash withdrawal"); const dt = inEl("td", "date", today());
+  const msg = el("div", "ok"); const b = el("button", "btn", "Save transfer"); b.type = "button";
+  b.onclick = async () => { if (!(+amt.value > 0)) { msg.className = "err"; msg.textContent = "Enter the amount."; return; } b.disabled = true;
+    if (await rpcRun("acc_transfer", { p_org: me.member.org_id, p_date: dt.value, p_amount: +amt.value, p_from: f.value, p_to: t.value, p_memo: memo.value || null }, "Saved.", msg)) amt.value = ""; b.disabled = false; };
+  c.append(fld("Amount (" + accCur() + ")", amt), fld("From", f), fld("To", t), fld("Note", memo), fld("Date", dt), msg, b); box.appendChild(c);
+}
+async function accEntries(){
+  const box = $("secList"); box.appendChild(el("div", "sub", "Loading..."));
+  const { data, error } = await sb.from("acc_entries").select("id,entry_no,entry_date,memo,party,source,reverses,reversed_by,acc_lines(debit,credit,acc_accounts(code,name))").eq("org_id", me.member.org_id).order("entry_no", { ascending: false }).limit(100);
+  box.innerHTML = "";
+  if (error) { box.appendChild(el("div", "err", error.message)); return; }
+  if (!data.length) { box.appendChild(el("div", "sub", "No entries yet.")); return; }
+  box.appendChild(el("div", "sub", "Every entry balances (debits = credits). To correct a mistake, reverse it: nothing is deleted."));
+  data.forEach(e => {
+    const it = el("div", "item" + (e.reversed_by ? " done" : "")); const body = el("div"); body.style.flex = "1"; body.style.minWidth = "0";
+    body.appendChild(el("div", "it", `#${e.entry_no} · ${fmtDate(e.entry_date)} · ${e.memo || e.source}${e.party ? " · " + e.party : ""}`));
+    body.appendChild(el("div", "im", (e.acc_lines || []).map(l => `${l.acc_accounts.code} ${l.acc_accounts.name}: ${+l.debit ? "Dr " + m$(l.debit) : "Cr " + m$(l.credit)}`).join("\n")));
+    if (e.reversed_by) body.appendChild(el("div", "im", "Reversed"));
+    it.appendChild(body);
+    if (!e.reversed_by && !e.reverses) {
+      const r = el("button", "del", "Reverse"); r.type = "button";
+      r.onclick = async () => { if (!confirmDelete(r)) return; const { error } = await sb.rpc("acc_reverse", { p_org: me.member.org_id, p_entry: e.id, p_date: today() }); if (error) alertMsg(error.message); else { loadBrief(); openAccounting(); } };
+      it.appendChild(r);
+    }
+    box.appendChild(it);
+  });
+}
+function accReports(){
+  const box = $("secList"); const c = el("div", "card"); c.appendChild(el("div", "k", "REPORTS"));
+  const kind = selEl("rk", [["pl", "Profit and loss"], ["bs", "Balance sheet"], ["tb", "Trial balance"]], "pl");
+  const from = inEl("rf", "date", today().slice(0, 8) + "01"); const to = inEl("rt", "date", today());
+  const out = el("div"); out.style.display = "flex"; out.style.flexDirection = "column"; out.style.gap = "6px";
+  const b = el("button", "btn", "Show report"); b.type = "button";
+  const fromW = fld("From", from); kind.onchange = () => { fromW.style.display = kind.value === "pl" ? "flex" : "none"; };
+  b.onclick = async () => {
+    out.innerHTML = ""; const { data: r, error } = await sb.rpc("acc_report", { p_org: me.member.org_id, p_kind: kind.value, p_from: kind.value === "pl" ? from.value : null, p_to: to.value });
+    if (error) { out.appendChild(el("div", "err", error.message)); return; }
+    const head = (txt) => out.appendChild(el("div", "k", txt));
+    const row = (k, v, bold) => { const d = el("div", "tot"); d.append(el("span", null, k), bold ? el("b", null, v) : el("span", null, v)); out.appendChild(d); };
+    if (kind.value === "pl") {
+      out.appendChild(el("div", "sub", `Profit and loss ${fmtDate(r.from)} to ${fmtDate(r.to)}`));
+      head("INCOME"); r.income.forEach(a => row(a.name, m$(a.amount))); row("Total income", m$(r.total_income), true);
+      head("EXPENSES"); r.expenses.forEach(a => row(a.name, m$(a.amount))); row("Total expenses", m$(r.total_expenses), true);
+      row(r.net_profit >= 0 ? "NET PROFIT" : "NET LOSS", m$(r.net_profit), true);
+    } else if (kind.value === "bs") {
+      out.appendChild(el("div", "sub", `Balance sheet at ${fmtDate(r.as_of)}`));
+      head("ASSETS"); r.assets.forEach(a => row(a.name, m$(a.amount))); row("Total assets", m$(r.total_assets), true);
+      head("LIABILITIES"); r.liabilities.forEach(a => row(a.name, m$(a.amount))); row("Total liabilities", m$(r.total_liabilities), true);
+      head("EQUITY"); r.equity.forEach(a => row(a.name, m$(a.amount))); row("Profit to date", m$(r.profit_to_date)); row("Total equity", m$(r.total_equity), true);
+      out.appendChild(el("div", r.balanced ? "ok" : "err", r.balanced ? "Balanced: assets = liabilities + equity" : "Not balanced, please tell AMI support"));
+    } else {
+      out.appendChild(el("div", "sub", `Trial balance at ${fmtDate(r.as_of)}`));
+      r.rows.forEach(a => row(`${a.code} ${a.name}`, +a.debit ? "Dr " + m$(a.debit) : "Cr " + m$(a.credit)));
+      row("Totals", `Dr ${m$(r.total_debit)} · Cr ${m$(r.total_credit)}`, true);
+    }
+  };
+  c.append(fld("Report", kind), fromW, fld(kind.value === "pl" ? "To" : "As at", to), b, out); box.appendChild(c);
+}
+function accOpening(){
+  const box = $("secList"); const c = el("div", "card"); c.appendChild(el("div", "k", "OPENING BALANCES"));
+  c.appendChild(el("div", "sub", "What the business has and owes on the start date. The difference becomes owner's capital. Do this once."));
+  const dt = inEl("od", "date", today());
+  const codes = [["1000", "Cash on hand"], ["1010", "Bank account"], ["1020", "Mobile money"], ["1100", "Customers owe you"], ["1200", "Stock"], ["1500", "Equipment"], ["2000", "You owe suppliers"], ["2100", "Loans"], ["2200", "Taxes owed"]];
+  const ins = {}; c.appendChild(fld("Start date", dt));
+  codes.forEach(([k, l]) => { ins[k] = inEl("o" + k, "number", "", "0.00"); c.appendChild(fld(l, ins[k])); });
+  const msg = el("div", "ok"); const b = el("button", "btn", "Save opening balances"); b.type = "button";
+  b.onclick = async () => { const bal = {}; Object.entries(ins).forEach(([k, i]) => { if (+i.value) bal[k] = +i.value; });
+    b.disabled = true; await rpcRun("acc_opening", { p_org: me.member.org_id, p_date: dt.value, p_balances: bal }, "Saved. Check the Overview.", msg); b.disabled = false; };
+  c.append(msg, b); box.appendChild(c);
 }
 $("tourBtn").onclick = () => startTour();
 
