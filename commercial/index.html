@@ -1078,6 +1078,15 @@ $("tourNext").onclick = () => { if (ts >= steps.length - 1) endTour(); else { ts
 $("tourBack").onclick = () => { if (ts) { ts--; drawTour(); } };
 $("tourSkip").onclick = endTour;
 
+// Invitation link: ?email=...&invite=... fills the sign-in and invite fields
+(() => {
+  const q = new URLSearchParams(location.search);
+  const em = (q.get("email") || "").trim(), inv = (q.get("invite") || "").trim().toUpperCase();
+  try { if (inv) localStorage.setItem("ami_invite", inv); if (em) localStorage.setItem("ami_invite_email", em); } catch (_) {}
+  let sInv = inv, sEm = em; try { sInv = sInv || localStorage.getItem("ami_invite") || ""; sEm = sEm || localStorage.getItem("ami_invite_email") || ""; } catch (_) {}
+  if (sEm) $("email").value = sEm;
+  if (sInv) $("invite").value = sInv;
+})();
 route();
 </script>
 </body>
