@@ -229,6 +229,45 @@ export async function drawElevations(p: { brief: string; folder_id?: string; tit
   return { started: true, note: "Elevations (4 sides), section and 3D massing view started. PDF + AutoCAD links come to his WhatsApp in about 1 minute, saved in the same Drive folder as the floor plan." };
 }
 
+// ---------- Images direct from OpenAI (no Zapier) ----------
+async function driveUpload(bytes: Uint8Array, type: string, name: string, folder: string) {
+  const t = await token(); const bd = "amiboundary" + Date.now();
+  const pre = new TextEncoder().encode(`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name, parents: [folder] })}\r\n--${bd}\r\nContent-Type: ${type}\r\n\r\n`);
+  const post = new TextEncoder().encode(`\r\n--${bd}--`);
+  const body = new Uint8Array(pre.length + bytes.length + post.length); body.set(pre); body.set(bytes, pre.length); body.set(post, pre.length + bytes.length);
+  const u = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", { method: "POST", headers: { Authorization: "Bearer " + t, "Content-Type": `multipart/related; boundary=${bd}` }, body });
+  const j = await u.json(); if (!u.ok) throw new Error("Drive upload failed: " + (j?.error?.message || u.status));
+  return j.webViewLink as string;
+}
+export async function imageMake(p: { prompt: string; image_url?: string; name?: string; folder_id?: string; size?: string }) {
+  const key = Deno.env.get("OPENAI_API_KEY"); if (!key) throw new Error("OPENAI_API_KEY is not set in Supabase secrets.");
+  const size = ["1024x1024", "1536x1024", "1024x1536"].includes(String(p.size)) ? String(p.size) : "1536x1024";
+  let r: Response;
+  if (p.image_url) {
+    const src = await fetch(p.image_url); if (!src.ok) throw new Error("Could not open the sketch: " + src.status);
+    const blob = await src.blob();
+    const fd = new FormData();
+    fd.append("model", "gpt-image-1"); fd.append("prompt", p.prompt); fd.append("size", size); fd.append("quality", "medium"); fd.append("output_format", "jpeg");
+    fd.append("image", new File([blob], "sketch.jpg", { type: blob.type || "image/jpeg" }));
+    r = await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd });
+  } else {
+    r = await fetch("https://api.openai.com/v1/images/generations", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-image-1", prompt: p.prompt, size, quality: "medium", output_format: "jpeg", n: 1 }) });
+  }
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error("OpenAI image: " + (j?.error?.message || r.status));
+  const b64 = j?.data?.[0]?.b64_json; if (!b64) throw new Error("OpenAI returned no image.");
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const name = (String(p.name || "AMI image").replace(/\.(jpe?g|png)$/i, "").slice(0, 80) || "AMI image") + ".jpg";
+  // a link the app can show (7 days) + a copy in Drive
+  const SBU = Deno.env.get("SUPABASE_URL") || "", SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const path = `img-${Date.now()}.jpg`; let view = "";
+  const up = await fetch(`${SBU}/storage/v1/object/studio/${path}`, { method: "POST", headers: { apikey: SRK, Authorization: `Bearer ${SRK}`, "Content-Type": "image/jpeg", "x-upsert": "true" }, body: bytes });
+  if (up.ok) { const sg = await fetch(`${SBU}/storage/v1/object/sign/studio/${path}`, { method: "POST", headers: { apikey: SRK, Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn: 604800 }) });
+    const sj = await sg.json().catch(() => ({})); if (sj.signedURL) view = `${SBU}/storage/v1${sj.signedURL}`; }
+  const drive = await driveUpload(bytes, "image/jpeg", name, p.folder_id || "16IOI6ngn5ITaGuUtI84v_hgtkINNBi_T");
+  return { made: true, image_link: view, drive_link: drive, name };
+}
+
 // ---------- Tool definitions for the model ----------
 export const GOOGLE_TOOLS = [
   { name: "inbox_digest", description: "List emails from his Gmail (sender, subject, date, short preview, id, threadId). Uses Gmail search syntax, e.g. 'in:inbox newer_than:1d category:primary', 'from:ecobank', 'subject:invoice newer_than:30d'.",
@@ -254,6 +293,8 @@ export const GOOGLE_TOOLS = [
     input_schema: { type: "object", properties: { brief: { type: "string" }, base_file_id: { type: "string" }, folder_id: { type: "string" }, company: { type: "string" }, title: { type: "string" }, revise: { type: "string" } }, required: ["brief"] } },
   { name: "draw_elevations", description: "Draw the ELEVATIONS (all four sides), a SECTION through the middle and a 3D massing view of a building, with levels, grid and all measurements, as one PDF + one AutoCAD DXF in Drive. Use whenever he asks for elevations, sections, facades, heights or a 3D/massing view of a building. Put in brief: footprint size, column grid, every floor with its height (e.g. 3.5 m floor to floor), partial floors such as a mezzanine and where it sits, double-height areas, roof terrace and any rooftop restaurant/pavilion, the stair/lift core position, facade type (glass curtain wall / windows / solid) and the entrance. It uses the last floor plan AMI drew for the outline and core unless use_last_plan is 'false'.",
     input_schema: { type: "object", properties: { brief: { type: "string" }, folder_id: { type: "string" }, title: { type: "string" }, use_last_plan: { type: "string" } }, required: ["brief"] } },
+  { name: "image_make", description: "Make an image with OpenAI directly (no Zapier) and save it to Drive. With image_url (his sketch/photo link from the message) it EDITS that image: render, 3D, clean-up, add materials. Without image_url it makes a NEW image from the prompt. Returns image_link (show it on its own line) and drive_link. Default folder: AMI Studio; pass folder_id for a project folder.",
+    input_schema: { type: "object", properties: { prompt: { type: "string" }, image_url: { type: "string" }, name: { type: "string" }, folder_id: { type: "string" }, size: { type: "string", description: "1536x1024 (default), 1024x1024 or 1024x1536" } }, required: ["prompt"] } },
   { name: "drive_save_image", description: "Save a file from a web link (e.g. a generated image) into a Drive folder.",
     input_schema: { type: "object", properties: { url: { type: "string" }, folder_id: { type: "string" }, name: { type: "string" } }, required: ["url", "folder_id", "name"] } },
 ];
@@ -272,6 +313,7 @@ export async function runGoogleTool(name: string, p: any): Promise<any> {
     case "price_lookup": return await priceLookup(p);
     case "draw_plan": return await drawPlan(p);
     case "draw_elevations": return await drawElevations(p);
+    case "image_make": return await imageMake(p);
     case "drive_save_image": return await driveSaveFromUrl({ url: p.url, folder_id: p.folder_id, name: p.name });
   }
   throw new Error("Unknown tool " + name);
