@@ -1082,8 +1082,9 @@ $("tourSkip").onclick = endTour;
 (() => {
   const q = new URLSearchParams(location.search);
   const em = (q.get("email") || "").trim(), inv = (q.get("invite") || "").trim().toUpperCase();
-  try { if (inv) localStorage.setItem("ami_invite", inv); if (em) localStorage.setItem("ami_invite_email", em); } catch (_) {}
-  let sInv = inv, sEm = em; try { sInv = sInv || localStorage.getItem("ami_invite") || ""; sEm = sEm || localStorage.getItem("ami_invite_email") || ""; } catch (_) {}
+  if (inv) { try { localStorage.setItem("ami_invite", inv); if (em) localStorage.setItem("ami_invite_email", em); else localStorage.removeItem("ami_invite_email"); } catch (_) {} }
+  let sInv = inv, sEm = em;
+  if (!inv) { try { sInv = localStorage.getItem("ami_invite") || ""; sEm = em || localStorage.getItem("ami_invite_email") || ""; } catch (_) {} }
   if (sEm) $("email").value = sEm;
   if (sInv) $("invite").value = sInv;
 })();
