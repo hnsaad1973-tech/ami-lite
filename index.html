@@ -229,7 +229,16 @@
   .stools button{flex:0 0 auto;border:1px solid var(--panelbd);background:var(--panel);color:var(--ink);border-radius:20px;padding:8px 12px;font:500 13px "Inter",sans-serif;cursor:pointer;white-space:nowrap;}
   .stools button:hover{border-color:var(--gold);color:var(--gold2);}
   .schip{display:none;align-items:center;gap:8px;margin:6px 12px 0;padding:6px 8px;border:1px dashed var(--gold);border-radius:12px;font-size:12.5px;color:var(--muted);}
-  .schip.show{display:flex;}.schip img{height:40px;border-radius:6px;}.schip button{margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
+  .schip.show{display:flex;}
+  .drv{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:80;align-items:flex-end;justify-content:center;}
+  .drv.show{display:flex;}
+  .drvbox{background:var(--bg2);border:1px solid var(--panelbd);width:100%;max-width:640px;max-height:78vh;border-radius:16px 16px 0 0;padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .drvh{display:flex;gap:6px;}
+  .drvh input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--panelbd);color:var(--ink);border-radius:10px;padding:9px 10px;font:14px "Inter",sans-serif;}
+  .drvh button{border:1px solid var(--panelbd);background:var(--panel);color:var(--ink);border-radius:10px;padding:8px 10px;cursor:pointer;}
+  #drvlist{overflow:auto;}
+  #drvlist .it{display:flex;gap:8px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--line);color:var(--ink);cursor:pointer;font-size:14px;}
+  #drvlist .it small{color:var(--muted);margin-left:auto;white-space:nowrap;}.schip img{height:40px;border-radius:6px;}.schip button{margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
   .pad{position:fixed;inset:0;z-index:90;background:#0b1322;display:none;flex-direction:column;}
   .pad.show{display:flex;}
   .padbar{display:flex;gap:6px;align-items:center;padding:8px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-top:calc(8px + env(safe-area-inset-top));}
@@ -309,6 +318,7 @@
   </div>
   <input type="file" id="cam" accept="image/*" capture="environment" onchange="gotPhoto(this)">
   <input type="file" id="sketchin" accept="image/*" style="display:none" onchange="gotSketch(this)">
+  <input type="file" id="filein" accept="image/*,.pdf,.dxf,.dwg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" style="display:none" onchange="gotFile(this)">
   <div class="pad" id="pad">
     <div class="padbar">
       <span class="t" id="padt">Drawing pad</span>
@@ -335,6 +345,9 @@
     </div>
   </div>
 
+  <div class="drv" id="drv" onclick="if(event.target===this)closeDrive()"><div class="drvbox">
+    <div class="drvh"><input id="drvq" placeholder="Search Drive by file name…" onkeydown="if(event.key==='Enter')drvLoad()"><button onclick="drvLoad()">Search</button><button onclick="closeDrive()" aria-label="Close">✕</button></div>
+    <div id="drvlist"></div></div></div>
   <div class="chat" id="chat">
     <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI</div></div>
     <div class="msgs" id="msgs"></div>
@@ -342,7 +355,8 @@
     <div class="stools" id="stools">
       <button onclick="openPad(false)">✏️ Drawing pad</button>
       <button onclick="openPad(true)">📏 Measure pad</button>
-      <button onclick="pickSketch()">📤 Upload sketch</button>
+      <button onclick="pickFile()">📤 Upload file</button>
+      <button onclick="openDrive()">☁️ From Drive</button>
       <button onclick="studioDo('render')">🏛️ Render</button>
       <button onclick="studioDo('3d')">🧊 3D</button>
       <button onclick="studioDo('adjust')">🛠️ Adjust</button>
@@ -350,6 +364,7 @@
       <button onclick="drawDo('elev')">🏢 Elevations</button>
       <button onclick="drawDo('set')">📚 Full set</button>
     </div>
+    <div class="schip" id="fchip"><span></span><button onclick="clearFile()" aria-label="Remove">✕</button></div>
     <div class="schip" id="schip"><img id="schipimg" alt=""><span>Sketch ready — tap Render, 3D, Adjust, Floor plan, Elevations or Full set, or type what to do and send.</span><button onclick="clearSketch()" aria-label="Remove">✕</button></div>
     <div class="cbar">
       <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -649,7 +664,7 @@ function closeChat(){stopVoice();document.getElementById("chat").classList.remov
 function quick(title,prompt){openChat(title);ask(prompt);}
 function go(){if(busy)return;const q=document.getElementById("q");const t=q.value.trim();
   if(studioImg&&section==="Design Studio"){q.value="";const im=studioImg;clearSketch();ask(t||STUDIO_ASK.adjust,im);return;}
-  if(!t)return;q.value="";ask(t);}
+  if(!t&&!(studioFile&&section==="Design Studio"))return;q.value="";ask(t||"Open this file and tell me what it is and what you can do with it.");}
 function goHome(){if(busy)return;const i=document.getElementById("home-q");const t=i.value.trim();if(!t)return;i.value="";openChat("Ask AMI");ask(t);}
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -679,6 +694,7 @@ async function ask(text,image){
   if(!token){document.getElementById("login").classList.add("show");return null;}
   if(busy)return null;
   if(!chatOpen())openChat("Ask AMI");
+  if(studioFile&&section==="Design Studio"){text+="\n[Attached Drive file: "+studioFile.name+" — file id "+studioFile.id+" — "+studioFile.link+"]";clearFile();}
   bubble("u",(image?'<img src="data:image/jpeg;base64,'+image+'" alt="photo">':"")+esc(text));
   const label=image?"Reading the photo":"Working";
   const wait=bubble("a",'<div class="pg"><div class="pgt"><span>'+label+'</span><b>0%</b></div><div class="pgb"><i></i></div></div>');
@@ -723,6 +739,36 @@ function studioDo(kind){if(busy)return;
   if(!studioImg){afterPick=kind;pickSketch();return;}
   const q=document.getElementById("q");const extra=q.value.trim();q.value="";
   const im=studioImg;clearSketch();ask(STUDIO_ASK[kind]+(extra?" Also: "+extra:""),im);}
+/* Upload any file (images become the sketch; other files go to Drive) and pick files from Drive */
+let studioFile=null;
+function pickFile(){document.getElementById("filein").click();}
+async function api(o){try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token,section:"Design Studio"}))});return await r.json();}catch(e){return {error:e.message};}}
+function setFile(f){studioFile=f;const c=document.getElementById("fchip");c.querySelector("span").textContent="📎 "+f.name+" — tap a button or type what to do, then send.";c.classList.add("show");}
+function clearFile(){studioFile=null;const c=document.getElementById("fchip");if(c)c.classList.remove("show");}
+function b64Blob(b64){const s=atob(b64),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return new Blob([u]);}
+function gotFile(inp){const f=inp.files&&inp.files[0];inp.value="";if(!f)return;
+  if(/^image\//.test(f.type)){shrink(f,b=>setSketch(b));return;}
+  if(f.size>14e6){toast("That file is too big (max 14 MB).",4000);return;}
+  if(!token){document.getElementById("login").classList.add("show");return;}
+  toast("Uploading "+f.name+" to Drive…",8000);
+  const rd=new FileReader();rd.onload=async()=>{const r=await api({action:"studio_upload",b64:String(rd.result).split(",")[1],name:f.name,mime:f.type});
+    if(r&&r.id){setFile({id:r.id,name:f.name,link:r.link});toast("Saved in Drive > AMI Studio.",2500);}else toast("Upload failed: "+((r&&r.error)||"error"),5000);};
+  rd.readAsDataURL(f);}
+function openDrive(){if(!token){document.getElementById("login").classList.add("show");return;}document.getElementById("drv").classList.add("show");drvLoad();}
+function closeDrive(){document.getElementById("drv").classList.remove("show");}
+async function drvLoad(){const l=document.getElementById("drvlist");l.textContent="Loading…";
+  const r=await api({action:"drive_list",q:document.getElementById("drvq").value.trim()});
+  if(!r||!r.files){l.textContent="Couldn't open Drive: "+((r&&r.error)||"error");return;}
+  if(!r.files.length){l.textContent="No files found.";return;}
+  l.innerHTML="";r.files.forEach(f=>{const d=document.createElement("div");d.className="it";
+    const ic=/image/.test(f.type)?"🖼️":/pdf/.test(f.type)?"📄":/folder/.test(f.type)?"📁":/sheet|excel/.test(f.type)?"📊":"📎";
+    d.innerHTML=ic+" <span></span><small>"+(f.modified||"")+"</small>";d.querySelector("span").textContent=f.name;
+    d.onclick=()=>{if(/folder/.test(f.type)){document.getElementById("drvq").value="";drvFolder(f.id);return;}drvPick(f);};l.appendChild(d);});}
+async function drvFolder(id){const l=document.getElementById("drvlist");l.textContent="Loading…";const r=await api({action:"drive_list",folder:id});
+  if(r&&r.files){const keep=r;l.innerHTML="";keep.files.forEach(f=>{const d=document.createElement("div");d.className="it";d.innerHTML=(/folder/.test(f.type)?"📁":"📎")+" <span></span><small>"+(f.modified||"")+"</small>";d.querySelector("span").textContent=f.name;d.onclick=()=>/folder/.test(f.type)?drvFolder(f.id):drvPick(f);l.appendChild(d);});}else l.textContent="Couldn't open the folder.";}
+async function drvPick(f){closeDrive();toast("Opening "+f.name+"…",4000);
+  setFile({id:f.id,name:f.name,link:f.link||""});
+  if(/image|pdf/.test(f.type)){const r=await api({action:"drive_pick",id:f.id});if(r&&r.b64)shrink(b64Blob(r.b64),b=>setSketch(b));}}
 /* CAD drawings: floor plans, elevations/section/3D, full drawing set (PDF + AutoCAD in Drive, links on WhatsApp) */
 const DRAW_ASK={plan:"Draw the floor plan as PDF + AutoCAD (draw_plan). Details: ",
   elev:"Draw the elevations, section and 3D view as PDF + AutoCAD (draw_elevations). Details: ",

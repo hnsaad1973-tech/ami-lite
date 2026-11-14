@@ -272,6 +272,23 @@ export async function imageMake(p: { prompt: string; image_url?: string; name?: 
   return { made: true, image_link: view, drive_link: drive, name };
 }
 
+// ---------- Design Studio file picking (app buttons, not model tools) ----------
+const STUDIO_FOLDER = "16IOI6ngn5ITaGuUtI84v_hgtkINNBi_T";
+export async function driveUploadB64(b64: string, mime: string, name: string, folder = STUDIO_FOLDER) {
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const link = await driveUpload(bytes, mime || "application/octet-stream", name || "upload", folder);
+  const id = (link.match(/\/d\/([\w-]+)/) || [])[1] || "";
+  return { id, name, link };
+}
+export async function driveThumb(id: string, s = 1536) {
+  const m = await g(`${DR}/files/${id}?fields=id,name,mimeType,thumbnailLink,webViewLink`);
+  if (!m.thumbnailLink) return { id, name: m.name, mimeType: m.mimeType, link: m.webViewLink, b64: "" };
+  const t = await token(); const u = String(m.thumbnailLink).replace(/=s\d+$/, "") + "=s" + s;
+  let r = await fetch(u, { headers: { Authorization: "Bearer " + t } }); if (!r.ok) r = await fetch(u);
+  let b64 = ""; if (r.ok) { const b = new Uint8Array(await r.arrayBuffer()); let s2 = ""; for (let i = 0; i < b.length; i += 0x8000) s2 += String.fromCharCode(...b.subarray(i, i + 0x8000)); b64 = btoa(s2); }
+  return { id, name: m.name, mimeType: m.mimeType, link: m.webViewLink, b64 };
+}
+
 // ---------- Tool definitions for the model ----------
 export const GOOGLE_TOOLS = [
   { name: "inbox_digest", description: "List emails from his Gmail (sender, subject, date, short preview, id, threadId). Uses Gmail search syntax, e.g. 'in:inbox newer_than:1d category:primary', 'from:ecobank', 'subject:invoice newer_than:30d'.",

@@ -1,5 +1,5 @@
-// AMI `ai` edge function — v4.5.1 (14 Nov 2026) — images direct from OpenAI (image_make) with Zapier fallback until OpenAI credit is added; Zapier otherwise only for Pinterest; v4.4.2 — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
-import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, googleReady, sheetTabs, brainImportReady } from "./google.ts";
+// AMI `ai` edge function — v4.6 (14 Nov 2026) — Studio: upload any file / pick from Drive; v4.5.1 — images direct from OpenAI (image_make) with Zapier fallback until OpenAI credit is added; Zapier otherwise only for Pinterest; v4.4.2 — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
+import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, googleReady, sheetTabs, brainImportReady, driveSearch, driveThumb, driveUploadB64 } from "./google.ts";
 // Includes: "clear chat", "ami status", server-checked send claims,
 // direct WhatsApp via Twilio (delivery check + template fallback), YES required before messaging others,
 // verification rule with real tool errors, Think Tank only when the message STARTS with it,
@@ -120,6 +120,7 @@ DESIGN STUDIO (sketches, renders, elevations, floor plans, 3D views, logos, any 
 - STUDIO BUTTONS (Render / 3D / Adjust): when the message starts with "Turn this sketch" or "Clean up and adjust this sketch" and a sketch link is given, call image_make IMMEDIATELY with image_url = that link — no questions, no plan, no talk of partitions; earlier chat in this section does not matter.
 - NEVER write an image link or a Drive link that did not come back from a tool in THIS reply. If a tool fails, say it failed.
 - New image: image_make with a detailed prompt (no image_url). Change HIS sketch/photo (adjust, render it, make it 3D, add materials): image_make with image_url = the sketch link given in the message. image_make already saves the copy in Drive (default AMI Studio folder; pass folder_id for a project folder).
+- ATTACHED DRIVE FILE: when the message carries "[Attached Drive file: ... id ...]", use that file. A PDF floor plan goes to draw_plan as base_file_id; a document is read with drive_read; an image is the sketch to work on.
 - ONLY if image_make fails: use the Zapier fallback the error message describes (ChatGPT create_image_edit / generate_image), then drive_save_image. Never use Zapier for images when image_make works.
 - For 3D: produce a photoreal 3D perspective or axonometric render of the design (and say it is a 3D-style render image, not a CAD model).
 - Put the returned image_link on its own line in your reply (the app displays it), then one short line on what you made and the drive_link.
@@ -404,6 +405,22 @@ Deno.serve(async (req) => {
       await fetch(`${SB}/rest/v1/rpc/ami_dispatch`, { method: "POST", headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "application/json" },
         body: JSON.stringify({ payload: { message: message2, section: "Inbox", deliver: "whatsapp" } }) });
       return json({ reply: action === "inbox_noted" ? "✅ Noted — emptying your inbox now (archived, nothing deleted)." : "⚡ On it — drafting the replies, then emptying your inbox. Summary will come to WhatsApp." });
+    }
+
+    // Design Studio file buttons: list / pick a Drive file, upload a file from the phone or computer into Drive
+    if (action === "drive_list") {
+      let q = "", folder = ""; try { const j = JSON.parse(raw); q = String(j.q || "").trim().slice(0, 80); folder = /^[\w-]{10,}$/.test(String(j.folder || "")) ? String(j.folder) : ""; } catch (_) {}
+      try { return json(await driveSearch(folder ? { folder_id: folder } : q ? { name: q } : {})); } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+    if (action === "drive_pick") {
+      let id = ""; try { id = String(JSON.parse(raw).id || ""); } catch (_) {}
+      if (!/^[\w-]{10,}$/.test(id)) return json({ error: "Bad id." }, 400);
+      try { return json(await driveThumb(id)); } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+    if (action === "studio_upload") {
+      let p: any = {}; try { p = JSON.parse(raw); } catch (_) {}
+      if (!p.b64 || String(p.b64).length > 20e6) return json({ error: "File missing or too large (max about 14 MB)." }, 400);
+      try { return json(await driveUploadB64(String(p.b64), String(p.mime || ""), String(p.name || "upload").slice(0, 120))); } catch (e) { return json({ error: (e as Error).message }, 500); }
     }
 
     // Group Position tile: the company brain as data for the page
