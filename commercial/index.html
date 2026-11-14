@@ -55,6 +55,17 @@
   .tour .row button{min-height:46px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer}
   .dots{display:flex;gap:6px}.dots i{height:8px;width:8px;border-radius:999px;background:#C7CED9}.dots i.on{background:var(--navy);width:24px}
   .typing{opacity:.7;font-style:italic}
+  .soon{font-size:11px;font-weight:700;color:var(--navy);background:#C9D2E0;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .soon.pro{background:var(--gold)}
+  .ph{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted);padding:10px 12px;border:1px dashed var(--edge);border-radius:10px}
+  .phk{font-weight:700;color:var(--soft);width:84px;flex-shrink:0}
+  .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .tile{min-height:118px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--text);text-align:left;cursor:pointer}
+  .tile .mk{width:38px;height:38px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--gold);font-size:18px}
+  .tile b{font-size:15px}
+  .tile small{font-size:12px;color:var(--muted)}
+  .tile small.lock{color:var(--gold)}
+  .qa{min-height:48px;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--text);font-size:15px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -65,7 +76,8 @@
   </header>
 
   <nav id="tabs" class="tabs hidden" aria-label="Sections">
-    <button class="tab" data-v="home" aria-pressed="true">Ask AMI</button>
+    <button class="tab" data-v="home" aria-pressed="true">Home</button>
+    <button class="tab" data-v="sections" aria-pressed="false">Sections</button>
     <button class="tab" data-v="settings" aria-pressed="false">Settings</button>
     <button class="tab" data-v="plans" aria-pressed="false">Plans</button>
     <button class="tab" id="tourBtn" aria-pressed="false">Tour</button>
@@ -103,8 +115,33 @@
     </section>
 
     <!-- HOME: chat -->
-    <section id="vHome" class="hidden" style="display:flex;flex-direction:column;flex:1">
+    <section id="vHome" class="hidden" style="display:flex;flex-direction:column;flex:1;gap:14px">
+      <div class="card">
+        <div class="row"><div class="k">TODAY'S BRIEF</div><span class="soon">Coming soon</span></div>
+        <div class="ph"><span class="phk">Emails</span><span>Emails that need you will show here</span></div>
+        <div class="ph"><span class="phk">Meetings</span><span>Today's meetings will show here</span></div>
+        <div class="ph"><span class="phk">To-do</span><span>Your tasks for today will show here</span></div>
+        <div class="sub">Every morning AMI will also send this brief to your WhatsApp.</div>
+      </div>
+      <div class="k" style="margin-top:4px">ASK AMI</div>
       <div class="chat" id="chat"></div>
+    </section>
+
+    <!-- SECTIONS -->
+    <section id="vSections" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+      <h2>Sections</h2>
+      <div class="tiles" id="tiles"></div>
+    </section>
+
+    <!-- ONE SECTION -->
+    <section id="vSection" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+      <button class="btn ghost" id="secBack" style="min-height:44px;width:auto;align-self:flex-start;padding:0 16px">&larr; All sections</button>
+      <div class="row"><h2 id="secTitle"></h2><span class="soon" id="secBadge">Coming soon</span></div>
+      <p id="secText"></p>
+      <div class="card" id="secPreview"></div>
+      <div class="k">TRY ASKING AMI NOW</div>
+      <div id="secAsks" style="display:flex;flex-direction:column;gap:10px"></div>
+      <button class="btn" id="secUpgrade" style="display:none">See plans</button>
     </section>
 
     <!-- SETTINGS -->
@@ -173,15 +210,17 @@ const SB_URL = "https://xxdqrvcpxhsepwzfmnjs.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZHFydmNweGhzZXB3emZtbmpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2MTQxNzQsImV4cCI6MjExMDE5MDE3NH0.ZjN4PXCs7IilwaO16o6kg1Bu1K66V_vfoUILHMjgGBU";
 const sb = createClient(SB_URL, SB_KEY);
 const $ = (id) => document.getElementById(id);
-const views = ["vEmail","vCode","vSetup","vHome","vSettings","vPlans"];
+const views = ["vEmail","vCode","vSetup","vHome","vSections","vSection","vSettings","vPlans"];
 let me = null, email = "";
 
 function show(v){
   views.forEach(x => $(x).classList.toggle("hidden", x !== v));
-  const inApp = ["vHome","vSettings","vPlans"].includes(v);
+  const inApp = ["vHome","vSections","vSection","vSettings","vPlans"].includes(v);
   $("tabs").classList.toggle("hidden", !inApp);
   $("askbar").classList.toggle("hidden", v !== "vHome");
-  document.querySelectorAll(".tab[data-v]").forEach(b => b.setAttribute("aria-pressed", String("v"+b.dataset.v[0].toUpperCase()+b.dataset.v.slice(1) === v)));
+  const tabOf = v === "vSection" ? "vSections" : v;
+  document.querySelectorAll(".tab[data-v]").forEach(b => b.setAttribute("aria-pressed", String("v"+b.dataset.v[0].toUpperCase()+b.dataset.v.slice(1) === tabOf)));
+  window.scrollTo(0, 0);
 }
 function bubble(text, who){
   const d = document.createElement("div");
@@ -265,7 +304,7 @@ async function route(first = false){
   me = await loadMe();
   if (!me) { show("vEmail"); return; }
   if (!me.member) { show("vSetup"); return; }
-  paint(); await loadChat(); show("vHome");
+  paint(); drawTiles(); await loadChat(); show("vHome");
   let seen = false; try { seen = localStorage.getItem("ami_tour_done") === "1"; } catch (_) {}
   if (first || !seen) startTour();
 }
@@ -299,13 +338,70 @@ $("saveWa").onclick = async () => {
 $("signOut").onclick = async () => { await sb.auth.signOut(); me = null; show("vEmail"); $("trialBadge").classList.add("hidden"); };
 
 // Tabs
-document.querySelectorAll(".tab[data-v]").forEach(b => b.onclick = () => { const v = b.dataset.v; show(v === "home" ? "vHome" : v === "settings" ? "vSettings" : "vPlans"); });
+document.querySelectorAll(".tab[data-v]").forEach(b => b.onclick = () => { const v = b.dataset.v; show({ home: "vHome", sections: "vSections", settings: "vSettings", plans: "vPlans" }[v]); });
+
+// ---------- Sections (placeholders) ----------
+const SECTIONS = [
+  { id: "todo", mk: "T", name: "To-do list", note: "Your tasks, ticked off", pro: false,
+    text: "Tell AMI what needs doing, by typing or on WhatsApp. It keeps your list, puts dated items in your calendar and reminds you before they are due.",
+    preview: [["Today", "Your tasks for today will show here"], ["Overdue", "Anything you missed"], ["Done", "Ticked-off tasks"]],
+    asks: ["Make me a to-do list: pay rent Friday, call the bank Monday, send the quote to the client today", "Turn this into a to-do list: we need to renew the licence, hire a driver and fix the generator"] },
+  { id: "calendar", mk: "C", name: "Calendar", note: "Meetings and reminders", pro: false,
+    text: "AMI keeps your meetings, plans your week and reminds you on WhatsApp 15 minutes before each one. Birthdays and renewals too.",
+    preview: [["Today", "Your meetings will show here"], ["This week", "Your week at a glance"], ["Reminders", "Renewals, payments, birthdays"]],
+    asks: ["Help me plan my week: I have 3 site visits, 2 meetings and a report due Friday", "What should I prepare for a meeting with a new supplier?"] },
+  { id: "accounting", mk: "$", name: "Accounting", note: "", pro: true,
+    text: "Run your books by message: invoices, receipt photos, bank and mobile money, USD and LRD, profit and loss and balance sheet.",
+    preview: [["Cash", "USD and LRD balances"], ["Due this week", "Money in and out"], ["Overdue", "Invoices not yet paid"], ["Reports", "Profit and loss, balance sheet"]],
+    asks: ["Explain the difference between a profit and loss statement and a balance sheet", "What records should a small business in Liberia keep for tax?"] },
+  { id: "email", mk: "E", name: "Email", note: "Summaries and drafts", pro: false,
+    text: "AMI tells you which emails need you each morning and drafts replies for you to approve.",
+    preview: [["Inbox", "Emails that need you"], ["Drafts", "Replies ready to check"]],
+    asks: ["Draft a polite reminder to a client who has not paid an invoice", "Write a short reply accepting a meeting next Tuesday at 10am"] },
+  { id: "documents", mk: "D", name: "Documents", note: "Files and drafting", pro: false,
+    text: "Upload contracts, invoices and photos. AMI stores them privately for your company, reads them, and drafts letters and contracts.",
+    preview: [["Files", "Your company files will show here"], ["Storage", "Private to your company"]],
+    asks: ["Write a simple one-page tenancy agreement for an office in Monrovia", "Draft a formal letter asking a supplier for a better price"] },
+  { id: "whatsapp", mk: "W", name: "WhatsApp", note: "Chat with AMI by phone", pro: false,
+    text: "Message AMI on WhatsApp from your registered number and it answers just like here, with the same memory.",
+    preview: [["AMI's number", "+1 681 735 1374"], ["Your number", "Add it in Settings"]],
+    asks: ["What can I ask AMI to do on WhatsApp?"] },
+];
+function hasPro(){ const p = me?.sub?.plan_id; return p === "pro" || p === "business"; }
+function drawTiles(){
+  const box = $("tiles"); box.innerHTML = "";
+  SECTIONS.forEach(s => {
+    const b = document.createElement("button"); b.className = "tile"; b.type = "button";
+    const locked = s.pro && !hasPro();
+    b.innerHTML = `<div class="mk">${s.mk}</div><div><b></b><br><small class="${locked ? "lock" : ""}"></small></div>`;
+    b.querySelector("b").textContent = s.name;
+    b.querySelector("small").textContent = locked ? "Pro plan" : (s.note || "Coming soon");
+    b.onclick = () => openSection(s);
+    box.appendChild(b);
+  });
+}
+function openSection(s){
+  const locked = s.pro && !hasPro();
+  $("secTitle").textContent = s.name;
+  $("secBadge").textContent = locked ? "Pro plan" : "Coming soon";
+  $("secBadge").className = "soon" + (locked ? " pro" : "");
+  $("secText").textContent = s.text;
+  $("secPreview").innerHTML = "";
+  s.preview.forEach(([k, v]) => { const d = document.createElement("div"); d.className = "ph"; d.innerHTML = `<span class="phk"></span><span></span>`; d.children[0].textContent = k; d.children[1].textContent = v; $("secPreview").appendChild(d); });
+  $("secAsks").innerHTML = "";
+  s.asks.forEach(q => { const b = document.createElement("button"); b.className = "qa"; b.type = "button"; b.textContent = q; b.onclick = () => { show("vHome"); $("q").value = q; ask(); }; $("secAsks").appendChild(b); });
+  $("secUpgrade").style.display = locked ? "block" : "none";
+  show("vSection");
+}
+$("secBack").onclick = () => show("vSections");
+$("secUpgrade").onclick = () => show("vPlans");
 $("tourBtn").onclick = () => startTour();
 
 // ---------- Tutorial ----------
 const steps = [
-  ["vHome", "Welcome to AMI. Four quick tips and you're ready."],
+  ["vHome", "Welcome to AMI. Five quick tips and you're ready."],
   ["vHome", "Type any question in the box at the bottom and tap the gold arrow."],
+  ["vSections", "Each tile is a part of AMI. Tap one to see what it does and try it."],
   ["vSettings", "Add your WhatsApp number here to chat with AMI on WhatsApp too."],
   ["vPlans", "Your trial is free for 30 days. Pick a plan here before it ends."],
 ];
