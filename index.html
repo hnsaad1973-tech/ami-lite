@@ -365,6 +365,14 @@
     .home .grid{padding:6px 12px 12px;gap:8px;}
     .th,.ochat{padding:4px 9px;font-size:10.5px;}
   }
+  /* button row: 4 equal buttons, always aligned */
+  .trow{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 14px 0!important;padding:0!important;}
+  .trow>button{width:100%;margin:0!important;height:30px;padding:0 6px!important;font:600 11.5px "Inter",sans-serif!important;border-radius:15px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  @media (min-width:600px) and (max-width:899px){.trow{margin:6px 10px 0!important;gap:6px;}}
+  @media (min-width:900px) and (max-width:1500px){.trow{margin:8px 12px 0!important;}}
+  @media (min-width:1501px){.trow{margin:8px 18px 0!important;}}
+  /* pane headers line up with the Home header */
+  .chead{min-height:58px;box-sizing:border-box;}
 </style>
 </head>
 <body>
@@ -391,7 +399,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
-  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Open window</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full screen</button></div>
+  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Windows</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full</button></div>
 
   <div class="grid">
     <div class="tile" onclick="openCompanies()">
@@ -1165,7 +1173,7 @@ function speak(text,then){
 let histDone=false,waLast=0,waBusy=false;
 function wide(){return window.matchMedia("(min-width:600px)").matches;}
 function tilesHide(force){const on=force===undefined?!document.body.classList.contains("no-tiles"):force;
-  document.body.classList.toggle("no-tiles",on);document.getElementById("thb").textContent=on?"▾ Show tiles":"▴ Hide tiles";
+  document.body.classList.toggle("no-tiles",on);document.getElementById("thb").textContent=on?"▾ Tiles":"▴ Tiles";
   try{localStorage.setItem("ami_no_tiles",on?"1":"");}catch(_){}}
 try{if(localStorage.getItem("ami_no_tiles"))tilesHide(true);}catch(_){}
 let clrArm="";
