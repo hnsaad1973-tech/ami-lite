@@ -6,6 +6,10 @@
 <title>AMI 1</title>
 <meta name="apple-mobile-web-app-title" content="AMI 1">
 <meta name="application-name" content="AMI 1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0B1322">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1177,6 +1181,7 @@ function lnAdd(){const v=document.getElementById("lurl").value.trim();if(!v)retu
   document.getElementById("lurl").value="";lnRender();lnOpen(u,n);}
 function fullScr(){const d=document;if(d.fullscreenElement){d.exitFullscreen();return;}
   const el=d.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen||function(){toast("Press F11 for full screen");}).call(el);}
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 function openAmiChat(){if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
