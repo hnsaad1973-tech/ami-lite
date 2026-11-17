@@ -342,6 +342,10 @@
     color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 4px 12px rgba(199,154,60,.3);}
   .rest .r1{display:none!important;}
   body.hide-wa:not(.hide-chat) .rest .r2{display:block;}
+  .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;}
+  .lgrid .li{display:flex;align-items:center;gap:6px;border:1px solid var(--panelbd);border-radius:12px;background:var(--panel);color:var(--ink);padding:10px;cursor:pointer;font:500 13.5px "Inter",sans-serif;}
+  .lgrid .li:hover{border-color:var(--gold);color:var(--gold2);}
+  .lgrid .li .x{margin-left:auto;color:var(--muted);font-size:14px;padding:0 2px;}
 </style>
 </head>
 <body>
@@ -368,7 +372,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
-  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button><button class="th gpt" onclick="window.open('https://chatgpt.com','amigpt','width=520,height=820')" title="Open ChatGPT in its own window">🤖 ChatGPT</button></div>
+  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Open window</button></div>
 
   <div class="grid">
     <div class="tile" onclick="openCompanies()">
@@ -475,6 +479,11 @@
     <div class="drvh"><input id="drvq" placeholder="Search Drive by file name…" onkeydown="if(event.key==='Enter')drvLoad()"><button onclick="drvLoad()">Search</button><button onclick="closeDrive()" aria-label="Close">✕</button></div>
     <div id="drvlist"></div></div></div>
 
+  <div class="drv" id="lnch" onclick="if(event.target===this)closeLauncher()"><div class="drvbox">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold2)">Open in its own window</div>
+    <div class="lgrid" id="lgrid"></div>
+    <div class="drvh"><input id="lurl" placeholder="Name | link  (e.g. Bank | ecobank.com)" onkeydown="if(event.key==='Enter')lnAdd()"><button onclick="lnAdd()">Add</button><button onclick="closeLauncher()">Close</button></div>
+  </div></div>
   <div class="toast" id="toast"></div>
   <div class="ticket" id="ticket" onclick="if(event.target===this)closeTicket()">
     <div class="tk">
@@ -1152,6 +1161,20 @@ async function clearPane(w,btn){if(!token){document.getElementById("login").clas
     const b=document.createElement("div");b.className="m a";b.innerHTML=render(rep);box.appendChild(b);if(w==="wa")waLast=0;}
   catch(e){toast("Couldn't clear: "+e.message);}
   finally{btn.disabled=false;btn.textContent=lbl;}}
+const LN_BASE=[["🤖 ChatGPT","https://chatgpt.com"],["✳️ Claude","https://claude.ai"],["🟢 My WhatsApp","https://web.whatsapp.com"],["✉️ Gmail","https://mail.google.com"],["📁 Drive","https://drive.google.com"],["📅 Calendar","https://calendar.google.com"],["💼 AMI 2 Business","https://app.amiinnovations.com"],["🔎 Google","https://www.google.com"]];
+function lnMine(){try{return JSON.parse(localStorage.getItem("ami_links")||"[]");}catch(_){return [];}}
+function lnOpen(u,n){window.open(u,"ami_"+n.replace(/\W/g,""),"width=560,height=860");}
+function lnRender(){const g=document.getElementById("lgrid");g.innerHTML="";const mine=lnMine();
+  [...LN_BASE,...mine].forEach((l,i)=>{const b=document.createElement("div");b.className="li";b.textContent=l[0];b.onclick=()=>{lnOpen(l[1],l[0]);closeLauncher();};
+    if(i>=LN_BASE.length){const x=document.createElement("span");x.className="x";x.textContent="✕";x.title="Remove";
+      x.onclick=e=>{e.stopPropagation();const m=lnMine();m.splice(i-LN_BASE.length,1);try{localStorage.setItem("ami_links",JSON.stringify(m));}catch(_){}lnRender();};b.appendChild(x);}
+    g.appendChild(b);});}
+function openLauncher(){lnRender();document.getElementById("lnch").classList.add("show");}
+function closeLauncher(){document.getElementById("lnch").classList.remove("show");}
+function lnAdd(){const v=document.getElementById("lurl").value.trim();if(!v)return;let [n,u]=v.includes("|")?v.split("|").map(x=>x.trim()):[v,v];
+  if(!/^https?:\/\//i.test(u))u="https://"+u;if(n===v)n=u.replace(/^https?:\/\/(www\.)?/,"").split("/")[0];
+  const m=lnMine();m.push(["🔗 "+n,u]);try{localStorage.setItem("ami_links",JSON.stringify(m));}catch(_){}
+  document.getElementById("lurl").value="";lnRender();lnOpen(u,n);}
 function openAmiChat(){if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
