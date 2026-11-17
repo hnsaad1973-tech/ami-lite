@@ -317,7 +317,7 @@
   body.no-tiles .home .mkts{flex:1 1 auto;height:auto;min-height:0;margin-bottom:0;}
   body.no-tiles .home .th{margin-bottom:8px;}
   /* medium width (Claude side panel, half screen): Home left, Chat top-right, WhatsApp bottom-right */
-  @media (min-width:600px) and (max-width:899px){
+  @media (min-width:500px) and (max-width:899px){
     .panes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);overflow:hidden;scroll-snap-type:none;}
     .pane{width:auto;}
     .home.pane{grid-row:1/3;grid-column:1;}
@@ -368,11 +368,21 @@
   /* button row: 4 equal buttons, always aligned */
   .trow{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 14px 0!important;padding:0!important;}
   .trow>button{width:100%;margin:0!important;height:30px;padding:0 6px!important;font:600 11.5px "Inter",sans-serif!important;border-radius:15px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  @media (min-width:600px) and (max-width:899px){.trow{margin:6px 10px 0!important;gap:6px;}}
+  @media (min-width:500px) and (max-width:899px){.trow{margin:6px 10px 0!important;gap:6px;}}
   @media (min-width:900px) and (max-width:1500px){.trow{margin:8px 12px 0!important;}}
   @media (min-width:1501px){.trow{margin:8px 18px 0!important;}}
   /* pane headers line up with the Home header */
   .chead{min-height:58px;box-sizing:border-box;}
+  @media (min-width:500px) and (max-width:680px){
+    .home .grid{gap:5px;padding:5px 8px 8px;}
+    .home .tile{padding:6px 8px;gap:8px;}.home .ic{width:28px;height:28px;}.home .ic svg{width:16px;height:16px;}
+    .home .tt{font-size:14px;}.home .ds{font-size:9px;}
+    .home .top{padding:6px 8px 4px;}.home .name{font-size:18px;}.home .cme{width:26px;height:26px;flex:0 0 26px;}
+    .home .mkts{margin:0 8px;}.home .news{margin:6px 8px 0;}.news .hl{font-size:12px;}
+    .trow{margin:6px 8px 0!important;gap:4px;}.trow>button{font-size:10px!important;height:26px;}
+    .chead .ct{font-size:16px;}.myw{display:none;}
+    .cbar .tk-t{display:none;}.cbar .rb{width:32px;height:32px;flex:0 0 32px;}.cbar .rb svg{width:15px;height:15px;}.cbar input{min-width:60px;padding:8px 10px;font-size:13px;}
+  }
 </style>
 </head>
 <body>
@@ -1171,7 +1181,7 @@ function speak(text,then){
 }
 /* ===== Three screens: Home | Chat | WhatsApp ===== */
 let histDone=false,waLast=0,waBusy=false;
-function wide(){return window.matchMedia("(min-width:600px)").matches;}
+function wide(){return window.matchMedia("(min-width:500px)").matches;}
 function tilesHide(force){const on=force===undefined?!document.body.classList.contains("no-tiles"):force;
   document.body.classList.toggle("no-tiles",on);document.getElementById("thb").textContent=on?"▾ Tiles":"▴ Tiles";
   try{localStorage.setItem("ami_no_tiles",on?"1":"");}catch(_){}}
