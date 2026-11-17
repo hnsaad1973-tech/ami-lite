@@ -302,7 +302,7 @@
   }
   .clr{margin-left:auto;border:1px solid var(--panelbd);border-radius:16px;background:none;color:var(--muted);font:600 11.5px "Inter",sans-serif;padding:7px 10px;cursor:pointer;white-space:nowrap;}
   .clr:hover{color:#e65050;border-color:#e65050;}
-  .clr.arm{color:#fff;background:#e65050;border-color:#e65050;}
+  .clr.arm,.cp.arm{color:#fff;background:#e65050;border-color:#e65050;}
   .chat .chead .clr+.hb{margin-left:0;}
   .wa .clr+.wr{margin-left:0;}
   .th{align-self:center;margin:6px auto 0;border:1px solid var(--panelbd);border-radius:14px;background:none;color:var(--muted);font:600 11px "Inter",sans-serif;padding:4px 12px;cursor:pointer;flex:0 0 auto;}
@@ -763,7 +763,9 @@ function addCopy(div,text){const b=document.createElement("button");b.className=
     if(navigator.clipboard)navigator.clipboard.writeText(text).then(done).catch(()=>fallback());else fallback();
     function fallback(){const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();
       try{document.execCommand("copy");done();}catch(_){}t.remove();}};
-  div.appendChild(document.createElement("br"));div.appendChild(b);}
+  div.appendChild(document.createElement("br"));div.appendChild(b);
+  const c=document.createElement("button");c.className="cp";c.textContent="🗑 Clear chat";c.style.marginLeft="6px";
+  c.onclick=()=>clearPane(div.closest("#wa")?"wa":"chat",c);div.appendChild(c);}
 
 async function ask(text,image){
   if(!token){document.getElementById("login").classList.add("show");return null;}
@@ -1108,15 +1110,16 @@ function tilesHide(force){const on=force===undefined?!document.body.classList.co
 try{if(localStorage.getItem("ami_no_tiles"))tilesHide(true);}catch(_){}
 let clrArm="";
 async function clearPane(w,btn){if(!token){document.getElementById("login").classList.add("show");return;}
-  if(clrArm!==w){clrArm=w;btn.classList.add("arm");btn.textContent="Tap to confirm";setTimeout(()=>{if(clrArm===w){clrArm="";btn.classList.remove("arm");btn.textContent="🗑 Clear";}},3000);return;}
-  clrArm="";btn.classList.remove("arm");btn.textContent="Clearing…";btn.disabled=true;
+  if(!btn.dataset.l)btn.dataset.l=btn.textContent;
+  if(clrArm!==w){clrArm=w;btn.classList.add("arm");btn.textContent="Tap to confirm";setTimeout(()=>{if(clrArm===w){clrArm="";btn.classList.remove("arm");btn.textContent=btn.dataset.l;}},3000);return;}
+  const lbl=btn.dataset.l||"🗑 Clear";clrArm="";btn.classList.remove("arm");btn.textContent="Clearing…";btn.disabled=true;
   const sec=w==="wa"?"WhatsApp":section;
   try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({message:"clear chat",section:sec,token})});
     const d=await r.json().catch(()=>null);const rep=extract(d)||("Error: "+r.status);
     const box=document.getElementById(w==="wa"?"wamsgs":"msgs");box.innerHTML="";
     const b=document.createElement("div");b.className="m a";b.innerHTML=render(rep);box.appendChild(b);if(w==="wa")waLast=0;}
   catch(e){toast("Couldn't clear: "+e.message);}
-  finally{btn.disabled=false;btn.textContent="🗑 Clear";}}
+  finally{btn.disabled=false;btn.textContent=lbl;}}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
   if(!h)goPane(w==="chat"?1:2);else goPane(0);}
 try{["chat","wa"].forEach(w=>{if(localStorage.getItem("ami_hide_"+w))document.body.classList.add("hide-"+w);});}catch(_){}
