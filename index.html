@@ -372,7 +372,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
-  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Open window</button></div>
+  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Open window</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full screen</button></div>
 
   <div class="grid">
     <div class="tile" onclick="openCompanies()">
@@ -1175,6 +1175,8 @@ function lnAdd(){const v=document.getElementById("lurl").value.trim();if(!v)retu
   if(!/^https?:\/\//i.test(u))u="https://"+u;if(n===v)n=u.replace(/^https?:\/\/(www\.)?/,"").split("/")[0];
   const m=lnMine();m.push(["🔗 "+n,u]);try{localStorage.setItem("ami_links",JSON.stringify(m));}catch(_){}
   document.getElementById("lurl").value="";lnRender();lnOpen(u,n);}
+function fullScr(){const d=document;if(d.fullscreenElement){d.exitFullscreen();return;}
+  const el=d.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen||function(){toast("Press F11 for full screen");}).call(el);}
 function openAmiChat(){if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
