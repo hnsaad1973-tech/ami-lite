@@ -286,7 +286,7 @@
   }
   /* hide / show the Chat and WhatsApp screens */
   .hb{width:34px;height:34px;border:1px solid var(--panelbd);border-radius:50%;background:none;color:var(--muted);font-size:15px;cursor:pointer;flex:0 0 auto;}
-  .chat .chead .hb{margin-left:auto;}
+  
   .wa .wr{margin-left:auto;}
   .hb:hover{color:var(--gold2);border-color:var(--gold);}
   body.hide-chat .chat.pane,body.hide-wa .wa.pane{display:none;}
@@ -300,6 +300,16 @@
     body.hide-chat .panes,body.hide-wa .panes{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);}
     body.hide-chat.hide-wa .panes{grid-template-columns:minmax(0,1fr);}
   }
+  .clr{margin-left:auto;border:1px solid var(--panelbd);border-radius:16px;background:none;color:var(--muted);font:600 11.5px "Inter",sans-serif;padding:7px 10px;cursor:pointer;white-space:nowrap;}
+  .clr:hover{color:#e65050;border-color:#e65050;}
+  .clr.arm{color:#fff;background:#e65050;border-color:#e65050;}
+  .chat .chead .clr+.hb{margin-left:0;}
+  .wa .clr+.wr{margin-left:0;}
+  .th{align-self:center;margin:6px auto 0;border:1px solid var(--panelbd);border-radius:14px;background:none;color:var(--muted);font:600 11px "Inter",sans-serif;padding:4px 12px;cursor:pointer;flex:0 0 auto;}
+  .th:hover{color:var(--gold2);border-color:var(--gold);}
+  body.no-tiles .home .grid{display:none;}
+  body.no-tiles .home .mkts{flex:1 1 auto;height:auto;min-height:0;margin-bottom:0;}
+  body.no-tiles .home .th{margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -326,6 +336,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
+  <button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button>
 
   <div class="grid">
     <div class="tile" onclick="openCompanies()">
@@ -363,7 +374,7 @@
   </div>
 </div>
   <div class="chat pane" id="chat">
-    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI 1</div><button class="hb" onclick="paneHide('chat',true)" aria-label="Hide chat" title="Hide">✕</button></div>
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI 1</div><button class="clr" onclick="clearPane('chat',this)" title="Clear chat">🗑 Clear</button><button class="hb" onclick="paneHide('chat',true)" aria-label="Hide chat" title="Hide">✕</button></div>
     <div class="msgs" id="msgs"></div>
     <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
     <div class="stools" id="stools">
@@ -390,7 +401,7 @@
   </div>
   <div class="wa pane" id="wa">
     <div class="chead"><button class="bk" onclick="goPane(0)">‹</button><div class="ct"><span class="wad"></span>WhatsApp</div>
-      <button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
+      <button class="clr" onclick="clearPane('wa',this)" title="Clear chat">🗑 Clear</button><button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
     <div class="msgs" id="wamsgs"><div class="m a">Loading your WhatsApp chat with AMI…</div></div>
     <div class="cbar">
       <input id="waq" placeholder="Message AMI on WhatsApp…" onkeydown="if(event.key==='Enter')waSend()">
@@ -1091,6 +1102,21 @@ function speak(text,then){
 /* ===== Three screens: Home | Chat | WhatsApp ===== */
 let histDone=false,waLast=0,waBusy=false;
 function wide(){return window.matchMedia("(min-width:900px)").matches;}
+function tilesHide(force){const on=force===undefined?!document.body.classList.contains("no-tiles"):force;
+  document.body.classList.toggle("no-tiles",on);document.getElementById("thb").textContent=on?"▾ Show tiles":"▴ Hide tiles";
+  try{localStorage.setItem("ami_no_tiles",on?"1":"");}catch(_){}}
+try{if(localStorage.getItem("ami_no_tiles"))tilesHide(true);}catch(_){}
+let clrArm="";
+async function clearPane(w,btn){if(!token){document.getElementById("login").classList.add("show");return;}
+  if(clrArm!==w){clrArm=w;btn.classList.add("arm");btn.textContent="Tap to confirm";setTimeout(()=>{if(clrArm===w){clrArm="";btn.classList.remove("arm");btn.textContent="🗑 Clear";}},3000);return;}
+  clrArm="";btn.classList.remove("arm");btn.textContent="Clearing…";btn.disabled=true;
+  const sec=w==="wa"?"WhatsApp":section;
+  try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({message:"clear chat",section:sec,token})});
+    const d=await r.json().catch(()=>null);const rep=extract(d)||("Error: "+r.status);
+    const box=document.getElementById(w==="wa"?"wamsgs":"msgs");box.innerHTML="";
+    const b=document.createElement("div");b.className="m a";b.innerHTML=render(rep);box.appendChild(b);if(w==="wa")waLast=0;}
+  catch(e){toast("Couldn't clear: "+e.message);}
+  finally{btn.disabled=false;btn.textContent="🗑 Clear";}}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
   if(!h)goPane(w==="chat"?1:2);else goPane(0);}
 try{["chat","wa"].forEach(w=>{if(localStorage.getItem("ami_hide_"+w))document.body.classList.add("hide-"+w);});}catch(_){}
