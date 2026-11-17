@@ -1137,7 +1137,7 @@ async function rows(sec,n){const {data,error}=await sb.from("ami_messages").sele
 function clean(t){t=String(t||"");const m=t.match(/^[A-Z ]*ORDER from the Chairman[\s\S]*?\n\s*ORDER:\s*\n?([\s\S]*)$/);return m?m[1].trim():t;}
 function toEnd(id){const b=document.getElementById(id);b.scrollTop=b.scrollHeight;setTimeout(()=>{b.scrollTop=b.scrollHeight;},400);setTimeout(()=>{b.scrollTop=b.scrollHeight;},1500);}
 async function chatHistory(){try{const r=await rows("Ask AMI",30);const box=document.getElementById("msgs");if(box.children.length||section!=="Ask AMI")return;
-  r.forEach(m=>{const d=document.createElement("div");d.className="m "+(m.role==="user"?"u":"a");d.innerHTML=render(clean(m.content))+'<span class="ts">'+esc(when(m.created_at))+'</span>';box.appendChild(d);});
+  r.forEach(m=>{const d=document.createElement("div");d.className="m "+(m.role==="user"?"u":"a");d.innerHTML=render(clean(m.content))+'<span class="ts">'+esc(when(m.created_at))+'</span>';box.appendChild(d);if(m.role!=="user")addCopy(d,clean(m.content));});
   toEnd("msgs");}catch(e){}}
 function waBubble(cls,html){const d=document.createElement("div");d.className="m "+cls;d.innerHTML=html;
   const box=document.getElementById("wamsgs");box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
@@ -1145,7 +1145,7 @@ async function waLoad(force){if(!token||waBusy)return;
   try{const r=await rows("WhatsApp",60);const last=r.length?r[r.length-1].id:0;if(!force&&last===waLast)return;waLast=last;
     const box=document.getElementById("wamsgs");box.innerHTML="";
     if(!r.length){waBubble("a","No WhatsApp messages yet.");return;}
-    r.forEach(m=>waBubble(m.role==="user"?"u":"a",render(clean(m.content))+'<span class="ts">'+esc(when(m.created_at))+'</span>'));toEnd("wamsgs");
+    r.forEach(m=>{const d=waBubble(m.role==="user"?"u":"a",render(clean(m.content))+'<span class="ts">'+esc(when(m.created_at))+'</span>');if(m.role!=="user")addCopy(d,clean(m.content));});toEnd("wamsgs");
   }catch(e){if(force){document.getElementById("wamsgs").innerHTML='<div class="m a">Couldn\'t load WhatsApp: '+esc(e.message||String(e))+'</div>';}}}
 async function waSend(){const q=document.getElementById("waq");const t=q.value.trim();if(!t||waBusy)return;
   if(!token){document.getElementById("login").classList.add("show");return;}
