@@ -336,6 +336,7 @@
   }
   .trow{display:flex;justify-content:center;align-items:center;gap:8px;margin:6px 0 0;flex:0 0 auto;}
   .trow .th{margin:0;}
+  .th.gpt{color:#10a37f;border-color:rgba(16,163,127,.45);}
   body.no-tiles .trow{margin-bottom:8px;}
   .ochat{border:none;border-radius:16px;padding:4px 12px;font:600 11px "Inter",sans-serif;cursor:pointer;white-space:nowrap;flex:0 0 auto;
     color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 4px 12px rgba(199,154,60,.3);}
@@ -367,7 +368,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
-  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button></div>
+  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Hide tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat with AMI</button><button class="th gpt" onclick="window.open('https://chatgpt.com','amigpt','width=520,height=820')" title="Open ChatGPT in its own window">🤖 ChatGPT</button></div>
 
   <div class="grid">
     <div class="tile" onclick="openCompanies()">
