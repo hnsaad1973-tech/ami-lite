@@ -305,6 +305,8 @@
   .clr.arm,.cp.arm{color:#fff;background:#e65050;border-color:#e65050;}
   .chat .chead .clr+.hb{margin-left:0;}
   .wa .clr+.wr{margin-left:0;}
+  .myw{text-decoration:none;color:#25D366!important;border-color:rgba(37,211,102,.45)!important;}
+  .myw+.clr{margin-left:0;}
   .th{align-self:center;margin:6px auto 0;border:1px solid var(--panelbd);border-radius:14px;background:none;color:var(--muted);font:600 11px "Inter",sans-serif;padding:4px 12px;cursor:pointer;flex:0 0 auto;}
   .th:hover{color:var(--gold2);border-color:var(--gold);}
   body.no-tiles .home .grid{display:none;}
@@ -423,7 +425,7 @@
   </div>
   <div class="wa pane" id="wa">
     <div class="chead"><button class="bk" onclick="goPane(0)">‹</button><div class="ct"><span class="wad"></span>WhatsApp</div>
-      <button class="clr" onclick="clearPane('wa',this)" title="Clear chat">🗑 Clear</button><button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
+      <a class="clr myw" href="https://web.whatsapp.com" target="_blank" rel="noopener" title="Open my own WhatsApp">📱 My WhatsApp</a><button class="clr" onclick="clearPane('wa',this)" title="Clear chat">🗑 Clear</button><button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
     <div class="msgs" id="wamsgs"><div class="m a">Loading your WhatsApp chat with AMI…</div></div>
     <div class="cbar">
       <input id="waq" placeholder="Message AMI on WhatsApp…" onkeydown="if(event.key==='Enter')waSend()">
