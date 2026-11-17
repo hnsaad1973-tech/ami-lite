@@ -259,12 +259,56 @@
   .pgt b{color:var(--gold2);font-weight:600;}
   .pgb{height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;}
   .pgb i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .2s;}
+  /* ===== Three screens: Home | Chat | WhatsApp — side by side on iPad/computer, swipe on phone ===== */
+  .panes{flex:1 1 auto;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;}
+  .panes::-webkit-scrollbar{display:none;}
+  .pane{flex:0 0 100%;width:100%;min-width:0;min-height:0;height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;}
+  .chat.pane{position:relative;inset:auto;z-index:auto;display:flex;background:none;padding-top:0;}
+  .wa .ct{display:flex;align-items:center;gap:8px;}
+  .wad{width:9px;height:9px;border-radius:50%;background:#25D366;box-shadow:0 0 8px #25D366;}
+  .wr{margin-left:auto;width:34px;height:34px;border:1px solid var(--panelbd);border-radius:50%;background:none;color:var(--gold2);font-size:17px;cursor:pointer;}
+  .wa .m.u{background:#1d5c40;color:#fff;}
+  .m .ts{display:block;font-size:10px;opacity:.6;margin-top:4px;}
+  .pdots{position:fixed;left:50%;transform:translateX(-50%);top:calc(3px + env(safe-area-inset-top));display:flex;gap:7px;z-index:40;}
+  .pdots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);cursor:pointer;}
+  .pdots i.on{background:var(--gold2);}
+  @media (min-width:900px){
+    .panes{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr);overflow:hidden;scroll-snap-type:none;}
+    .pane{width:auto;}
+    .chat.pane,.wa.pane{border-left:1px solid var(--panelbd);}
+    .pdots,.chat .bk,.wa .bk,.home .bar{display:none;}
+    .home .top{padding:12px 18px 8px;}
+    .home .mkts{margin:0 18px;height:38dvh;}
+    .home .news{margin:8px 18px 0;}
+    .home .grid{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);padding:8px 18px 14px;gap:10px;}
+    .chead{padding:12px 16px 10px;}.msgs{padding:14px 16px 8px;}.cbar{padding:10px 14px calc(10px + env(safe-area-inset-bottom));}
+    .m{max-width:88%;}
+  }
+  /* hide / show the Chat and WhatsApp screens */
+  .hb{width:34px;height:34px;border:1px solid var(--panelbd);border-radius:50%;background:none;color:var(--muted);font-size:15px;cursor:pointer;flex:0 0 auto;}
+  .chat .chead .hb{margin-left:auto;}
+  .wa .wr{margin-left:auto;}
+  .hb:hover{color:var(--gold2);border-color:var(--gold);}
+  body.hide-chat .chat.pane,body.hide-wa .wa.pane{display:none;}
+  body.hide-chat #pdots i.d1,body.hide-wa #pdots i.d2{display:none;}
+  .rest{display:none;gap:6px;margin-left:auto;flex:0 1 auto;min-width:0;}
+  .rest button{display:none;border:1px solid var(--panelbd);border-radius:16px;background:var(--panel);color:var(--gold2);font:600 11px "Inter",sans-serif;padding:6px 9px;cursor:pointer;white-space:nowrap;}
+  body.hide-chat .rest,body.hide-wa .rest{display:flex;}
+  body.hide-chat .cme,body.hide-wa .cme{margin-left:0;}
+  body.hide-chat .rest .r1,body.hide-wa .rest .r2{display:block;}
+  @media (min-width:900px){
+    body.hide-chat .panes,body.hide-wa .panes{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);}
+    body.hide-chat.hide-wa .panes{grid-template-columns:minmax(0,1fr);}
+  }
 </style>
 </head>
 <body>
+<div class="panes" id="panes">
+<div class="pane home" id="home">
   <div class="top">
     <div class="logo">A</div>
     <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
+    <div class="rest"><button class="r1" onclick="paneHide('chat',false)">💬 Chat</button><button class="r2" onclick="paneHide('wa',false)">🟢 WhatsApp</button></div>
     <button class="cme" onclick="callMe()" aria-label="Call me" title="Call me — AMI rings you"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8z"/></svg></button>
     <button class="ibk" onclick="ibkr()" aria-label="Trading"><div class="k"><i id="ibkd"></i>IBKR</div><div class="v" id="ibkv">Awaiting</div></button>
     <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div>
@@ -309,7 +353,6 @@
       <div><div class="tt">To-do list</div><div class="ds">From your calls</div></div>
     </div>
   </div>
-  </div>
 
   <div class="bar">
     <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -318,6 +361,44 @@
     <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     <button class="rb solid snd" onclick="goHome()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
+</div>
+  <div class="chat pane" id="chat">
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI 1</div><button class="hb" onclick="paneHide('chat',true)" aria-label="Hide chat" title="Hide">✕</button></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
+    <div class="stools" id="stools">
+      <button onclick="openPad(false)">✏️ Drawing pad</button>
+      <button onclick="openPad(true)">📏 Measure pad</button>
+      <button onclick="pickFile()">📤 Upload file</button>
+      <button onclick="openDrive()">☁️ From Drive</button>
+      <button onclick="studioDo('render')">🏛️ Render</button>
+      <button onclick="studioDo('3d')">🧊 3D</button>
+      <button onclick="studioDo('adjust')">🛠️ Adjust</button>
+      <button onclick="drawDo('plan')">📐 Floor plan</button>
+      <button onclick="drawDo('elev')">🏢 Elevations</button>
+      <button onclick="drawDo('set')">📚 Full set</button>
+    </div>
+    <div class="schip" id="fchip"><span></span><button onclick="clearFile()" aria-label="Remove">✕</button></div>
+    <div class="schip" id="schip"><img id="schipimg" alt=""><span>Sketch ready — tap Render, 3D, Adjust, Floor plan, Elevations or Full set, or type what to do and send.</span><button onclick="clearSketch()" aria-label="Remove">✕</button></div>
+    <div class="cbar">
+      <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
+      <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
+      <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button class="rb solid snd" onclick="go()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+  <div class="wa pane" id="wa">
+    <div class="chead"><button class="bk" onclick="goPane(0)">‹</button><div class="ct"><span class="wad"></span>WhatsApp</div>
+      <button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
+    <div class="msgs" id="wamsgs"><div class="m a">Loading your WhatsApp chat with AMI…</div></div>
+    <div class="cbar">
+      <input id="waq" placeholder="Message AMI on WhatsApp…" onkeydown="if(event.key==='Enter')waSend()">
+      <button class="rb solid wasnd" onclick="waSend()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+</div>
+  <div class="pdots" id="pdots"><i class="on" onclick="goPane(0)"></i><i class="d1" onclick="goPane(1)"></i><i class="d2" onclick="goPane(2)"></i></div>
   <input type="file" id="cam" accept="image/*" capture="environment" onchange="gotPhoto(this)">
   <input type="file" id="sketchin" accept="image/*" style="display:none" onchange="gotSketch(this)">
   <input type="file" id="filein" accept="image/*,.pdf,.dxf,.dwg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" style="display:none" onchange="gotFile(this)">
@@ -350,32 +431,6 @@
   <div class="drv" id="drv" onclick="if(event.target===this)closeDrive()"><div class="drvbox">
     <div class="drvh"><input id="drvq" placeholder="Search Drive by file name…" onkeydown="if(event.key==='Enter')drvLoad()"><button onclick="drvLoad()">Search</button><button onclick="closeDrive()" aria-label="Close">✕</button></div>
     <div id="drvlist"></div></div></div>
-  <div class="chat" id="chat">
-    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI 1</div></div>
-    <div class="msgs" id="msgs"></div>
-    <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
-    <div class="stools" id="stools">
-      <button onclick="openPad(false)">✏️ Drawing pad</button>
-      <button onclick="openPad(true)">📏 Measure pad</button>
-      <button onclick="pickFile()">📤 Upload file</button>
-      <button onclick="openDrive()">☁️ From Drive</button>
-      <button onclick="studioDo('render')">🏛️ Render</button>
-      <button onclick="studioDo('3d')">🧊 3D</button>
-      <button onclick="studioDo('adjust')">🛠️ Adjust</button>
-      <button onclick="drawDo('plan')">📐 Floor plan</button>
-      <button onclick="drawDo('elev')">🏢 Elevations</button>
-      <button onclick="drawDo('set')">📚 Full set</button>
-    </div>
-    <div class="schip" id="fchip"><span></span><button onclick="clearFile()" aria-label="Remove">✕</button></div>
-    <div class="schip" id="schip"><img id="schipimg" alt=""><span>Sketch ready — tap Render, 3D, Adjust, Floor plan, Elevations or Full set, or type what to do and send.</span><button onclick="clearSketch()" aria-label="Remove">✕</button></div>
-    <div class="cbar">
-      <button class="tk-t" onclick="toggleThink()" aria-label="Think Tank" title="Think Tank — deep thinking"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0-3.5 10.9V16a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2.1A6 6 0 0 0 12 3zM9.5 20h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <input id="q" placeholder="Give AMI a task…" onkeydown="if(event.key==='Enter')go()">
-      <button class="rb" onclick="snap()" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.7"/></svg></button>
-      <button class="rb" onclick="toggleVoice()" aria-label="Voice mode"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
-      <button class="rb solid snd" onclick="go()" aria-label="Send"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    </div>
-  </div>
 
   <div class="toast" id="toast"></div>
   <div class="ticket" id="ticket" onclick="if(event.target===this)closeTicket()">
@@ -419,7 +474,8 @@ async function initAuth(){
 const OWNER="hnsaad1973@gmail.com";
 function setSession(s){
   if(s&&String(s.user?.email||"").toLowerCase()!==OWNER){sb.auth.signOut();s=null;}
-  token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);}
+  token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);
+  if(token&&!histDone){histDone=true;chatHistory();waLoad(true);}}
 async function sendLink(){
   const email=document.getElementById("email").value.trim();
   if(!email)return;
@@ -656,17 +712,19 @@ async function todoUrgent(btn){const x=TODO[+btn.dataset.i],l=btn.dataset.l,on=!
     x.urgent_items=d.urgent_items;toast(on?"⚠️ Marked urgent — AMI sent it to your WhatsApp":"Urgent removed");renderTodo(btn.closest(".td").parentNode);}
   catch(e){btn.disabled=false;toast("Error: "+e.message);}}
 
-function chatOpen(){return document.getElementById("chat").classList.contains("show");}
+function chatOpen(){return true;}
 function openChat(title,greet){
-  section=title||"Ask AMI";
+  const t=title||"Ask AMI";
+  if(t===section&&!greet&&document.getElementById("msgs").children.length){goPane(1);return;}
+  section=t;
   document.getElementById("ctitle").textContent=section==="Ask AMI"?"AMI 1":section;
   document.getElementById("msgs").innerHTML="";
   document.getElementById("stools").classList.toggle("show",section==="Design Studio");
   if(section!=="Design Studio")clearSketch();
   if(greet)bubble("a",esc(greet));
-  document.getElementById("chat").classList.add("show");
+  document.getElementById("chat").classList.add("show");if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
 }
-function closeChat(){stopVoice();document.getElementById("chat").classList.remove("show");}
+function closeChat(){stopVoice();goPane(0);}
 function quick(title,prompt){openChat(title);ask(prompt);}
 function go(){if(busy)return;const q=document.getElementById("q");const t=q.value.trim();
   if(studioImg&&section==="Design Studio"){q.value="";const im=studioImg;clearSketch();ask(t||STUDIO_ASK.adjust,im);return;}
@@ -1030,6 +1088,44 @@ function speak(text,then){
     u.onerror=()=>{if(i===chunks.length-1&&vSpeaking&&vOn){vSpeaking=false;then();}};
     speechSynthesis.speak(u);});
 }
+/* ===== Three screens: Home | Chat | WhatsApp ===== */
+let histDone=false,waLast=0,waBusy=false;
+function wide(){return window.matchMedia("(min-width:900px)").matches;}
+function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
+  if(!h)goPane(w==="chat"?1:2);else goPane(0);}
+try{["chat","wa"].forEach(w=>{if(localStorage.getItem("ami_hide_"+w))document.body.classList.add("hide-"+w);});}catch(_){}
+function goPane(i){if(wide())return;const p=document.getElementById("panes");
+  if(i===1&&document.body.classList.contains("hide-chat"))paneHide("chat",false);
+  if(i===2&&document.body.classList.contains("hide-wa"))paneHide("wa",false);
+  const panes=[...p.children].filter(e=>e.offsetParent!==null||getComputedStyle(e).display!=="none");
+  const el=[document.getElementById("home"),document.getElementById("chat"),document.getElementById("wa")][i];
+  p.scrollTo({left:el?el.offsetLeft-p.offsetLeft:0,behavior:"smooth"});}
+document.getElementById("panes").addEventListener("scroll",function(){const i=Math.round(this.scrollLeft/Math.max(1,this.clientWidth));
+  document.querySelectorAll("#pdots i").forEach((d,k)=>d.classList.toggle("on",k===i));},{passive:true});
+function when(t){const d=new Date(t);return d.toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"});}
+async function rows(sec,n){const {data,error}=await sb.from("ami_messages").select("id,role,content,created_at").eq("section",sec).order("id",{ascending:false}).limit(n);
+  if(error)throw error;return (data||[]).reverse();}
+async function chatHistory(){try{const r=await rows("Ask AMI",30);const box=document.getElementById("msgs");if(box.children.length||section!=="Ask AMI")return;
+  r.forEach(m=>{const d=document.createElement("div");d.className="m "+(m.role==="user"?"u":"a");d.innerHTML=render(String(m.content||""))+'<span class="ts">'+esc(when(m.created_at))+'</span>';box.appendChild(d);});
+  box.scrollTop=box.scrollHeight;}catch(e){}}
+function waBubble(cls,html){const d=document.createElement("div");d.className="m "+cls;d.innerHTML=html;
+  const box=document.getElementById("wamsgs");box.appendChild(d);box.scrollTop=box.scrollHeight;return d;}
+async function waLoad(force){if(!token||waBusy)return;
+  try{const r=await rows("WhatsApp",60);const last=r.length?r[r.length-1].id:0;if(!force&&last===waLast)return;waLast=last;
+    const box=document.getElementById("wamsgs");box.innerHTML="";
+    if(!r.length){waBubble("a","No WhatsApp messages yet.");return;}
+    r.forEach(m=>waBubble(m.role==="user"?"u":"a",render(String(m.content||""))+'<span class="ts">'+esc(when(m.created_at))+'</span>'));
+  }catch(e){if(force){document.getElementById("wamsgs").innerHTML='<div class="m a">Couldn\'t load WhatsApp: '+esc(e.message||String(e))+'</div>';}}}
+async function waSend(){const q=document.getElementById("waq");const t=q.value.trim();if(!t||waBusy)return;
+  if(!token){document.getElementById("login").classList.add("show");return;}
+  q.value="";waBusy=true;document.querySelectorAll(".wasnd").forEach(b=>b.disabled=true);
+  waBubble("u",esc(t));const w=waBubble("a","…");
+  try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({message:t,section:"WhatsApp",deliver:"whatsapp",token})});
+    const d=await r.json().catch(()=>null);const rep=extract(d)||("Error: "+r.status);w.innerHTML=render(rep);addCopy(w,rep);}
+  catch(e){w.innerHTML="Connection error: "+esc(e.message);}
+  finally{waBusy=false;document.querySelectorAll(".wasnd").forEach(b=>b.disabled=false);setTimeout(()=>waLoad(true),1500);}}
+setInterval(()=>{if(!document.hidden)waLoad(false);},20000);
 </script>
 </body>
 </html>
