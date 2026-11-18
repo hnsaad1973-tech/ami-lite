@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=51;
+const AMI_LEVEL=52;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1295,7 +1295,7 @@ function trShow(d){const w=document.getElementById("trbox");if(!w)return;const r
   const st='width:120px;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px 10px;font-size:14px';
   const bb=(b,t)=>'<button class="trb" data-b="'+b+'" style="border:none;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;background:var(--line);color:var(--ink)'+(TRBIAS===b?';outline:2px solid var(--gold2)':'')+'" onclick="trBias(\''+b+'\')">'+t+'</button>';
   let h='<div class="gp"><div class="card"><div class="lbl">📈 Trading Hub · weekly · Monday to Friday · DEMO (no orders placed)</div>'+
-    '<div class="note">Pick a direction, then AMI studies the markets and this week\'s news, proposes 6 trades, and Claude, ChatGPT and Grok vote. 3/3 = full size, 2/3 = half, 0–1 = skip.</div>'+
+    '<div class="note">Pick a direction, then AMI studies the markets and this week\'s news, proposes 6 trades, and the board votes (Claude, ChatGPT, Grok, Gemini). 4+ YES = full size, 3 YES = half, fewer = skip.</div>'+
     bb("buy","🟢 Buy")+bb("short","🔴 Short")+bb("either","⚖️ Let the panel decide")+
     '<div style="display:flex;align-items:center;gap:8px;margin-top:10px"><span class="note" style="margin:0">Budget $</span><input id="trBud" inputmode="numeric" style="'+st+'" value="'+(r&&r.budget||10000)+'"></div>'+
     pnBtn("🔎 Start this week\'s study","trStart()",1)+'</div>';
@@ -1340,7 +1340,7 @@ function arPdf(i){const o=_AR[i],txt=arText(o),lines=txt.split("\n");let body=""
   const w=window.open("","_blank");if(w){w.document.open();w.document.write(html);w.document.close();return;}
   const u=URL.createObjectURL(new Blob([html],{type:"text/html"}));location.href=u;}
 function pnPlain(r){const t=r.tally||{};let s="Panel opinion — "+(r.title||"")+"\n";
-  s+="Decision: "+(r.decision||"")+"\nVotes: GO "+(t.GO||0)+" · Conditional "+(t.CONDITIONAL||0)+" · No-go "+(t["NO-GO"]||0)+" — "+(t.voters||0)+" of 3 voted · average score "+(r.avg_score||0)+"/10\n";
+  s+="Decision: "+(r.decision||"")+"\nVotes: GO "+(t.GO||0)+" · Conditional "+(t.CONDITIONAL||0)+" · No-go "+(t["NO-GO"]||0)+" — "+(t.voters||0)+" of "+((r.members||[]).length||3)+" voted · average score "+(r.avg_score||0)+"/10\n";
   if(r.file)s+="File: "+r.file+"\n";
   (r.members||[]).forEach(m=>{s+="\n## "+m.name+(m.ok?" — "+m.verdict+" · "+m.score+"/10":" — no answer")+"\n";if(!m.ok){s+=(m.error||"")+"\n";return;}
     s+=(m.summary||"")+"\n";[["Pros",m.pros],["Cons",m.cons],["Risks",m.risks],["Conditions before going ahead",m.conditions],["Missing from the plan",m.missing]].forEach(([h,a])=>{if(a&&a.length){s+="### "+h+"\n";a.forEach(x=>s+="- "+x+"\n");}});});
@@ -1361,7 +1361,7 @@ function openPanel(){openChat("Advisory Panel","");document.querySelectorAll("#p
   const w=bubble("a","");w.id="pnbox";w.style.maxWidth="100%";w.style.width="100%";
   const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:10px;font-size:14px;margin:6px 0;font-family:inherit';
   w.innerHTML='<div class="gp"><div class="card"><div class="lbl">⚖️ Advisory Panel · Trade opinion</div>'+
-    '<div class="note">Paste the business plan, feasibility study or idea — or attach a file from Drive. Claude, ChatGPT and Grok each study it on their own and vote.</div>'+
+    '<div class="note">Paste the business plan, feasibility study or idea — or attach a file from Drive. Each board member (Claude, ChatGPT, Grok, Gemini) studies it on their own and votes.</div>'+
     '<input id="pnTitle" style="'+st+'" placeholder="Title (e.g. Storage units — Tubman Blvd)">'+
     '<textarea id="pnText" rows="7" style="'+st+'" placeholder="The plan, numbers, questions…"></textarea>'+
     '<div id="pnFile" class="note"></div>'+
@@ -1378,7 +1378,7 @@ function pnPick(i){const L=document.getElementById("pnList"),f=(L._fs||[])[i];if
   const t=document.getElementById("pnTitle");if(!t.value)t.value=f.name.replace(/\.[a-z]+$/i,"");}
 async function pnSend(){const text=document.getElementById("pnText").value.trim(),title=document.getElementById("pnTitle").value.trim();
   if(!PNFILE&&text.length<20){toast("Paste the plan or attach a file first.",3000);return;}
-  const w=bubble("a",'⏳ Sent to Claude, ChatGPT and Grok. Each is studying it on its own — this takes about 1–2 minutes…');w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
+  const w=bubble("a",'⏳ Sent to the board: Claude, ChatGPT, Grok and Gemini. Each is studying it on its own — this takes about 1–2 minutes…');w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
   try{const r=await pnApi({action:"ask",text,title,file_id:PNFILE?PNFILE.id:""});w.innerHTML=pnRender(r);}catch(e){w.innerHTML="⚠️ The panel couldn't finish: "+esc(e.message);}
   w.scrollIntoView({block:"start"});}
 const PNV={"GO":["✅","var(--pos,#3ecf8e)"],"CONDITIONAL":["🟡","#E4B75A"],"NO-GO":["❌","#e5534b"]};
@@ -1386,7 +1386,7 @@ function pnList(t,a){return a&&a.length?'<div class="note" style="margin-top:6px
 function pnRender(r){const t=r.tally||{},dc=r.decision||"",col=/NO-GO/.test(dc)?"#e5534b":/CONDITIONS/.test(dc)?"#E4B75A":/GO/.test(dc)?"#3ecf8e":"var(--muted)";
   let h='<div class="gp"><div class="card"><div class="lbl">⚖️ Panel opinion · '+esc(r.title||"")+(r.file?' · 📎 '+esc(r.file):'')+'</div>'+
     '<div class="big" style="color:'+col+';font-size:24px">'+esc(dc)+'</div>'+
-    '<div class="note">Votes: ✅ GO '+(t.GO||0)+' · 🟡 Conditional '+(t.CONDITIONAL||0)+' · ❌ No-go '+(t["NO-GO"]||0)+' — '+(t.voters||0)+' of 3 voted · average score '+(r.avg_score||0)+'/10</div><div style="margin-top:8px">';
+    '<div class="note">Votes: ✅ GO '+(t.GO||0)+' · 🟡 Conditional '+(t.CONDITIONAL||0)+' · ❌ No-go '+(t["NO-GO"]||0)+' — '+(t.voters||0)+' of '+((r.members||[]).length||3)+' voted · average score '+(r.avg_score||0)+'/10</div><div style="margin-top:8px">';
   (r.members||[]).forEach(m=>{h+='<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(m.name)+'</b>'+(m.ok?'<br><span style="color:var(--muted);font-size:10.5px">'+esc(m.model||"")+'</span>':'')+'</div><div style="text-align:right">'+(m.ok?PNV[m.verdict][0]+' '+esc(m.verdict)+'<br><span style="color:var(--muted);font-size:11px">'+m.score+'/10</span>':'<span style="color:var(--muted);font-size:11.5px">⚪ '+esc(m.error||"no answer")+'</span>')+'</div></div>';});
   h+='</div></div>';
   (r.members||[]).filter(m=>m.ok).forEach(m=>{h+='<div class="card"><div class="lbl">'+esc(m.name)+' · '+PNV[m.verdict][0]+' '+esc(m.verdict)+' · '+m.score+'/10</div><div class="note" style="font-size:13px;color:var(--ink)">'+esc(m.summary)+'</div>'+
@@ -1396,12 +1396,22 @@ async function pnHist(){const w=bubble("a","Loading past opinions…");w.style.m
   try{const hs=(await pnApi({action:"history"})).history||[];window._pnH=hs;
     w.innerHTML='<div class="gp"><div class="card"><div class="lbl">🗂 Past panel opinions</div>'+(hs.length?hs.map((r,i)=>'<div class="crow" onclick="this.closest(\'.m\').innerHTML=pnRender(_pnH['+i+'])"><div><b>'+esc(r.title||"")+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc(String(r.at||"").slice(0,16).replace("T"," "))+'</span></div><div>'+esc(r.decision||"")+' ›</div></div>').join(""):'<div class="note">None yet.</div>')+'</div></div>';}
   catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}w.scrollIntoView({block:"start"});}
+/* ===== Board of directors (AI board, 18 Nov 2026) ===== */
+const BOARD=[["Claude","Anthropic","claude-opus-5-5","claude","Deep reasoning; checks the arithmetic"],["ChatGPT","OpenAI","gpt-5.5","chatgpt","Broad business view"],["Grok","xAI","grok-4.7","grok","Contrarian, real-time sentiment"],["Gemini","Google","gemini-4-carbon (now 3.8 Flash until billing is on)","gemini","Different training, strong on data"],["Perplexity","Perplexity","sonar-pro","perplexity","Live web fact-checker for prices and news — seat 5, to be connected"]];
+async function openBoard(){openChat("Board","");const w=bubble("a",'<div class="gp"><div class="card"><div class="note">Checking the board…</div></div></div>');w.style.maxWidth="100%";w.style.width="100%";
+  let st={};try{st=await pnApi({action:"status"});}catch(_){}
+  const rows=BOARD.map(b=>{const on=!!st[b[3]];return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(b[0])+'</b> <span style="color:var(--muted);font-size:11px">'+esc(b[1])+'</span><br><span style="color:var(--muted);font-size:11px">'+esc(b[4])+'</span><br><span style="color:var(--muted);font-size:10.5px">'+esc(b[2])+'</span></div><div style="white-space:nowrap">'+(on?'🟢 Seated':'⚪ Empty seat')+'</div></div>';}).join("");
+  const n=BOARD.filter(b=>st[b[3]]).length;
+  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">👥 Board of directors · '+n+' of 5 seated</div>'+rows+'</div>'+
+   '<div class="card"><div class="lbl">🗳 Voting rules</div><ul style="margin:2px 0 0 18px;padding:0;font-size:12.5px;line-height:1.5"><li>Each member votes on its own and never sees the others\' votes.</li><li><b>Trade opinion:</b> a majority of those who voted = GO (2 of 3, 3 of 4, 3 of 5).</li><li><b>Trading Hub:</b> 4+ YES = full size ($2,000), 3 YES = half ($1,000), fewer = skip. With only 3 voting: 3/3 full, 2/3 half.</li><li>If a member doesn\'t answer, the vote counts the ones who did, and the result says who was missing.</li></ul></div>'+
+   '<div class="card"><div class="lbl">📊 Track record</div><div class="note">Coming next: how often each member\'s trade votes were right, week by week.</div>'+pnBtn("📈 Trade advisory","openTrade()")+pnBtn("⚖️ Trade opinion","openPanel()")+'</div></div>';
+  w.scrollIntoView({block:"start"});}
 /* ===== 4 group tiles (18 Nov 2026) ===== */
 const GROUPS={
  time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()]]],
  fin:["🏛 Management & Finance",[["🏢 Companies financial","Each company: figures, capital & equity, import financials",()=>openCompanies()],["📊 Group companies financial","Group total, cash flow by quarter",()=>openPosition()],["🧭 Companies management structure","Directors, managers, reporting lines",null]]],
  design:["🎨 Design & Development",[["🖌 Design Studio","Renders, sketches, floor plans, elevations",()=>openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')],["💻 Software · CAD","CAD drawings, software builds and tools",null]]],
- adv:["🧠 Advisory Panel",[["📈 Trade advisory","Weekly trades · Claude, ChatGPT and Grok vote · demo until OneRoyal is connected",()=>openTrade()],["⚖️ Trade opinion","Business plans · feasibility studies — Claude, ChatGPT and Grok each give an opinion and vote",()=>openPanel()]]]};
+ adv:["🧠 Advisory Panel",[["👥 Board","The AI board of directors · members, status, voting rules",()=>openBoard()],["📈 Trade advisory","Weekly trades · the board votes · demo until OneRoyal is connected",()=>openTrade()],["⚖️ Trade opinion","Business plans · feasibility studies — each board member gives an opinion and votes",()=>openPanel()]]]};
 function openGroup(k){const g=GROUPS[k];if(!g)return;document.getElementById("grpt").textContent=g[0];const L=document.getElementById("glist");L.innerHTML="";
   g[1].forEach(([t,d,fn])=>{const b=document.createElement("div");b.className="gi";b.innerHTML="<div><b>"+t+"</b><span>"+d+"</span></div>"+(fn?"":"<em>Being built</em>");
     b.onclick=()=>{if(!fn){toast(t.replace(/^\S+\s/,"")+" — being built. Coming soon.",3000);return;}closeGroup();fn();};L.appendChild(b);});
