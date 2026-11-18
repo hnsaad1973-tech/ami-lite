@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=48;
+const AMI_LEVEL=50;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1283,6 +1283,45 @@ function lnRender(){const g=document.getElementById("lgrid");g.innerHTML="";cons
     if(i>=LN_BASE.length){const x=document.createElement("span");x.className="x";x.textContent="✕";x.title="Remove";
       x.onclick=e=>{e.stopPropagation();const m=lnMine();m.splice(i-LN_BASE.length,1);try{localStorage.setItem("ami_links",JSON.stringify(m));}catch(_){}lnRender();};b.appendChild(x);}
     g.appendChild(b);});}
+/* ===== Trading Hub (edge function `trade`) — DEMO, no orders placed ===== */
+async function trApi(o){const r=await fetch(SB_URL+"/functions/v1/trade",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
+let TRBIAS="either",TRT=null;
+function trNum(n){n=+n;if(!isFinite(n)||!n)return "—";const a=Math.abs(n);return n.toLocaleString("en-US",{maximumFractionDigits:a>=1000?1:a>=10?2:a>=1?4:5});}
+async function openTrade(){openChat("Trading Hub","");document.querySelectorAll("#trbox").forEach(e=>e.removeAttribute("id"));
+  const w=bubble("a","Loading the Trading Hub…");w.id="trbox";w.style.maxWidth="100%";w.style.width="100%";
+  try{const d=await trApi({action:"get"});trShow(d);if(d.run&&d.run.status==="working")trPoll();}catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}}
+function trBias(b){TRBIAS=b;document.querySelectorAll(".trb").forEach(x=>x.style.outline=x.dataset.b===b?"2px solid var(--gold2)":"none");}
+function trShow(d){const w=document.getElementById("trbox");if(!w)return;const r=d.run;
+  const st='width:120px;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px 10px;font-size:14px';
+  const bb=(b,t)=>'<button class="trb" data-b="'+b+'" style="border:none;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;background:var(--line);color:var(--ink)'+(TRBIAS===b?';outline:2px solid var(--gold2)':'')+'" onclick="trBias(\''+b+'\')">'+t+'</button>';
+  let h='<div class="gp"><div class="card"><div class="lbl">📈 Trading Hub · weekly · Monday to Friday · DEMO (no orders placed)</div>'+
+    '<div class="note">Pick a direction, then AMI studies the markets and this week\'s news, proposes 6 trades, and Claude, ChatGPT and Grok vote. 3/3 = full size, 2/3 = half, 0–1 = skip.</div>'+
+    bb("buy","🟢 Buy")+bb("short","🔴 Short")+bb("either","⚖️ Let the panel decide")+
+    '<div style="display:flex;align-items:center;gap:8px;margin-top:10px"><span class="note" style="margin:0">Budget $</span><input id="trBud" inputmode="numeric" style="'+st+'" value="'+(r&&r.budget||10000)+'"></div>'+
+    pnBtn("🔎 Start this week\'s study","trStart()",1)+'</div>';
+  if(r&&r.status==="working")h+='<div class="card"><div class="lbl">⏳ Working</div><div class="note">'+esc(r.step||"")+' This takes about 2–4 minutes; you can leave this screen.</div></div>';
+  if(r&&r.status==="failed")h+='<div class="card"><div class="lbl">⚠️ Last study failed</div><div class="note">'+esc(r.error||"")+'</div></div>';
+  if(r&&r.status==="done")h+=trRender(r);
+  if(d.history&&d.history.length>1)h+='<div class="card"><div class="lbl">🗂 Past weeks</div>'+d.history.map(x=>'<div class="crow" onclick="trWeek(\''+esc(x.id)+'\')"><div><b>'+esc(x.week||String(x.id).slice(0,10))+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc(x.bias||"")+' · '+(x.chosen||0)+' trades · $'+trNum(x.allocated||0)+'</span></div><div>›</div></div>').join("")+'</div>';
+  w.innerHTML=h+'</div>';}
+function trRender(r){const p=r.pack||{};
+  let h='<div class="card"><div class="lbl">🌍 Market brief · '+esc(p.week||"")+'</div><div class="note" style="font-size:13px;color:var(--ink)">'+esc(p.market_brief||"")+'</div>'+pnList("📅 Key events",p.key_events)+
+    '<div class="note" style="margin-top:8px">Voters: '+(r.members||[]).map(m=>esc(m.name)+(m.ok?' ✅ <span style="color:var(--muted)">'+esc(m.model)+'</span>':' ⚪ '+esc(m.error))).join(" · ")+'</div></div>';
+  h+='<div class="card"><div class="lbl">✅ This week\'s trades · '+(r.chosen||0)+' chosen · $'+trNum(r.allocated)+' of $'+trNum(r.budget)+' · max loss if every stop hits $'+trNum(r.max_loss)+'</div>';
+  (r.trades||[]).forEach(t=>{const on=t.allocation>0;
+    h+='<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px;'+(on?'':'opacity:.55')+'">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px"><div><b>'+(t.direction==="BUY"?"🟢 BUY":"🔴 SHORT")+' '+esc(t.symbol)+'</b> <span style="color:var(--muted);font-size:11px">'+esc(t.name)+' · '+esc(t.theme)+'</span></div>'+
+      '<div style="text-align:right;font-weight:700;color:'+(on?'var(--gold2)':'var(--muted)')+'">'+(on?'$'+trNum(t.allocation):'Skip')+'<br><span style="font-size:11px;font-weight:500">'+t.yes+'/'+t.voters+' YES</span></div></div>'+
+      '<div class="note" style="margin-top:4px">Price '+trNum(t.price)+' · Entry '+trNum(t.entry)+' · Stop '+trNum(t.stop)+' · Target '+trNum(t.target)+' · Reward/risk '+t.reward_risk+'x'+(t.units_for_150_risk?' · Size for ~$150 risk: '+t.units_for_150_risk+' units':'')+'</div>'+
+      '<div class="note" style="font-size:12px;color:var(--ink)">'+esc(t.reason)+(t.price_note?' <span style="color:var(--muted)">('+esc(t.price_note)+')</span>':'')+'</div>'+
+      (t.votes||[]).map(v=>'<div class="note" style="margin:2px 0">'+(v.vote==="YES"?"✅":"❌")+' <b>'+esc(v.name)+'</b> '+(v.confidence?v.confidence+'/5 · ':'')+esc(v.reason)+'</div>').join("")+
+      (t.dropped?'<div class="note">Dropped: '+esc(t.dropped)+'</div>':'')+'</div>';});
+  h+='<div class="note" style="margin-top:8px">Rules: '+esc(r.rules||"")+'</div><div class="note">Demo only: nothing is ordered. Placing orders, with a Confirm button, comes once OneRoyal is connected through MetaApi. Prices come from web search, so check them in MetaTrader before trading.</div></div>';
+  return h;}
+async function trStart(){const b=+String(document.getElementById("trBud").value).replace(/[$,\s]/g,"")||10000;
+  try{await trApi({action:"start",bias:TRBIAS,budget:b});toast("Study started — about 2–4 minutes.",3000);const d=await trApi({action:"get"});trShow(d);trPoll();}catch(e){toast(e.message,4500);}}
+function trPoll(){clearTimeout(TRT);TRT=setTimeout(async()=>{if(!document.getElementById("trbox"))return;try{const d=await trApi({action:"get"});trShow(d);if(d.run&&d.run.status==="working")trPoll();}catch(_){trPoll();}},8000);}
+async function trWeek(id){try{const d=await trApi({action:"week",id});const w=bubble("a",d.run?'<div class="gp">'+trRender(d.run)+'</div>':"Not found.");w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});}catch(e){toast(e.message,4000);}}
 /* ===== Advisory Panel — Trade opinion (edge function `panel`) ===== */
 async function pnApi(o){const r=await fetch(SB_URL+"/functions/v1/panel",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
 let PNFILE=null;
@@ -1331,7 +1370,7 @@ const GROUPS={
  time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()]]],
  fin:["🏛 Management & Finance",[["🏢 Companies financial","Each company: figures, capital & equity, import financials",()=>openCompanies()],["📊 Group companies financial","Group total, cash flow by quarter",()=>openPosition()],["🧭 Companies management structure","Directors, managers, reporting lines",null]]],
  design:["🎨 Design & Development",[["🖌 Design Studio","Renders, sketches, floor plans, elevations",()=>openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')],["💻 Software · CAD","CAD drawings, software builds and tools",null]]],
- adv:["🧠 Advisory Panel",[["📈 Trade advisory","Weekly trades · Claude, ChatGPT and Grok vote",null],["⚖️ Trade opinion","Business plans · feasibility studies — Claude, ChatGPT and Grok each give an opinion and vote",()=>openPanel()]]]};
+ adv:["🧠 Advisory Panel",[["📈 Trade advisory","Weekly trades · Claude, ChatGPT and Grok vote · demo until OneRoyal is connected",()=>openTrade()],["⚖️ Trade opinion","Business plans · feasibility studies — Claude, ChatGPT and Grok each give an opinion and vote",()=>openPanel()]]]};
 function openGroup(k){const g=GROUPS[k];if(!g)return;document.getElementById("grpt").textContent=g[0];const L=document.getElementById("glist");L.innerHTML="";
   g[1].forEach(([t,d,fn])=>{const b=document.createElement("div");b.className="gi";b.innerHTML="<div><b>"+t+"</b><span>"+d+"</span></div>"+(fn?"":"<em>Being built</em>");
     b.onclick=()=>{if(!fn){toast(t.replace(/^\S+\s/,"")+" — being built. Coming soon.",3000);return;}closeGroup();fn();};L.appendChild(b);});
