@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=71;
+const AMI_LEVEL=72;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1377,7 +1377,8 @@ function trRender(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok),N=ok.
   const ex=r.execution;
   if(ex){h+='<div class="card"><div class="lbl">'+(/placed/.test(ex.status)?'✅ Orders sent':ex.status==="declined"?'⏸ Not traded':ex.status==="waiting"?'⏳ Orders waiting for the broker':'⚠️ Orders not placed')+'</div><div class="note">'+esc(ex.note||"")+'</div>'+
     (ex.orders||[]).map(o=>'<div class="note" style="margin:3px 0">'+({placed:"✅",waiting:"⏳",skipped:"⏭",rejected:"❌",failed:"❌"}[o.status]||"•")+' <b>'+esc(o.direction+" "+o.symbol)+'</b>'+(o.lots?' · '+o.lots+' lots':'')+' · stop '+trNum(o.stop)+' · target '+trNum(o.target)+(o.error?' — '+esc(o.error):'')+'</div>').join("")+
-    (ex.status==="waiting"||ex.status==="failed"||ex.status==="partly placed"?pnBtn("🔁 Send again","trConcur('"+esc(r.id)+"',this,1)",1):'')+'</div>';}
+    (ex.status==="waiting"||ex.status==="failed"||ex.status==="partly placed"?pnBtn("🔁 Send again","trConcur('"+esc(r.id)+"',this,1)",1):'')+
+    (/placed|declined/.test(ex.status)?'<div style="margin-top:8px">'+pnBtn("➕ New trade study","openTrade()",1)+'</div><div class="note" style="margin-top:4px">Runs a fresh study with new votes. Pick the market and direction, then tap ▶.</div>':'')+'</div>';}
   // 3) THE TRADES IN DETAIL
   h+='<div class="card"><div class="lbl">📋 The trades in detail</div>';
   (r.trades||[]).forEach(t=>{const on=t.allocation>0;
