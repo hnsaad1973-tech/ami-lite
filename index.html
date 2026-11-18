@@ -202,6 +202,7 @@
     font-size:20px;cursor:pointer;display:grid;place-items:center;}
   .chead .ct{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;}
   .msgs{flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px;}
+  .msgs>*{flex-shrink:0;}
   .m{max-width:86%;padding:11px 15px;border-radius:16px;font-size:14.5px;line-height:1.5;word-wrap:break-word;}
   .m.u{align-self:flex-end;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;border-bottom-right-radius:5px;}
   .m.u img{display:block;max-width:180px;border-radius:10px;margin-bottom:6px;}
@@ -693,7 +694,7 @@ async function openCompanies(){
     bubble("a",esc("Ask me about any company, Chairman, or send me its new figures."));
   }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
 }
-function openCompany(i){const c=COMP.companies[i];if(!c)return;
+function openCompany(i){const c=COMP.companies[i];if(!c)return;document.querySelectorAll('#eqbox').forEach(e=>e.removeAttribute('id'));
   let h='<div class="gp"><div class="card"><div class="lbl">'+esc(c.name)+' · as of '+esc(c.as_of)+'</div><div class="big '+cls(c.net)+'">'+money(c.net)+'</div>'+
     '<table><tr><td>Cash</td><td class="'+cls(c.cash)+'">'+money(c.cash)+'</td></tr><tr><td>Receivables</td><td>'+money(c.receivables)+'</td></tr>'+
     '<tr><td>Payables</td><td class="neg">'+money(c.payables)+'</td></tr><tr><td>Bank debt</td><td class="neg">'+money(c.bank_debt)+'</td></tr>'+
@@ -745,7 +746,7 @@ async function eqSave(i){const c=COMP.companies[i];if(!c)return;
   catch(e){toast("Not saved: "+e.message,5000);}}
 /* ===== Personal account (edge function `equity`, key personal_account) ===== */
 let PERS=null;const PG={company:"You owe your companies",other:"You owe others",owed_to_me:"Owed to you"};
-async function openPersonal(){const w=bubble("a","Loading your personal account…");w.style.maxWidth="100%";w.style.width="100%";
+async function openPersonal(){document.querySelectorAll("#persbox").forEach(e=>e.removeAttribute("id"));const w=bubble("a","Loading your personal account…");w.id="persbox";w.style.maxWidth="100%";w.style.width="100%";
   try{PERS=(await eqApi({action:"personal_get"})).personal||{items:[]};}catch(e){w.innerHTML="Couldn't load: "+esc(e.message);return;}
   w.id="persbox";persShow();w.scrollIntoView({block:"start"});}
 function persShow(){const w=document.getElementById("persbox");if(!w)return;const it=PERS.items||[];
