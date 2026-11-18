@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=67;
+const AMI_LEVEL=68;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1111,15 +1111,19 @@ function showTab(i){
 const IBKR={connected:true,endpoint:SB_URL+"/functions/v1/trade",maxTrade:10000};
 let ibkrData=null,tkSide="BUY";
 buildTabs(); // after IBKR is set up: opening on "My Trades" used to stop the whole app (vOn error)
+let ibkRetry=0;
 async function loadIBKR(){
-  if(!IBKR.connected||!token)return;
+  if(!IBKR.connected)return;
+  if(!token){setTimeout(loadIBKR,2000);return;} // signed-in token not ready yet: try again shortly
   try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"account",token})});
     const d=await r.json();if(!d.connected||d.error)throw new Error(d.error||"not connected");ibkrData=d;
     const v=document.getElementById("ibkv"),p=+d.pnl||0;
     v.textContent=(p>=0?"+$":"−$")+fmt(Math.abs(p),2);
     v.className="v "+(p>=0?"up":"dn");document.getElementById("ibkd").className="live";
-    const old=document.querySelector(".trade");if(old){old.remove();renderTrade();}}
-  catch(_){document.getElementById("ibkv").textContent="Conn. error";}
+    ibkRetry=0;const old=document.querySelector(".trade");if(old){old.remove();renderTrade();}}
+  catch(_){ // a broker hiccup: keep the last figures and retry quickly (up to 3 times) instead of waiting 30 s
+    if(ibkRetry++<3){setTimeout(loadIBKR,6000);return;}
+    if(!ibkrData)document.getElementById("ibkv").textContent="Conn. error";}
 }
 function fmt(n,d){return (+n||0).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
 function renderTrade(){
