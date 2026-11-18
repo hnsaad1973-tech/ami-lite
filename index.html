@@ -1292,12 +1292,12 @@ function wkDates(mon){const f=new Date(mon.getTime()+4*864e5),M=x=>x.toLocaleStr
 function wkNo(mon){return Math.floor((mon.getTime()-TW1)/(7*864e5))+1;}
 function wkName(wk){const m=String(wk||"").match(/^(\d{4})-(\d\d)-(\d\d)/);if(!m)return String(wk||"");const mon=new Date(Date.UTC(+m[1],+m[2]-1,+m[3])),n=wkNo(mon);return (n>=1?"Week "+n:"Practice week")+" · "+wkDates(mon);}
 function nextMon(){const d=new Date(),day=d.getUTCDay(),add=day===1?0:((8-day)%7||7);return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+add));}
-function weekLabel(){const m=nextMon(),n=wkNo(m);return n>=1?"Trade week "+n:"Practice week ("+wkDates(m)+")";}
+function weekLabel(){const m=nextMon(),n=wkNo(m);return n>=1?"Trade week "+n:"Practice week";}
 /* Trade advisory: one button — runs the week's study; the board votes; results and Confirm are in the Board room */
 async function openTrade(){openChat("Trade advisory","");const w=bubble("a","");w.style.maxWidth="100%";w.style.width="100%";
   let last="";window._trWk="";try{const d=await trApi({action:"get"}),r=d.run;if(r&&r.status==="done")window._trWk=(r.pack||{}).week||"";if(r)last=r.status==="working"?'⏳ A study is running now — '+esc(r.step||""):r.status==="done"?'Latest: '+esc(wkName((r.pack||{}).week))+' · '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' chosen'+(r.execution?' · '+esc(r.execution.status):' · waiting for your decision'):r.status==="failed"?'⚠️ Last study failed: '+esc(r.error||""):"";}catch(_){}
   w.innerHTML='<div class="gp"><div class="card"><div class="lbl">📈 Trade advisory</div><div class="note">AMI researches the markets and this week\'s news, proposes 6 trades, and the board of 5 votes. The result and the Confirm button open in the Board room.</div>'+
-    '<button onclick="trGo(this)" style="width:100%;border:none;border-radius:14px;padding:18px 14px;margin-top:10px;font-size:17px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A">▶ '+esc(weekLabel())+' trading</button>'+
+    '<button onclick="trGo(this)" style="width:100%;border:none;border-radius:14px;padding:18px 14px;margin-top:10px;font-size:17px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A">▶ '+esc(weekLabel())+'</button><div class="note" style="text-align:center;margin-top:4px">'+esc(wkDates(nextMon()))+' · Monday open to Friday close</div>'+
     (last?'<div class="note" style="margin-top:10px">'+last+'</div>'+pnBtn("🏛 Open the Board room","openBoard()"):'')+'</div></div>';
   w.scrollIntoView({block:"start"});}
 function weekISO(){const d=new Date(),day=d.getUTCDay(),add=day===1?0:((8-day)%7||7);const m=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+add)),f=new Date(m.getTime()+4*864e5);return m.toISOString().slice(0,10)+" to "+f.toISOString().slice(0,10);}
