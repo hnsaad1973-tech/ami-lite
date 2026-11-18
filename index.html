@@ -583,7 +583,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=47;
+const AMI_LEVEL=48;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -675,6 +675,7 @@ async function openPosition(){
 }
 /* ===== Companies ===== */
 const FORMS={"Leone Investment":"1JGzR-JZFtIHm9WbqJbrQU6CHZXjyCGuhqlEcqGOlio8","Cape Realities — Real Estate":"1R8QCwyUR_5UC_OM1YqY2vKx6Z6PR2Ir3olp_Ct1-XAY","Cape Realities — Construction":"1NyF_QjQ06EnaIQLT0egphoZECac-1iCZC73fqX4dt5A","Platinum Insurers":"1qUUU0uDcfFz4oFJqyv8Ifz_WrEiWF6bayfxXvhufYqU","The Lead Business Living":"1LBE6K_kmtwLojIc_I1oYFnDJNea9whA5Craf3Cpuujs","M Hotel":"1_IP3w8Dm8ah5_3g25SZ12vk7Oyxh7iz9a4jtIlNKcd8","JV Ventures":"1clrlqfnzPZVWaDIhbJPu-rzUD_PMYBqP5EMfDrlkAJw","JOUN":"1U-K-1nspL6t-PQIu6mtCYrOmuUJQq8CxYgad4pvavrs"};
+const FIN={"Cape Realities — Real Estate":"1wspFhn4RH5PxaL9-5Zc62tkJhjIUJa6r","Cape Realities — Construction":"1KYh3PGn0_-dmTXZAfjftlUYN_hS1_1Ls","Leone Investment":"1TaES-MAggVAv9ApUOaeZZhGYTv5aq-S4","The Lead Business Living":"1WnWHk13E40OWIAcovjC82nb4XeYpmgcu","Platinum Insurers":"1xlCMs3-j9yvnBL83B_SfOjiktTFfwH0m","M Hotel":"1rmTNASgAEAaX_zP9rEhtrMYaO4e-tXLi","JV Ventures":"1PEc4M8uXpn2uaVa3owyQVCPJWQSiuOwF","JOUN":"1eOjX9Rs-PNBjIbWLBEFHUqM50nyxpQy1"}; /* Drive > AMI > Monthly Financial Updates > 01-08 */
 let COMP=null;
 async function openCompanies(){
   openChat("Companies");
@@ -694,7 +695,9 @@ function openCompany(i){const c=COMP.companies[i];if(!c)return;
     '<tr><td>Payables</td><td class="neg">'+money(c.payables)+'</td></tr><tr><td>Bank debt</td><td class="neg">'+money(c.bank_debt)+'</td></tr>'+
     (c.due_from_chairman?'<tr><td>You owe this company</td><td>'+money(c.due_from_chairman)+'</td></tr>':'')+
     (c.due_to_chairman?'<tr><td>This company owes you</td><td>'+money(c.due_to_chairman)+'</td></tr>':'')+'</table>'+
-    (FORMS[c.name]?'<div style="margin-top:10px"><a style="text-decoration:none;display:inline-block;border-radius:10px;padding:9px 16px;font-weight:600;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2))" href="https://docs.google.com/spreadsheets/d/'+FORMS[c.name]+'/edit" target="_blank" rel="noopener">📝 Monthly update form</a></div>':'')+'</div>';
+    (FORMS[c.name]?'<div style="margin-top:10px"><a style="text-decoration:none;display:inline-block;border-radius:10px;padding:9px 16px;font-weight:600;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2))" href="https://docs.google.com/spreadsheets/d/'+FORMS[c.name]+'/edit" target="_blank" rel="noopener">📝 Monthly update form</a></div>':'')+
+    (FIN[c.name]?'<div style="margin-top:8px"><a style="text-decoration:none;display:inline-block;border-radius:10px;padding:9px 16px;font-weight:600;color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2))" href="https://drive.google.com/drive/folders/'+FIN[c.name]+'" target="_blank" rel="noopener">📥 Import financials</a></div>':'')+'</div>';
+  h+='<div class="card" id="eqbox"><div class="lbl">Capital &amp; equity</div><div class="note">Loading…</div></div>';
   if((c.contracts_list||[]).length){h+='<div class="card"><div class="lbl">Contracts</div><table>';
     c.contracts_list.forEach(k=>{h+='<tr><td>'+esc(k.name)+(k.note?'<br><span style="color:var(--muted);font-size:10.5px">'+esc(k.note)+'</span>':'')+'</td><td>'+(k.value?money(k.value):'<span style="color:var(--muted)">to fill</span>')+'</td></tr>';});h+='</table></div>';}
   const f=(COMP.flows||[]).find(x=>x.name===c.name);
@@ -703,7 +706,39 @@ function openCompany(i){const c=COMP.companies[i];if(!c)return;
   if((c.notes||[]).length){h+='<div class="card"><div class="lbl">Notes</div>';c.notes.forEach(n=>{h+='<div class="note">• '+esc(n)+'</div>';});h+='</div>';}
   h+='<div class="card"><div class="lbl">Source</div><div class="note">'+esc([...new Set(c.sources.map(x=>x.split(" — ")[0].trim()).filter(x=>/\.(pdf|xlsx?|docx?|csv)$/i.test(x)))].join(", ")||"AMI — Master Brain sheet")+'</div><div style="margin-top:8px"><button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--line);color:var(--ink)" onclick="openCompanies()">‹ All companies</button></div></div></div>';
   const w=bubble("a","");w.innerHTML=h;w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
+  eqShow(i);
 }
+/* ===== Capital & shareholder equity (edge function `equity`) ===== */
+let EQ=null;
+async function eqApi(o){const r=await fetch(SB_URL+"/functions/v1/equity",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j;}
+async function eqShow(i){const c=COMP.companies[i],box=document.getElementById("eqbox");if(!c||!box)return;
+  try{if(!EQ)EQ=(await eqApi({action:"get"})).equity||{};}catch(e){box.innerHTML='<div class="lbl">Capital &amp; equity</div><div class="note">Couldn\'t load: '+esc(e.message)+'</div>';return;}
+  const q=EQ[c.name]||{},eqty=+c.net||0,cap=q.share_capital,sh=q.shareholders||[],tot=sh.reduce((a,x)=>a+(+x.pct||0),0);
+  let h='<div class="lbl">Capital &amp; equity</div><table>'+
+    '<tr><td>Share capital</td><td>'+(cap==null?'<span style="color:var(--muted)">to fill</span>':money(cap))+'</td></tr>'+
+    (cap==null?'':'<tr><td>Retained earnings / (deficit)</td><td class="'+cls(eqty-cap)+'">'+money(eqty-cap)+'</td></tr>')+
+    '<tr><td><b>Shareholder equity</b><br><span style="color:var(--muted);font-size:10.5px">= net position, as of '+esc(c.as_of)+'</span></td><td class="'+cls(eqty)+'"><b>'+money(eqty)+'</b></td></tr></table>';
+  h+='<div class="lbl" style="margin-top:10px">Shareholders</div>';
+  if(sh.length){h+='<table><tr><th>Name</th><th>%</th><th>Share of equity</th></tr>';
+    sh.forEach(x=>{h+='<tr><td>'+esc(x.name)+'</td><td>'+(+x.pct)+'%</td><td class="'+cls(eqty*x.pct/100)+'">'+money(eqty*x.pct/100)+'</td></tr>';});
+    if(tot<99.99)h+='<tr><td style="color:var(--muted)">Not yet assigned</td><td style="color:var(--muted)">'+(Math.round((100-tot)*100)/100)+'%</td><td></td></tr>';h+='</table>';}
+  else h+='<div class="note" style="color:var(--muted)">No shareholders entered yet.</div>';
+  if(q.note)h+='<div class="note" style="margin-top:6px">'+esc(q.note)+'</div>';
+  h+='<div style="margin-top:10px"><button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A" onclick="eqEdit('+i+')">✏️ Edit capital &amp; shareholders</button></div>';
+  box.innerHTML=h;}
+function eqEdit(i){const c=COMP.companies[i],box=document.getElementById("eqbox");if(!c||!box)return;const q=(EQ||{})[c.name]||{};
+  const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px 10px;font-size:14px;margin:4px 0 10px';
+  box.innerHTML='<div class="lbl">Capital &amp; equity · '+esc(c.name)+'</div>'+
+    '<div class="note">Share capital (USD)</div><input id="eqCap" inputmode="decimal" style="'+st+'" value="'+(q.share_capital==null?'':q.share_capital)+'" placeholder="e.g. 2500000">'+
+    '<div class="note">Shareholders — one per line: Name, %</div><textarea id="eqSh" rows="4" style="'+st+'" placeholder="Hussein Saad, 50">'+esc((q.shareholders||[]).map(x=>x.name+", "+x.pct).join("\n"))+'</textarea>'+
+    '<div class="note">Note (optional)</div><input id="eqNote" style="'+st+'" value="'+esc(q.note||'')+'">'+
+    '<button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A" onclick="eqSave('+i+')">💾 Save</button> '+
+    '<button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--line);color:var(--ink)" onclick="eqShow('+i+')">Cancel</button>';}
+async function eqSave(i){const c=COMP.companies[i];if(!c)return;
+  const lines=document.getElementById("eqSh").value.split("\n").map(l=>l.trim()).filter(Boolean),sh=[];
+  for(const l of lines){const m=l.match(/^(.*?)[,;:\t]\s*([\d.]+)\s*%?$/);if(!m){toast("Can't read: "+l+" — use Name, %",4000);return;}sh.push({name:m[1].trim(),pct:+m[2]});}
+  try{const d=await eqApi({action:"save",company:c.name,share_capital:document.getElementById("eqCap").value,shareholders:sh,note:document.getElementById("eqNote").value});EQ=d.equity;toast("Saved.",2000);eqShow(i);}
+  catch(e){toast("Not saved: "+e.message,5000);}}
 /* ===== Calendar & Events ===== */
 const CAL_IC={event:"📅",medication:"💊",birthday:"🎂",other:"📌"};
 const CAL_RP={none:"Once",daily:"Every day",weekly:"Every week",monthly:"Every month",yearly:"Every year"};
