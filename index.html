@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=69;
+const AMI_LEVEL=70;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1121,7 +1121,10 @@ async function loadIBKR(){
   if(!IBKR.connected)return;
   if(!token){setTimeout(loadIBKR,2000);return;} // signed-in token not ready yet: try again shortly
   try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"account",token})});
-    const d=await r.json();if(!d.connected||d.error)throw new Error(d.error||"not connected");ibkrData=d;
+    const d=await r.json();if(!d.connected||d.error)throw new Error(d.error||"not connected");
+    // keep the last chart for a trade if this refresh came back without one (broker hiccup)
+    (d.positions||[]).forEach(x=>{if(!(x.chart&&x.chart.length>1)){const o=((ibkrData&&ibkrData.positions)||[]).find(y=>y.id===x.id);if(o&&o.chart)x.chart=o.chart;}});
+    ibkrData=d;
     const v=document.getElementById("ibkv"),p=+d.pnl||0;
     v.textContent=(p>=0?"+$":"−$")+fmt(Math.abs(p),2);
     v.className="v "+(p>=0?"up":"dn");document.getElementById("ibkd").className="live";
