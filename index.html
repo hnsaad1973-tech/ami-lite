@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=50;
+const AMI_LEVEL=51;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1317,11 +1317,42 @@ function trRender(r){const p=r.pack||{};
       (t.votes||[]).map(v=>'<div class="note" style="margin:2px 0">'+(v.vote==="YES"?"✅":"❌")+' <b>'+esc(v.name)+'</b> '+(v.confidence?v.confidence+'/5 · ':'')+esc(v.reason)+'</div>').join("")+
       (t.dropped?'<div class="note">Dropped: '+esc(t.dropped)+'</div>':'')+'</div>';});
   h+='<div class="note" style="margin-top:8px">Rules: '+esc(r.rules||"")+'</div><div class="note">Demo only: nothing is ordered. Placing orders, with a Confirm button, comes once OneRoyal is connected through MetaApi. Prices come from web search, so check them in MetaTrader before trading.</div></div>';
-  return h;}
+  return h+arBtns(arKeep({kind:"tr",r}));}
 async function trStart(){const b=+String(document.getElementById("trBud").value).replace(/[$,\s]/g,"")||10000;
   try{await trApi({action:"start",bias:TRBIAS,budget:b});toast("Study started — about 2–4 minutes.",3000);const d=await trApi({action:"get"});trShow(d);trPoll();}catch(e){toast(e.message,4500);}}
 function trPoll(){clearTimeout(TRT);TRT=setTimeout(async()=>{if(!document.getElementById("trbox"))return;try{const d=await trApi({action:"get"});trShow(d);if(d.run&&d.run.status==="working")trPoll();}catch(_){trPoll();}},8000);}
 async function trWeek(id){try{const d=await trApi({action:"week",id});const w=bubble("a",d.run?'<div class="gp">'+trRender(d.run)+'</div>':"Not found.");w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});}catch(e){toast(e.message,4000);}}
+/* ===== Copy + PDF for Advisory Panel results (18 Nov 2026) ===== */
+const _AR=[];
+function arKeep(o){_AR.push(o);return _AR.length-1;}
+function arBtns(i){return '<div class="card" style="display:flex;gap:6px;flex-wrap:wrap">'+pnBtn("📋 Copy","arCopy("+i+",this)")+pnBtn("📄 PDF","arPdf("+i+")")+'</div>';}
+function arText(o){return o.kind==="tr"?trPlain(o.r):pnPlain(o.r);}
+function arCopy(i,b){const text=arText(_AR[i]).replace(/^## (.*)$/gm,"*$1*").replace(/^### (.*)$/gm,"$1:").replace(/^- /gm,"• ").replace(/^([^\n]+)/,"*$1*"),old=b.innerHTML;const done=()=>{b.innerHTML="✅ Copied";setTimeout(()=>b.innerHTML=old,1800);};
+  const fb=()=>{const t=document.createElement("textarea");t.value=text;t.setAttribute("readonly","");t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();try{document.execCommand("copy");done();}catch(_){toast("Copy failed",2500);}t.remove();};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done).catch(fb);else fb();}
+function arPdf(i){const o=_AR[i],txt=arText(o),lines=txt.split("\n");let body="",inL=false;
+  const e=x=>esc(String(x));
+  lines.forEach((l,k)=>{if(/^- /.test(l)){if(!inL){body+="<ul>";inL=true;}body+="<li>"+e(l.slice(2))+"</li>";return;}if(inL){body+="</ul>";inL=false;}
+    if(k===0)body+="<h1>"+e(l)+"</h1>";else if(/^## /.test(l))body+="<h2>"+e(l.slice(3))+"</h2>";else if(/^### /.test(l))body+="<h3>"+e(l.slice(4))+"</h3>";else if(l.trim())body+="<p>"+e(l)+"</p>";});
+  if(inL)body+="</ul>";
+  const title=lines[0]||"AMI Advisory Panel";
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+e(title)+'</title><style>@page{size:A4;margin:16mm}body{font-family:-apple-system,Helvetica,Arial,sans-serif;color:#111;font-size:11.5pt;line-height:1.45;max-width:760px;margin:0 auto;padding:16px}h1{font-size:18pt;margin:0 0 4px;color:#0A0F1A;border-bottom:2px solid #C9A24A;padding-bottom:6px}h2{font-size:13.5pt;margin:16px 0 4px;color:#0A0F1A}h3{font-size:12pt;margin:12px 0 2px}p{margin:4px 0}ul{margin:2px 0 6px 18px;padding:0}li{margin:2px 0}.ft{margin-top:20px;color:#777;font-size:9pt}@media print{.np{display:none}}</style></head><body><div class="np" style="text-align:right;margin-bottom:8px"><button onclick="print()" style="padding:8px 14px;border:none;border-radius:8px;background:#C9A24A;font-weight:600">Save as PDF / Print</button></div>'+body+'<div class="ft">AMI · Asset Management Innovations · '+new Date().toLocaleString()+'</div><script>setTimeout(()=>print(),400)<\/script></body></html>';
+  const w=window.open("","_blank");if(w){w.document.open();w.document.write(html);w.document.close();return;}
+  const u=URL.createObjectURL(new Blob([html],{type:"text/html"}));location.href=u;}
+function pnPlain(r){const t=r.tally||{};let s="Panel opinion — "+(r.title||"")+"\n";
+  s+="Decision: "+(r.decision||"")+"\nVotes: GO "+(t.GO||0)+" · Conditional "+(t.CONDITIONAL||0)+" · No-go "+(t["NO-GO"]||0)+" — "+(t.voters||0)+" of 3 voted · average score "+(r.avg_score||0)+"/10\n";
+  if(r.file)s+="File: "+r.file+"\n";
+  (r.members||[]).forEach(m=>{s+="\n## "+m.name+(m.ok?" — "+m.verdict+" · "+m.score+"/10":" — no answer")+"\n";if(!m.ok){s+=(m.error||"")+"\n";return;}
+    s+=(m.summary||"")+"\n";[["Pros",m.pros],["Cons",m.cons],["Risks",m.risks],["Conditions before going ahead",m.conditions],["Missing from the plan",m.missing]].forEach(([h,a])=>{if(a&&a.length){s+="### "+h+"\n";a.forEach(x=>s+="- "+x+"\n");}});});
+  return s.trim();}
+function trPlain(r){const p=r.pack||{};let s="Trading Hub — week "+(p.week||"")+" (demo, no orders placed)\n";
+  s+="Direction: "+(r.bias||"")+" · Budget $"+trNum(r.budget)+" · "+(r.chosen||0)+" trades chosen · $"+trNum(r.allocated)+" allocated · max loss if every stop hits $"+trNum(r.max_loss)+"\n";
+  s+="\n## Market brief\n"+(p.market_brief||"")+"\n";if(p.key_events&&p.key_events.length){s+="### Key events\n";p.key_events.forEach(x=>s+="- "+x+"\n");}
+  s+="Voters: "+(r.members||[]).map(m=>m.name+(m.ok?" ("+m.model+")":" (no answer)")).join(", ")+"\n";
+  (r.trades||[]).forEach(t=>{s+="\n## "+t.direction+" "+t.symbol+" ("+t.name+") — "+(t.allocation>0?"$"+trNum(t.allocation):"Skip")+" · "+t.yes+"/"+t.voters+" YES\n";
+    s+="Price "+trNum(t.price)+" · Entry "+trNum(t.entry)+" · Stop "+trNum(t.stop)+" · Target "+trNum(t.target)+" · Reward/risk "+t.reward_risk+"x"+(t.units_for_150_risk?" · Size for ~$150 risk: "+t.units_for_150_risk+" units":"")+"\n";
+    s+=(t.reason||"")+(t.price_note?" ("+t.price_note+")":"")+"\n";(t.votes||[]).forEach(v=>s+="- "+v.name+": "+v.vote+(v.confidence?" "+v.confidence+"/5":"")+" — "+v.reason+"\n");if(t.dropped)s+="Dropped: "+t.dropped+"\n";});
+  s+="\nRules: "+(r.rules||"");return s.trim();}
 /* ===== Advisory Panel — Trade opinion (edge function `panel`) ===== */
 async function pnApi(o){const r=await fetch(SB_URL+"/functions/v1/panel",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
 let PNFILE=null;
@@ -1360,7 +1391,7 @@ function pnRender(r){const t=r.tally||{},dc=r.decision||"",col=/NO-GO/.test(dc)?
   h+='</div></div>';
   (r.members||[]).filter(m=>m.ok).forEach(m=>{h+='<div class="card"><div class="lbl">'+esc(m.name)+' · '+PNV[m.verdict][0]+' '+esc(m.verdict)+' · '+m.score+'/10</div><div class="note" style="font-size:13px;color:var(--ink)">'+esc(m.summary)+'</div>'+
     pnList("👍 Pros",m.pros)+pnList("👎 Cons",m.cons)+pnList("⚠️ Risks",m.risks)+pnList("✔️ Conditions before going ahead",m.conditions)+pnList("❓ Missing from the plan",m.missing)+'</div>';});
-  h+='<div class="card">'+pnBtn("⚖️ New opinion","openPanel()",1)+pnBtn("🗂 Past opinions","pnHist()")+'</div></div>';return h;}
+  h+='<div class="card">'+pnBtn("📋 Copy","arCopy("+arKeep({kind:"pn",r})+",this)")+pnBtn("📄 PDF","arPdf("+(_AR.length-1)+")")+pnBtn("⚖️ New opinion","openPanel()",1)+pnBtn("🗂 Past opinions","pnHist()")+'</div></div>';return h;}
 async function pnHist(){const w=bubble("a","Loading past opinions…");w.style.maxWidth="100%";w.style.width="100%";
   try{const hs=(await pnApi({action:"history"})).history||[];window._pnH=hs;
     w.innerHTML='<div class="gp"><div class="card"><div class="lbl">🗂 Past panel opinions</div>'+(hs.length?hs.map((r,i)=>'<div class="crow" onclick="this.closest(\'.m\').innerHTML=pnRender(_pnH['+i+'])"><div><b>'+esc(r.title||"")+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc(String(r.at||"").slice(0,16).replace("T"," "))+'</span></div><div>'+esc(r.decision||"")+' ›</div></div>').join(""):'<div class="note">None yet.</div>')+'</div></div>';}
