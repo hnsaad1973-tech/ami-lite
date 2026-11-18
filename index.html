@@ -684,7 +684,8 @@ async function openCompanies(){
     if(!COMP){w.innerHTML="No figures loaded yet.";return;}
     let h='<div class="gp"><div class="card"><div class="lbl">Your companies · tap one for the detail</div>';
     COMP.companies.forEach((c,i)=>{h+='<div class="crow" onclick="openCompany('+i+')"><div><b>'+esc(c.name)+'</b><br><span style="color:var(--muted);font-size:11px">as of '+esc(c.as_of)+'</span></div><div class="'+cls(c.net)+'" style="font-weight:700">'+money(c.net)+' ›</div></div>';});
-    h+='<div class="crow" style="cursor:default;border-bottom:none"><b>Group total</b><b class="'+cls(COMP.total.net)+'">'+money(COMP.total.net)+'</b></div></div></div>';
+    h+='<div class="crow" style="cursor:default"><b>Group total</b><b class="'+cls(COMP.total.net)+'">'+money(COMP.total.net)+'</b></div>';
+    h+='<div class="crow" style="border-bottom:none" onclick="openPersonal()"><div><b>👤 Personal account</b><br><span style="color:var(--muted);font-size:11px">What you owe the companies and others · not in the group total</span></div><div style="font-weight:700">›</div></div></div></div>';
     w.innerHTML=h;w.style.maxWidth="100%";w.style.width="100%";
     bubble("a",esc("Ask me about any company, Chairman, or send me its new figures."));
   }catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}
@@ -739,6 +740,37 @@ async function eqSave(i){const c=COMP.companies[i];if(!c)return;
   for(const l of lines){const m=l.match(/^(.*?)[,;:\t]\s*([\d.]+)\s*%?$/);if(!m){toast("Can't read: "+l+" — use Name, %",4000);return;}sh.push({name:m[1].trim(),pct:+m[2]});}
   try{const d=await eqApi({action:"save",company:c.name,share_capital:document.getElementById("eqCap").value,shareholders:sh,note:document.getElementById("eqNote").value});EQ=d.equity;toast("Saved.",2000);eqShow(i);}
   catch(e){toast("Not saved: "+e.message,5000);}}
+/* ===== Personal account (edge function `equity`, key personal_account) ===== */
+let PERS=null;const PG={company:"You owe your companies",other:"You owe others",owed_to_me:"Owed to you"};
+async function openPersonal(){const w=bubble("a","Loading your personal account…");w.style.maxWidth="100%";w.style.width="100%";
+  try{PERS=(await eqApi({action:"personal_get"})).personal||{items:[]};}catch(e){w.innerHTML="Couldn't load: "+esc(e.message);return;}
+  w.id="persbox";persShow();w.scrollIntoView({block:"start"});}
+function persShow(){const w=document.getElementById("persbox");if(!w)return;const it=PERS.items||[];
+  const sum=g=>it.filter(x=>x.group===g).reduce((a,x)=>a+(+x.amount||0),0),owe=sum("company")+sum("other"),due=sum("owed_to_me");
+  let h='<div class="gp"><div class="card"><div class="lbl">👤 Personal account · updated '+esc(PERS.as_of||"")+' · not in the group total</div><div class="big neg">'+money(-owe)+'</div><table>'+
+    '<tr><td>You owe your companies</td><td class="neg">'+money(-sum("company"))+'</td></tr><tr><td>You owe others</td><td class="neg">'+money(-sum("other"))+'</td></tr>'+
+    (due?'<tr><td>Owed to you</td><td>'+money(due)+'</td></tr><tr><td><b>Net</b></td><td class="'+cls(due-owe)+'"><b>'+money(due-owe)+'</b></td></tr>':'')+'</table></div>';
+  ["company","other","owed_to_me"].forEach(g=>{const rows=it.filter(x=>x.group===g);if(!rows.length&&g==="owed_to_me")return;
+    h+='<div class="card"><div class="lbl">'+PG[g]+'</div>';
+    if(!rows.length)h+='<div class="note" style="color:var(--muted)">Nothing entered.</div>';
+    else{h+='<table>';rows.forEach(x=>{h+='<tr><td>'+esc(x.who)+(x.note?'<br><span style="color:var(--muted);font-size:10.5px">'+esc(x.note)+'</span>':'')+'</td><td'+(g==="owed_to_me"?'':' class="neg"')+'>'+money(g==="owed_to_me"?x.amount:-x.amount)+'</td></tr>';});
+      h+='<tr><td><b>Total</b></td><td'+(g==="owed_to_me"?'':' class="neg"')+'><b>'+money(g==="owed_to_me"?sum(g):-sum(g))+'</b></td></tr></table>';}
+    h+='</div>';});
+  h+='<div class="card"><button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A" onclick="persEdit()">✏️ Edit</button> '+
+    '<button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--line);color:var(--ink)" onclick="openCompanies()">‹ All companies</button></div></div>';
+  w.innerHTML=h;}
+function persEdit(){const w=document.getElementById("persbox");if(!w)return;const it=PERS.items||[];
+  const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px 10px;font-size:13px;margin:4px 0 12px;font-family:inherit';
+  const ta=g=>'<div class="note">'+PG[g]+' — one per line: Who | Amount | Note</div><textarea id="pe_'+g+'" rows="'+Math.max(3,it.filter(x=>x.group===g).length+1)+'" style="'+st+'">'+esc(it.filter(x=>x.group===g).map(x=>x.who+" | "+x.amount+(x.note?" | "+x.note:"")).join("\n"))+'</textarea>';
+  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">Edit personal account</div>'+ta("company")+ta("other")+ta("owed_to_me")+
+    '<button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A" onclick="persSave()">💾 Save</button> '+
+    '<button style="border:none;border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;background:var(--line);color:var(--ink)" onclick="persShow()">Cancel</button></div></div>';}
+async function persSave(){const items=[];
+  for(const g of ["company","other","owed_to_me"]){for(const l of document.getElementById("pe_"+g).value.split("\n").map(x=>x.trim()).filter(Boolean)){
+    const p=l.split("|").map(x=>x.trim());const amt=+String(p[1]||"").replace(/[$,\s]/g,"");
+    if(!p[0]||!isFinite(amt)||p[1]===undefined){toast("Can't read: "+l+" — use Who | Amount | Note",4500);return;}
+    items.push({group:g,who:p[0],amount:amt,note:p.slice(2).join(" | ")});}}
+  try{PERS=(await eqApi({action:"personal_save",items})).personal;toast("Saved.",2000);persShow();}catch(e){toast("Not saved: "+e.message,5000);}}
 /* ===== Calendar & Events ===== */
 const CAL_IC={event:"📅",medication:"💊",birthday:"🎂",other:"📌"};
 const CAL_RP={none:"Once",daily:"Every day",weekly:"Every week",monthly:"Every month",yearly:"Every year"};
