@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=53;
+const AMI_LEVEL=54;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1402,7 +1402,7 @@ async function openBoard(){openChat("Board","");const w=bubble("a",'<div class="
   let st={};try{st=await pnApi({action:"status"});}catch(_){}
   const rows=BOARD.map(b=>{const on=!!st[b[3]];return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(b[0])+'</b> <span style="color:var(--muted);font-size:11px">'+esc(b[1])+'</span><br><span style="color:var(--muted);font-size:11px">'+esc(b[4])+'</span><br><span style="color:var(--muted);font-size:10.5px">'+esc(b[2])+'</span></div><div style="white-space:nowrap">'+(on?'🟢 Seated':'⚪ Empty seat')+'</div></div>';}).join("");
   const n=BOARD.filter(b=>st[b[3]]).length;
-  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">👥 Board of directors · '+n+' of 5 seated</div>'+rows+'</div>'+
+  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">❓ Ask the board</div><div class="note">Post any question, plan or feasibility study — all 5 members answer on their own and vote.</div>'+pnBtn("⚖️ Ask the board","openPanel()",1)+pnBtn("📈 This week\'s trades","openTrade()")+'</div><div class="card"><div class="lbl">👥 Board of directors · '+n+' of 5 seated</div>'+rows+'</div>'+
    '<div class="card"><div class="lbl">🗳 Voting rules</div><ul style="margin:2px 0 0 18px;padding:0;font-size:12.5px;line-height:1.5"><li>Each member votes on its own and never sees the others\' votes.</li><li><b>Trade opinion:</b> a majority of those who voted = GO (2 of 3, 3 of 4, 3 of 5).</li><li><b>Trading Hub:</b> 4+ YES = full size ($2,000), 3 YES = half ($1,000), fewer = skip. With only 3 voting: 3/3 full, 2/3 half.</li><li>If a member doesn\'t answer, the vote counts the ones who did, and the result says who was missing.</li></ul></div>'+
    '<div class="card"><div class="lbl">📊 Track record</div><div class="note">Coming next: how often each member\'s trade votes were right, week by week.</div>'+pnBtn("📈 Trade advisory","openTrade()")+pnBtn("⚖️ Trade opinion","openPanel()")+'</div></div>';
   w.scrollIntoView({block:"start"});}
