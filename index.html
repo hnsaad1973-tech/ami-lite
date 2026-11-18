@@ -1283,12 +1283,55 @@ function lnRender(){const g=document.getElementById("lgrid");g.innerHTML="";cons
     if(i>=LN_BASE.length){const x=document.createElement("span");x.className="x";x.textContent="✕";x.title="Remove";
       x.onclick=e=>{e.stopPropagation();const m=lnMine();m.splice(i-LN_BASE.length,1);try{localStorage.setItem("ami_links",JSON.stringify(m));}catch(_){}lnRender();};b.appendChild(x);}
     g.appendChild(b);});}
+/* ===== Advisory Panel — Trade opinion (edge function `panel`) ===== */
+async function pnApi(o){const r=await fetch(SB_URL+"/functions/v1/panel",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
+let PNFILE=null;
+function pnBtn(t,fn,gold){return '<button style="border:none;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;'+(gold?'background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A':'background:var(--line);color:var(--ink)')+'" onclick="'+fn+'">'+t+'</button>';}
+function openPanel(){openChat("Advisory Panel","");document.querySelectorAll("#pnbox").forEach(e=>e.removeAttribute("id"));PNFILE=null;
+  const w=bubble("a","");w.id="pnbox";w.style.maxWidth="100%";w.style.width="100%";
+  const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:10px;font-size:14px;margin:6px 0;font-family:inherit';
+  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">⚖️ Advisory Panel · Trade opinion</div>'+
+    '<div class="note">Paste the business plan, feasibility study or idea — or attach a file from Drive. Claude, ChatGPT and Grok each study it on their own and vote.</div>'+
+    '<input id="pnTitle" style="'+st+'" placeholder="Title (e.g. Storage units — Tubman Blvd)">'+
+    '<textarea id="pnText" rows="7" style="'+st+'" placeholder="The plan, numbers, questions…"></textarea>'+
+    '<div id="pnFile" class="note"></div>'+
+    '<div style="display:flex;gap:6px;margin:4px 0"><input id="pnQ" style="'+st+';margin:0" placeholder="Find a Drive file by name"><button style="border:none;border-radius:10px;padding:0 14px;font-weight:600;background:var(--line);color:var(--ink)" onclick="pnFind()">Find</button></div>'+
+    '<div id="pnList"></div>'+pnBtn("📨 Send to the panel","pnSend()",1)+pnBtn("🗂 Past opinions","pnHist()")+'</div></div>';
+  w.scrollIntoView({block:"start"});}
+async function pnFind(){const q=document.getElementById("pnQ").value.trim(),L=document.getElementById("pnList");if(!q)return;L.innerHTML='<div class="note">Searching…</div>';
+  try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"drive_list",q,token})});const j=await r.json();
+    const fs=(j.files||[]).filter(f=>!/folder/.test(f.type)).slice(0,8);
+    L.innerHTML=fs.length?fs.map((f,i)=>'<div class="crow" style="padding:8px 4px" onclick="pnPick('+i+')"><div>'+esc(f.name)+'<br><span style="color:var(--muted);font-size:10.5px">'+esc(f.type)+' · '+esc(f.modified||"")+'</span></div><div>＋</div></div>').join(""):'<div class="note">No files found.</div>';
+    L._fs=fs;}catch(e){L.innerHTML='<div class="note">Search failed: '+esc(e.message)+'</div>';}}
+function pnPick(i){const L=document.getElementById("pnList"),f=(L._fs||[])[i];if(!f)return;PNFILE=f;L.innerHTML="";
+  document.getElementById("pnFile").innerHTML='📎 <b>'+esc(f.name)+'</b> · <a href="#" onclick="PNFILE=null;this.parentNode.innerHTML=\'\';return false">remove</a>';
+  const t=document.getElementById("pnTitle");if(!t.value)t.value=f.name.replace(/\.[a-z]+$/i,"");}
+async function pnSend(){const text=document.getElementById("pnText").value.trim(),title=document.getElementById("pnTitle").value.trim();
+  if(!PNFILE&&text.length<20){toast("Paste the plan or attach a file first.",3000);return;}
+  const w=bubble("a",'⏳ Sent to Claude, ChatGPT and Grok. Each is studying it on its own — this takes about 1–2 minutes…');w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
+  try{const r=await pnApi({action:"ask",text,title,file_id:PNFILE?PNFILE.id:""});w.innerHTML=pnRender(r);}catch(e){w.innerHTML="⚠️ The panel couldn't finish: "+esc(e.message);}
+  w.scrollIntoView({block:"start"});}
+const PNV={"GO":["✅","var(--pos,#3ecf8e)"],"CONDITIONAL":["🟡","#E4B75A"],"NO-GO":["❌","#e5534b"]};
+function pnList(t,a){return a&&a.length?'<div class="note" style="margin-top:6px"><b>'+t+'</b></div><ul style="margin:2px 0 0 18px;padding:0;font-size:12.5px;line-height:1.45">'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";}
+function pnRender(r){const t=r.tally||{},dc=r.decision||"",col=/NO-GO/.test(dc)?"#e5534b":/CONDITIONS/.test(dc)?"#E4B75A":/GO/.test(dc)?"#3ecf8e":"var(--muted)";
+  let h='<div class="gp"><div class="card"><div class="lbl">⚖️ Panel opinion · '+esc(r.title||"")+(r.file?' · 📎 '+esc(r.file):'')+'</div>'+
+    '<div class="big" style="color:'+col+';font-size:24px">'+esc(dc)+'</div>'+
+    '<div class="note">Votes: ✅ GO '+(t.GO||0)+' · 🟡 Conditional '+(t.CONDITIONAL||0)+' · ❌ No-go '+(t["NO-GO"]||0)+' — '+(t.voters||0)+' of 3 voted · average score '+(r.avg_score||0)+'/10</div><div style="margin-top:8px">';
+  (r.members||[]).forEach(m=>{h+='<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(m.name)+'</b>'+(m.ok?'<br><span style="color:var(--muted);font-size:10.5px">'+esc(m.model||"")+'</span>':'')+'</div><div style="text-align:right">'+(m.ok?PNV[m.verdict][0]+' '+esc(m.verdict)+'<br><span style="color:var(--muted);font-size:11px">'+m.score+'/10</span>':'<span style="color:var(--muted);font-size:11.5px">⚪ '+esc(m.error||"no answer")+'</span>')+'</div></div>';});
+  h+='</div></div>';
+  (r.members||[]).filter(m=>m.ok).forEach(m=>{h+='<div class="card"><div class="lbl">'+esc(m.name)+' · '+PNV[m.verdict][0]+' '+esc(m.verdict)+' · '+m.score+'/10</div><div class="note" style="font-size:13px;color:var(--ink)">'+esc(m.summary)+'</div>'+
+    pnList("👍 Pros",m.pros)+pnList("👎 Cons",m.cons)+pnList("⚠️ Risks",m.risks)+pnList("✔️ Conditions before going ahead",m.conditions)+pnList("❓ Missing from the plan",m.missing)+'</div>';});
+  h+='<div class="card">'+pnBtn("⚖️ New opinion","openPanel()",1)+pnBtn("🗂 Past opinions","pnHist()")+'</div></div>';return h;}
+async function pnHist(){const w=bubble("a","Loading past opinions…");w.style.maxWidth="100%";w.style.width="100%";
+  try{const hs=(await pnApi({action:"history"})).history||[];window._pnH=hs;
+    w.innerHTML='<div class="gp"><div class="card"><div class="lbl">🗂 Past panel opinions</div>'+(hs.length?hs.map((r,i)=>'<div class="crow" onclick="this.closest(\'.m\').innerHTML=pnRender(_pnH['+i+'])"><div><b>'+esc(r.title||"")+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc(String(r.at||"").slice(0,16).replace("T"," "))+'</span></div><div>'+esc(r.decision||"")+' ›</div></div>').join(""):'<div class="note">None yet.</div>')+'</div></div>';}
+  catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}w.scrollIntoView({block:"start"});}
 /* ===== 4 group tiles (18 Nov 2026) ===== */
 const GROUPS={
  time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()]]],
  fin:["🏛 Management & Finance",[["🏢 Companies financial","Each company: figures, capital & equity, import financials",()=>openCompanies()],["📊 Group companies financial","Group total, cash flow by quarter",()=>openPosition()],["🧭 Companies management structure","Directors, managers, reporting lines",null]]],
  design:["🎨 Design & Development",[["🖌 Design Studio","Renders, sketches, floor plans, elevations",()=>openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')],["💻 Software · CAD","CAD drawings, software builds and tools",null]]],
- adv:["🧠 Advisory Panel",[["📈 Trade advisory","Weekly trades · Claude, ChatGPT and Grok vote",null],["⚖️ Trade opinion","Business plans · feasibility studies · second opinions",()=>openChat('Think Tank','Advisory Panel — send me the business plan, feasibility study or idea, Chairman, and I\'ll give you a full opinion: bottom line, options, risks and a recommendation.')]]]};
+ adv:["🧠 Advisory Panel",[["📈 Trade advisory","Weekly trades · Claude, ChatGPT and Grok vote",null],["⚖️ Trade opinion","Business plans · feasibility studies — Claude, ChatGPT and Grok each give an opinion and vote",()=>openPanel()]]]};
 function openGroup(k){const g=GROUPS[k];if(!g)return;document.getElementById("grpt").textContent=g[0];const L=document.getElementById("glist");L.innerHTML="";
   g[1].forEach(([t,d,fn])=>{const b=document.createElement("div");b.className="gi";b.innerHTML="<div><b>"+t+"</b><span>"+d+"</span></div>"+(fn?"":"<em>Being built</em>");
     b.onclick=()=>{if(!fn){toast(t.replace(/^\S+\s/,"")+" — being built. Coming soon.",3000);return;}closeGroup();fn();};L.appendChild(b);});
