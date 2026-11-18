@@ -57,7 +57,7 @@
   .trh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
   .trh b{color:var(--ink);font-size:12px;letter-spacing:0;text-transform:none;}
   .trh .pl{margin-left:auto;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;}
-  .trl{flex:1;overflow-y:auto;min-height:0;}
+  .trl{flex:1 0 auto;overflow-y:auto;min-height:0;}
   .trr{display:grid;grid-template-columns:1.2fr .9fr .8fr auto;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;}
   .trr .sy{font-weight:600;}.trr .sy small{display:block;font-weight:400;color:var(--muted);font-size:10px;}
   .trr .px{text-align:right;}.trr .ch{text-align:right;font-weight:600;}
@@ -405,7 +405,7 @@
     <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
     <div class="rest"><button class="r1" onclick="paneHide('chat',false)">💬 Chat</button><button class="r2" onclick="paneHide('wa',false)">🟢 WhatsApp</button></div>
     <button class="cme" onclick="callMe()" aria-label="Call me" title="Call me — AMI rings you"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8z"/></svg></button>
-    <button class="ibk" onclick="ibkr()" aria-label="Trading"><div class="k"><i id="ibkd"></i>IBKR</div><div class="v" id="ibkv">Awaiting</div></button>
+    <button class="ibk" onclick="ibkr()" aria-label="Trading"><div class="k"><i id="ibkd"></i>MT4</div><div class="v" id="ibkv">Awaiting</div></button>
     <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div>
       <div class="lvl" title="AMI level: build complete = 50%, learning fills the rest"><span id="lvlt">AMI 20%</span><div class="trk"><i id="lvlb"></i></div></div></div>
   </div>
@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=64;
+const AMI_LEVEL=65;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1107,17 +1107,18 @@ function showTab(i){
    GET  `ibkr`               -> {pnl, currency, positions:[{symbol,name,qty,price,change_pct,value,pnl}]}
    POST `ibkr` {action:"order", symbol, side:"BUY"|"SELL", qty, type:"LMT"|"MKT", limit} -> {ok, id, message}
    Safety: every order needs Confirm, and no single order may exceed IBKR.maxTrade (USD). */
-const IBKR={connected:false,endpoint:SB_URL+"/functions/v1/ibkr",maxTrade:10000};
+/* v65: panel now shows the live OneRoyal MetaTrader account (via `trade` action "account"); new trades come only from the Board room */
+const IBKR={connected:true,endpoint:SB_URL+"/functions/v1/trade",maxTrade:10000};
 let ibkrData=null,tkSide="BUY";
 buildTabs(); // after IBKR is set up: opening on "My Trades" used to stop the whole app (vOn error)
 async function loadIBKR(){
   if(!IBKR.connected||!token)return;
-  try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"positions",token})});
-    const d=await r.json();ibkrData=d;
+  try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"account",token})});
+    const d=await r.json();if(!d.connected||d.error)throw new Error(d.error||"not connected");ibkrData=d;
     const v=document.getElementById("ibkv"),p=+d.pnl||0;
-    v.textContent=(p>=0?"+":"")+p.toLocaleString("en-US",{maximumFractionDigits:0})+" "+(d.currency||"USD");
+    v.textContent=(p>=0?"+$":"−$")+fmt(Math.abs(p),2);
     v.className="v "+(p>=0?"up":"dn");document.getElementById("ibkd").className="live";
-    if(document.querySelector(".trade"))renderTrade();}
+    const old=document.querySelector(".trade");if(old){old.remove();renderTrade();}}
   catch(_){document.getElementById("ibkv").textContent="Conn. error";}
 }
 function fmt(n,d){return (+n||0).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
@@ -1131,15 +1132,16 @@ function renderTrade(){
       '<div class="bs"><button class="b" disabled>Buy</button><button class="s" disabled>Sell</button></div>'+
       '<div class="t2" style="font-size:10.5px">Every order shows the full details and needs your Confirm · max $'+fmt(IBKR.maxTrade,0)+' per trade</div></div>';
   }else{
-    const d=ibkrData||{positions:[]},p=+d.pnl||0;
-    let h='<div class="trh"><b>My Trades</b> · '+(d.positions||[]).length+' positions<span class="pl '+(p>=0?"up":"dn")+'">'+(p>=0?"+":"")+fmt(p,0)+' '+(d.currency||"USD")+' today</span></div><div class="trl">';
-    (d.positions||[]).slice().sort((a,b)=>(+b.change_pct||0)-(+a.change_pct||0)).forEach(x=>{
-      const c=+x.change_pct||0;
-      h+='<div class="trr"><div class="sy">'+esc(String(x.symbol))+'<small>'+fmt(x.qty,0)+' · P&amp;L '+(x.pnl>=0?"+":"")+fmt(x.pnl,0)+'</small></div>'+
-        '<div class="px">'+fmt(x.price,2)+'</div><div class="ch '+(c>=0?"up":"dn")+'">'+(c>=0?"▲ +":"▼ ")+fmt(c,2)+'%</div>'+
-        '<div class="bs"><button class="b" onclick="openTicket(\'BUY\',\''+esc(String(x.symbol))+'\','+(+x.price||0)+')">Buy</button><button class="s" onclick="openTicket(\'SELL\',\''+esc(String(x.symbol))+'\','+(+x.price||0)+')">Sell</button></div></div>';});
-    if(!(d.positions||[]).length)h+='<div class="tre"><div class="t2">No open positions.</div></div>';
-    h+='</div><div class="trh" style="border-top:1px solid var(--line);border-bottom:none"><div class="bs" style="margin-left:auto"><button class="b" onclick="openTicket(\'BUY\',\'\',0)">New Buy</button><button class="s" onclick="openTicket(\'SELL\',\'\',0)">New Sell</button></div></div>';
+    const d=ibkrData||{positions:[]},p=+d.pnl||0,ps=d.positions||[];
+    let h='<div class="trh"><b>OneRoyal MT4'+(d.demo!==false?' · Demo':'')+'</b> · '+ps.length+' open<span class="pl '+(p>=0?"up":"dn")+'">'+(p>=0?"+":"")+fmt(p,2)+' '+(d.currency||"USD")+'</span></div>'+
+      '<div class="t2" style="padding:6px 12px;font-size:11px;color:var(--muted)">'+(ibkrData?'Balance $'+fmt(d.balance,2)+' · Equity $'+fmt(d.equity,2)+' · Free margin $'+fmt(d.free_margin,2):'Loading the account…')+'</div><div class="trl">';
+    ps.slice().sort((a,b)=>(+b.pnl||0)-(+a.pnl||0)).forEach(x=>{
+      const q=+x.pnl||0,dg=+x.price<20?5:2;
+      h+='<div class="trr"><div class="sy">'+esc(String(x.symbol))+'<small>'+(x.side==="SELL"?'<span style="color:#e06c6c">SELL</span>':'<span style="color:#5cc98a">BUY</span>')+' '+fmt(x.lots,2)+' lot · open '+fmt(x.open,dg)+'</small>'+
+        '<small>SL '+(x.stop?fmt(x.stop,dg):'—')+' · TP '+(x.target?fmt(x.target,dg):'—')+(x.ami?' · AMI board':'')+'</small></div>'+
+        '<div class="px">'+fmt(x.price,dg)+'</div><div class="ch '+(q>=0?"up":"dn")+'">'+(q>=0?"▲ +$":"▼ −$")+fmt(Math.abs(q),2)+'</div></div>';});
+    if(!ps.length)h+='<div class="tre"><div class="t2">'+(ibkrData?'No open trades.':'')+'</div></div>';
+    h+='</div><div class="t2" style="padding:8px 12px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line)">Live from MetaTrader, refreshed every 30 seconds. New trades are placed only from the Board room after you concur.</div>';
     wrap.innerHTML=h;
   }
   g.appendChild(wrap);
