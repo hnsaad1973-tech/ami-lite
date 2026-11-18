@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=54;
+const AMI_LEVEL=55;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1294,7 +1294,7 @@ function trBias(b){TRBIAS=b;document.querySelectorAll(".trb").forEach(x=>x.style
 function trShow(d){const w=document.getElementById("trbox");if(!w)return;const r=d.run;
   const st='width:120px;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px 10px;font-size:14px';
   const bb=(b,t)=>'<button class="trb" data-b="'+b+'" style="border:none;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;background:var(--line);color:var(--ink)'+(TRBIAS===b?';outline:2px solid var(--gold2)':'')+'" onclick="trBias(\''+b+'\')">'+t+'</button>';
-  let h='<div class="gp"><div class="card"><div class="lbl">📈 Trading Hub · weekly · Monday to Friday · DEMO (no orders placed)</div>'+
+  let h='<div class="gp"><div class="card"><div class="lbl">📈 Trading Hub · weekly · Monday to Friday · orders go to OneRoyal only when you concur</div>'+
     '<div class="note">Pick a direction, then AMI studies the markets and this week\'s news, proposes 6 trades, and the board votes (Claude, ChatGPT, Grok, Gemini, Perplexity). 4+ YES = full size, 3 YES = half, fewer = skip.</div>'+
     bb("buy","🟢 Buy")+bb("short","🔴 Short")+bb("either","⚖️ Let the panel decide")+
     '<div style="display:flex;align-items:center;gap:8px;margin-top:10px"><span class="note" style="margin:0">Budget $</span><input id="trBud" inputmode="numeric" style="'+st+'" value="'+(r&&r.budget||10000)+'"></div>'+
@@ -1304,20 +1304,41 @@ function trShow(d){const w=document.getElementById("trbox");if(!w)return;const r
   if(r&&r.status==="done")h+=trRender(r);
   if(d.history&&d.history.length>1)h+='<div class="card"><div class="lbl">🗂 Past weeks</div>'+d.history.map(x=>'<div class="crow" onclick="trWeek(\''+esc(x.id)+'\')"><div><b>'+esc(x.week||String(x.id).slice(0,10))+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc(x.bias||"")+' · '+(x.chosen||0)+' trades · $'+trNum(x.allocated||0)+'</span></div><div>›</div></div>').join("")+'</div>';
   w.innerHTML=h+'</div>';}
-function trRender(r){const p=r.pack||{};
-  let h='<div class="card"><div class="lbl">🌍 Market brief · '+esc(p.week||"")+'</div><div class="note" style="font-size:13px;color:var(--ink)">'+esc(p.market_brief||"")+'</div>'+pnList("📅 Key events",p.key_events)+
-    '<div class="note" style="margin-top:8px">Voters: '+(r.members||[]).map(m=>esc(m.name)+(m.ok?' ✅ <span style="color:var(--muted)">'+esc(m.model)+'</span>':' ⚪ '+esc(m.error))).join(" · ")+'</div></div>';
-  h+='<div class="card"><div class="lbl">✅ This week\'s trades · '+(r.chosen||0)+' chosen · $'+trNum(r.allocated)+' of $'+trNum(r.budget)+' · max loss if every stop hits $'+trNum(r.max_loss)+'</div>';
+function trRender(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok),N=ok.length;
+  const ini=n=>({Claude:"Cl",ChatGPT:"GPT",Grok:"Gk",Gemini:"Gm",Perplexity:"Px"}[n]||n.slice(0,2));
+  // 1) HOW THE BOARD VOTED (first)
+  let h='<div class="card"><div class="lbl">🗳 How the board voted · week '+esc(p.week||"")+'</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--muted)"><td style="padding:4px 2px">Trade</td>'+ok.map(m=>'<td style="text-align:center;padding:4px 2px">'+esc(ini(m.name))+'</td>').join("")+'<td style="text-align:right;padding:4px 2px">Result</td></tr>'+
+    (r.trades||[]).map(t=>{const on=t.allocation>0;return '<tr style="border-top:1px solid var(--line)"><td style="padding:6px 2px;white-space:nowrap"><b>'+(t.direction==="BUY"?"🟢":"🔴")+' '+esc(t.symbol)+'</b></td>'+
+      ok.map(m=>{const v=(t.votes||[]).find(x=>x.name===m.name);return '<td style="text-align:center">'+(v?(v.vote==="YES"?"✅":"❌"):"·")+'</td>';}).join("")+
+      '<td style="text-align:right;white-space:nowrap;font-weight:700;color:'+(on?'var(--gold2)':'var(--muted)')+'">'+t.yes+'/'+t.voters+' · '+(on?'$'+trNum(t.allocation):'Skip')+'</td></tr>';}).join("")+
+    '</table></div><div class="note" style="margin-top:6px">'+ok.map(m=>esc(ini(m.name))+' = '+esc(m.name)).join(" · ")+((r.members||[]).some(m=>!m.ok)?' · Missing: '+(r.members||[]).filter(m=>!m.ok).map(m=>esc(m.name)).join(", "):'')+'</div>'+
+    '<div style="margin-top:8px;font-size:14px"><b>Board decision: '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' · $'+trNum(r.allocated)+' of $'+trNum(r.budget)+'</b><br><span class="note">Max loss if every stop is hit: $'+trNum(r.max_loss)+' · weekly cap $'+trNum(r.loss_cap||600)+'</span></div></div>';
+  // 2) CONCUR & PLACE ORDERS
+  const ex=r.execution;
+  if(ex){h+='<div class="card"><div class="lbl">'+(/placed/.test(ex.status)?'✅ Orders sent':ex.status==="declined"?'⏸ Not traded':ex.status==="waiting"?'⏳ Orders waiting for the broker':'⚠️ Orders not placed')+'</div><div class="note">'+esc(ex.note||"")+'</div>'+
+    (ex.orders||[]).map(o=>'<div class="note" style="margin:3px 0">'+({placed:"✅",waiting:"⏳",skipped:"⏭",rejected:"❌",failed:"❌"}[o.status]||"•")+' <b>'+esc(o.direction+" "+o.symbol)+'</b>'+(o.lots?' · '+o.lots+' lots':'')+' · stop '+trNum(o.stop)+' · target '+trNum(o.target)+(o.error?' — '+esc(o.error):'')+'</div>').join("")+
+    (ex.status==="waiting"||ex.status==="failed"||ex.status==="partly placed"?pnBtn("🔁 Send again","trConcur('"+esc(r.id)+"',this,1)",1):'')+'</div>';}
+  else if(r.chosen>0){h+='<div class="card"><div class="lbl">✍️ Your decision</div><div class="note">Concur with the board and AMI sends the '+r.chosen+' order'+(r.chosen==1?'':'s')+' above to OneRoyal, each with its stop-loss and target.</div>'+
+    pnBtn("✅ Concur & place orders","trConcur('"+esc(r.id)+"',this)",1)+pnBtn("⏸ Don\'t trade this week","trDecline('"+esc(r.id)+"')")+'</div>';}
+  // 3) THE TRADES IN DETAIL
+  h+='<div class="card"><div class="lbl">📋 The trades in detail</div>';
   (r.trades||[]).forEach(t=>{const on=t.allocation>0;
     h+='<div style="border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px;'+(on?'':'opacity:.55')+'">'+
       '<div style="display:flex;justify-content:space-between;gap:8px"><div><b>'+(t.direction==="BUY"?"🟢 BUY":"🔴 SHORT")+' '+esc(t.symbol)+'</b> <span style="color:var(--muted);font-size:11px">'+esc(t.name)+' · '+esc(t.theme)+'</span></div>'+
       '<div style="text-align:right;font-weight:700;color:'+(on?'var(--gold2)':'var(--muted)')+'">'+(on?'$'+trNum(t.allocation):'Skip')+'<br><span style="font-size:11px;font-weight:500">'+t.yes+'/'+t.voters+' YES</span></div></div>'+
-      '<div class="note" style="margin-top:4px">Price '+trNum(t.price)+' · Entry '+trNum(t.entry)+' · Stop '+trNum(t.stop)+' · Target '+trNum(t.target)+' · Reward/risk '+t.reward_risk+'x'+(t.units_for_150_risk?' · Size for ~$150 risk: '+t.units_for_150_risk+' units':'')+'</div>'+
+      '<div class="note" style="margin-top:4px">Price '+trNum(t.price)+' · Entry '+trNum(t.entry)+' · Stop '+trNum(t.stop)+' · Target '+trNum(t.target)+' · Reward/risk '+t.reward_risk+'x</div>'+
       '<div class="note" style="font-size:12px;color:var(--ink)">'+esc(t.reason)+(t.price_note?' <span style="color:var(--muted)">('+esc(t.price_note)+')</span>':'')+'</div>'+
       (t.votes||[]).map(v=>'<div class="note" style="margin:2px 0">'+(v.vote==="YES"?"✅":"❌")+' <b>'+esc(v.name)+'</b> '+(v.confidence?v.confidence+'/5 · ':'')+esc(v.reason)+'</div>').join("")+
       (t.dropped?'<div class="note">Dropped: '+esc(t.dropped)+'</div>':'')+'</div>';});
-  h+='<div class="note" style="margin-top:8px">Rules: '+esc(r.rules||"")+'</div><div class="note">Demo only: nothing is ordered. Placing orders, with a Confirm button, comes once OneRoyal is connected through MetaApi. Prices come from web search, so check them in MetaTrader before trading.</div></div>';
+  h+='<div class="note" style="margin-top:8px">Rules: '+esc(r.rules||"")+'</div></div>';
+  // 4) MARKET BRIEF (last)
+  h+='<div class="card"><div class="lbl">🌍 Market brief · '+esc(p.week||"")+'</div><div class="note" style="font-size:13px;color:var(--ink)">'+esc(p.market_brief||"")+'</div>'+pnList("📅 Key events",p.key_events)+
+    '<div class="note" style="margin-top:8px">Voters: '+(r.members||[]).map(m=>esc(m.name)+(m.ok?' ✅ <span style="color:var(--muted)">'+esc(m.model)+'</span>':' ⚪ '+esc(m.error))).join(" · ")+'</div><div class="note">Prices come from web search; check them in MetaTrader before trading.</div></div>';
   return h+arBtns(arKeep({kind:"tr",r}));}
+async function trConcur(id,b,again){if(!again&&!b.dataset.sure){b.dataset.sure=1;b.innerHTML="Tap again to confirm — orders go to OneRoyal";setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.innerHTML="✅ Concur & place orders";}},6000);return;}
+  b.disabled=true;b.innerHTML="Sending orders…";try{const d=await trApi({action:"concur",id});toast(d.execution.note||"Done",4500);const g=await trApi({action:"get"});trShow(g);}catch(e){toast(e.message,5000);b.disabled=false;b.innerHTML="✅ Concur & place orders";delete b.dataset.sure;}}
+async function trDecline(id){try{await trApi({action:"decline",id});toast("Noted — no trades this week.",3000);trShow(await trApi({action:"get"}));}catch(e){toast(e.message,4000);}}
 async function trStart(){const b=+String(document.getElementById("trBud").value).replace(/[$,\s]/g,"")||10000;
   try{await trApi({action:"start",bias:TRBIAS,budget:b});toast("Study started — about 2–4 minutes.",3000);const d=await trApi({action:"get"});trShow(d);trPoll();}catch(e){toast(e.message,4500);}}
 function trPoll(){clearTimeout(TRT);TRT=setTimeout(async()=>{if(!document.getElementById("trbox"))return;try{const d=await trApi({action:"get"});trShow(d);if(d.run&&d.run.status==="working")trPoll();}catch(_){trPoll();}},8000);}
@@ -1345,13 +1366,14 @@ function pnPlain(r){const t=r.tally||{};let s="Panel opinion — "+(r.title||"")
   (r.members||[]).forEach(m=>{s+="\n## "+m.name+(m.ok?" — "+m.verdict+" · "+m.score+"/10":" — no answer")+"\n";if(!m.ok){s+=(m.error||"")+"\n";return;}
     s+=(m.summary||"")+"\n";[["Pros",m.pros],["Cons",m.cons],["Risks",m.risks],["Conditions before going ahead",m.conditions],["Missing from the plan",m.missing]].forEach(([h,a])=>{if(a&&a.length){s+="### "+h+"\n";a.forEach(x=>s+="- "+x+"\n");}});});
   return s.trim();}
-function trPlain(r){const p=r.pack||{};let s="Trading Hub — week "+(p.week||"")+" (demo, no orders placed)\n";
-  s+="Direction: "+(r.bias||"")+" · Budget $"+trNum(r.budget)+" · "+(r.chosen||0)+" trades chosen · $"+trNum(r.allocated)+" allocated · max loss if every stop hits $"+trNum(r.max_loss)+"\n";
-  s+="\n## Market brief\n"+(p.market_brief||"")+"\n";if(p.key_events&&p.key_events.length){s+="### Key events\n";p.key_events.forEach(x=>s+="- "+x+"\n");}
-  s+="Voters: "+(r.members||[]).map(m=>m.name+(m.ok?" ("+m.model+")":" (no answer)")).join(", ")+"\n";
+function trPlain(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok);let s="Trading Hub — week "+(p.week||"")+"\n";
+  s+="\n## How the board voted\n";(r.trades||[]).forEach(t=>{s+="- "+t.direction+" "+t.symbol+": "+ok.map(m=>{const v=(t.votes||[]).find(x=>x.name===m.name);return m.name+" "+(v?v.vote:"-");}).join(", ")+" → "+t.yes+"/"+t.voters+" · "+(t.allocation>0?"$"+trNum(t.allocation):"Skip")+"\n";});
+  s+="Board decision: "+(r.chosen||0)+" trades · $"+trNum(r.allocated)+" of $"+trNum(r.budget)+" · max loss if every stop hits $"+trNum(r.max_loss)+"\n";
+  if(r.execution){const ex=r.execution;s+="\n## Orders\n"+(ex.note||"")+"\n";(ex.orders||[]).forEach(o=>s+="- "+o.direction+" "+o.symbol+(o.lots?" "+o.lots+" lots":"")+" · stop "+trNum(o.stop)+" · target "+trNum(o.target)+" — "+o.status+(o.error?" ("+o.error+")":"")+"\n");}
   (r.trades||[]).forEach(t=>{s+="\n## "+t.direction+" "+t.symbol+" ("+t.name+") — "+(t.allocation>0?"$"+trNum(t.allocation):"Skip")+" · "+t.yes+"/"+t.voters+" YES\n";
-    s+="Price "+trNum(t.price)+" · Entry "+trNum(t.entry)+" · Stop "+trNum(t.stop)+" · Target "+trNum(t.target)+" · Reward/risk "+t.reward_risk+"x"+(t.units_for_150_risk?" · Size for ~$150 risk: "+t.units_for_150_risk+" units":"")+"\n";
+    s+="Price "+trNum(t.price)+" · Entry "+trNum(t.entry)+" · Stop "+trNum(t.stop)+" · Target "+trNum(t.target)+" · Reward/risk "+t.reward_risk+"x\n";
     s+=(t.reason||"")+(t.price_note?" ("+t.price_note+")":"")+"\n";(t.votes||[]).forEach(v=>s+="- "+v.name+": "+v.vote+(v.confidence?" "+v.confidence+"/5":"")+" — "+v.reason+"\n");if(t.dropped)s+="Dropped: "+t.dropped+"\n";});
+  s+="\n## Market brief\n"+(p.market_brief||"")+"\n";if(p.key_events&&p.key_events.length){s+="### Key events\n";p.key_events.forEach(x=>s+="- "+x+"\n");}
   s+="\nRules: "+(r.rules||"");return s.trim();}
 /* ===== Advisory Panel — Trade opinion (edge function `panel`) ===== */
 async function pnApi(o){const r=await fetch(SB_URL+"/functions/v1/panel",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
