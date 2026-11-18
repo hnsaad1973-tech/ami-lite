@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=60;
+const AMI_LEVEL=61;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1333,7 +1333,7 @@ function trRender(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok),N=ok.
     '</table></div><div class="note" style="margin-top:6px">'+ok.map(m=>esc(ini(m.name))+' = '+esc(m.name)).join(" · ")+((r.members||[]).some(m=>!m.ok)?' · Missing: '+(r.members||[]).filter(m=>!m.ok).map(m=>esc(m.name)).join(", "):'')+'</div>'+
     '<div style="margin-top:8px;font-size:14px"><b>Board decision: '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' · $'+trNum(r.allocated)+' of $'+trNum(r.budget)+'</b><br><span class="note">Max loss if every stop is hit: $'+trNum(r.max_loss)+' · weekly cap $'+trNum(r.loss_cap||600)+'</span></div>'+
     (!r.execution&&r.chosen>0?'<div style="margin-top:10px">'+pnBtn("✅ Concur & place orders","trConcur('"+esc(r.id)+"',this)",1)+pnBtn("⏸ Don\'t trade this week","trDecline('"+esc(r.id)+"')")+'</div>':'')+
-    (!r.chosen?'<div class="note" style="margin-top:8px">No trade reached the votes needed, so there is nothing to place this week.</div>':'')+'</div>';
+    (!r.execution&&!r.chosen?'<div style="margin-top:10px"><button disabled style="border:none;border-radius:10px;padding:9px 14px;font-weight:600;margin:4px 6px 0 0;background:var(--line);color:var(--muted);opacity:.7">✅ Concur & place orders · 0 trades</button></div><div class="note" style="margin-top:6px">The board passed no trade this week, so there is no order to place. Run a new study for fresh votes.</div>'+pnBtn("🔁 New study","openTrade()"):'')+'</div>';
   // 2) CONCUR & PLACE ORDERS
   const ex=r.execution;
   if(ex){h+='<div class="card"><div class="lbl">'+(/placed/.test(ex.status)?'✅ Orders sent':ex.status==="declined"?'⏸ Not traded':ex.status==="waiting"?'⏳ Orders waiting for the broker':'⚠️ Orders not placed')+'</div><div class="note">'+esc(ex.note||"")+'</div>'+
