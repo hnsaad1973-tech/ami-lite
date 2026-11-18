@@ -583,7 +583,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=45;
+const AMI_LEVEL=47;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
