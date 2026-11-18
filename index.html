@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=61;
+const AMI_LEVEL=62;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1266,8 +1266,9 @@ try{if(localStorage.getItem("ami_no_tiles"))tilesHide(true);}catch(_){}
 let clrArm="";
 async function clearPane(w,btn){if(!token){document.getElementById("login").classList.add("show");return;}
   if(!btn.dataset.l)btn.dataset.l=btn.textContent;
-  if(clrArm!==w){clrArm=w;btn.classList.add("arm");btn.textContent="Tap to confirm";setTimeout(()=>{if(clrArm===w){clrArm="";btn.classList.remove("arm");btn.textContent=btn.dataset.l;}},3000);return;}
+  if(clrArm!==w){clrArm=w;btn.classList.add("arm");btn.textContent="Tap again to clear";setTimeout(()=>{if(clrArm===w){clrArm="";btn.classList.remove("arm");btn.textContent=btn.dataset.l;}},3000);return;}
   const lbl=btn.dataset.l||"🗑 Clear";clrArm="";btn.classList.remove("arm");btn.textContent="Clearing…";btn.disabled=true;
+  if(w==="chat"&&(section==="Board room"||section==="Trade advisory")){btn.disabled=false;btn.textContent=lbl;const t=section;document.getElementById("msgs").innerHTML="";if(t==="Board room")openBoard();else openTrade();toast("Cleared — fresh "+t+".",2200);return;}
   const sec=w==="wa"?"WhatsApp":section;
   try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({message:"clear chat",section:sec,token})});
     const d=await r.json().catch(()=>null);const rep=extract(d)||("Error: "+r.status);
