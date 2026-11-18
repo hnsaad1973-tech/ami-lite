@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=70;
+const AMI_LEVEL=71;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1493,7 +1493,7 @@ async function openBoard(toAsk){openChat("Board room","");document.querySelector
   let st={};try{st=await pnApi({action:"status"});}catch(_){}
   const n=BOARD.filter(b=>st[b[3]]).length,m=document.getElementById("bdmem");if(!m)return;
   m.innerHTML='<div class="card"><div class="lbl">👥 Board of directors · '+n+' of 5 seated</div>'+BOARD.map(b=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(b[0])+'</b> <span style="color:var(--muted);font-size:11px">'+esc(b[1])+' · '+esc(b[4])+'</span><br><span style="color:var(--muted);font-size:10.5px">'+esc(b[2])+'</span></div><div style="white-space:nowrap">'+(st[b[3]]?'🟢':'⚪')+'</div></div>').join("")+
-   '<div class="note" style="margin-top:8px"><b>Rules:</b> each member votes alone. Questions and plans: a majority = GO. Trades: 4+ YES = full size ($2,000), 3 YES = half ($1,000), fewer = skip. Orders go to OneRoyal only when you concur.</div></div>';}
+   '<div class="note" style="margin-top:8px"><b>Rules:</b> each member votes alone. Questions and plans: a majority = GO. Trades: the whole weekly budget ($10,000) is invested across the approved trades. 4+ YES = double share, 3 YES = single share, fewer = skip. If every stop is hit, the week loses $600 at most. Orders go to OneRoyal only when you concur.</div></div>';}
 /* ===== 4 group tiles (18 Nov 2026) ===== */
 const GROUPS={
  time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()]]],
