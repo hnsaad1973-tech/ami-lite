@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=62;
+const AMI_LEVEL=63;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1265,10 +1265,12 @@ function tilesHide(force){const on=force===undefined?!document.body.classList.co
 try{if(localStorage.getItem("ami_no_tiles"))tilesHide(true);}catch(_){}
 let clrArm="";
 async function clearPane(w,btn){if(!token){document.getElementById("login").classList.add("show");return;}
+  if(w==="chat"&&(section==="Board room"||section==="Trade advisory")){clrArm="";btn.classList.remove("arm");
+    if(section==="Board room"){try{localStorage.setItem("bd_cleared",window._bdRun||"");}catch(_){}document.getElementById("msgs").innerHTML="";openBoard();}else{document.getElementById("msgs").innerHTML="";openTrade();}
+    toast("Cleared.",1800);return;}
   if(!btn.dataset.l)btn.dataset.l=btn.textContent;
   if(clrArm!==w){clrArm=w;btn.classList.add("arm");btn.textContent="Tap again to clear";setTimeout(()=>{if(clrArm===w){clrArm="";btn.classList.remove("arm");btn.textContent=btn.dataset.l;}},3000);return;}
   const lbl=btn.dataset.l||"🗑 Clear";clrArm="";btn.classList.remove("arm");btn.textContent="Clearing…";btn.disabled=true;
-  if(w==="chat"&&(section==="Board room"||section==="Trade advisory")){btn.disabled=false;btn.textContent=lbl;const t=section;document.getElementById("msgs").innerHTML="";if(t==="Board room")openBoard();else openTrade();toast("Cleared — fresh "+t+".",2200);return;}
   const sec=w==="wa"?"WhatsApp":section;
   try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({message:"clear chat",section:sec,token})});
     const d=await r.json().catch(()=>null);const rep=extract(d)||("Error: "+r.status);
@@ -1315,8 +1317,11 @@ async function trGo(b){if(window._trWk===weekISO()&&!b.dataset.sure){b.dataset.s
   try{await trApi({action:"start",bias:trOpt("dir","either"),market:trOpt("mk","all"),budget:10000});toast("Study started — the board will vote in about 3–4 minutes.",3500);}
   catch(e){if(!/already running/i.test(e.message)){toast(e.message,4500);b.disabled=false;b.innerHTML="▶ "+weekLabel();return;}}
   openBoard();}
+function bdShow(){try{localStorage.removeItem("bd_cleared");}catch(_){}trApi({action:"get"}).then(bdTrade).catch(e=>toast(e.message,3000));}
 function trRefresh(d){if(document.getElementById("bdtr"))bdTrade(d);}
-function bdTrade(d){const w=document.getElementById("bdtr");if(!w)return;const r=d.run;let h="";
+function bdTrade(d){const w=document.getElementById("bdtr");if(!w)return;const r=d.run;let h="";window._bdRun=r?r.id:"";
+  let clr="";try{clr=localStorage.getItem("bd_cleared")||"";}catch(_){}
+  if(r&&clr&&r.id===clr&&r.status!=="working"){w.innerHTML='<div class="card"><div class="lbl">🏛 Board room</div><div class="note">Cleared. The latest study ('+esc(wkName((r.pack||{}).week))+') is kept — tap to see it again.</div>'+pnBtn("🗳 Show the latest vote","bdShow()")+pnBtn("▶ New study","openTrade()",1)+'</div>';return;}
   if(!r)h='<div class="card"><div class="lbl">📈 This week\'s trading</div><div class="note">No study yet.</div>'+pnBtn("▶ "+weekLabel(),"openTrade()",1)+'</div>';
   else if(r.status==="working")h='<div class="card"><div class="lbl">⏳ '+esc(weekLabel())+' · the board is at work</div><div class="note">'+esc(r.step||"")+'</div><div class="note">About 3–4 minutes. This page updates by itself — you can leave and come back.</div></div>';
   else if(r.status==="failed")h='<div class="card"><div class="lbl">⚠️ The last study failed</div><div class="note">'+esc(r.error||"")+'</div>'+pnBtn("🔁 Run it again","openTrade()",1)+'</div>';
