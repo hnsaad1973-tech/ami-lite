@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=57;
+const AMI_LEVEL=58;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1294,16 +1294,24 @@ function wkName(wk){const m=String(wk||"").match(/^(\d{4})-(\d\d)-(\d\d)/);if(!m
 function nextMon(){const d=new Date(),day=d.getUTCDay(),add=day===1?0:((8-day)%7||7);return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+add));}
 function weekLabel(){const m=nextMon(),n=wkNo(m);return n>=1?"Trade week "+n:"Practice week";}
 /* Trade advisory: one button — runs the week's study; the board votes; results and Confirm are in the Board room */
+const TR_MK=[["all","🌐 All"],["fx","💱 Forex"],["metals","🥇 Gold & metals"],["energy","🛢 Oil & energy"],["indices","📊 Indices"],["stocks","🏢 US stocks"]];
+const TR_DIR=[["either","⚖️ Board decides"],["buy","🟢 Buy"],["short","🔴 Short"]];
+function trOpt(k,d){try{return localStorage.getItem("tr_"+k)||d;}catch(_){return d;}}
+function trSet(k,v){try{localStorage.setItem("tr_"+k,v);}catch(_){}document.querySelectorAll('.trtab[data-k="'+k+'"]').forEach(b=>{const on=b.dataset.v===v;b.style.background=on?"linear-gradient(135deg,var(--gold),var(--gold2))":"var(--line)";b.style.color=on?"#0A0F1A":"var(--ink)";});}
+function trTabs(k,list,cur){return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px">'+list.map(([v,t])=>'<button class="trtab" data-k="'+k+'" data-v="'+v+'" onclick="trSet(\''+k+'\',\''+v+'\')" style="border:none;border-radius:20px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;background:'+(v===cur?'linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A':'var(--line);color:var(--ink)')+'">'+t+'</button>').join("")+'</div>';}
+function mkName(m){const f=TR_MK.find(x=>x[0]===m);return f?f[1]:"🌐 All";}
 async function openTrade(){openChat("Trade advisory","");const w=bubble("a","");w.style.maxWidth="100%";w.style.width="100%";
   let last="";window._trWk="";try{const d=await trApi({action:"get"}),r=d.run;if(r&&r.status==="done")window._trWk=(r.pack||{}).week||"";if(r)last=r.status==="working"?'⏳ A study is running now — '+esc(r.step||""):r.status==="done"?'Latest: '+esc(wkName((r.pack||{}).week))+' · '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' chosen'+(r.execution?' · '+esc(r.execution.status):' · waiting for your decision'):r.status==="failed"?'⚠️ Last study failed: '+esc(r.error||""):"";}catch(_){}
   w.innerHTML='<div class="gp"><div class="card"><div class="lbl">📈 Trade advisory</div><div class="note">AMI researches the markets and this week\'s news, proposes 6 trades, and the board of 5 votes. The result and the Confirm button open in the Board room.</div>'+
+    '<div class="note" style="margin-top:8px"><b>Market</b></div>'+trTabs("mk",TR_MK,trOpt("mk","all"))+
+    '<div class="note" style="margin-top:6px"><b>Direction</b></div>'+trTabs("dir",TR_DIR,trOpt("dir","either"))+
     '<button onclick="trGo(this)" style="width:100%;border:none;border-radius:14px;padding:18px 14px;margin-top:10px;font-size:17px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A">▶ '+esc(weekLabel())+'</button><div class="note" style="text-align:center;margin-top:4px">'+esc(wkDates(nextMon()))+' · Monday open to Friday close</div>'+
     (last?'<div class="note" style="margin-top:10px">'+last+'</div>'+pnBtn("🏛 Open the Board room","openBoard()"):'')+'</div></div>';
   w.scrollIntoView({block:"start"});}
 function weekISO(){const d=new Date(),day=d.getUTCDay(),add=day===1?0:((8-day)%7||7);const m=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+add)),f=new Date(m.getTime()+4*864e5);return m.toISOString().slice(0,10)+" to "+f.toISOString().slice(0,10);}
 async function trGo(b){if(window._trWk===weekISO()&&!b.dataset.sure){b.dataset.sure=1;b.innerHTML="Already studied — tap again to run a new study";return;}
   b.disabled=true;b.innerHTML="Starting…";
-  try{await trApi({action:"start",bias:"either",budget:10000});toast("Study started — the board will vote in about 3–4 minutes.",3500);}
+  try{await trApi({action:"start",bias:trOpt("dir","either"),market:trOpt("mk","all"),budget:10000});toast("Study started — the board will vote in about 3–4 minutes.",3500);}
   catch(e){if(!/already running/i.test(e.message)){toast(e.message,4500);b.disabled=false;b.innerHTML="▶ "+weekLabel();return;}}
   openBoard();}
 function trRefresh(d){if(document.getElementById("bdtr"))bdTrade(d);}
@@ -1312,12 +1320,12 @@ function bdTrade(d){const w=document.getElementById("bdtr");if(!w)return;const r
   else if(r.status==="working")h='<div class="card"><div class="lbl">⏳ '+esc(weekLabel())+' · the board is at work</div><div class="note">'+esc(r.step||"")+'</div><div class="note">About 3–4 minutes. This page updates by itself — you can leave and come back.</div></div>';
   else if(r.status==="failed")h='<div class="card"><div class="lbl">⚠️ The last study failed</div><div class="note">'+esc(r.error||"")+'</div>'+pnBtn("🔁 Run it again","openTrade()",1)+'</div>';
   else h=trRender(r);
-  if(d.history&&d.history.length>1)h+='<div class="card"><div class="lbl">🗂 Past weeks</div>'+d.history.slice(1).map(x=>'<div class="crow" onclick="trWeek(\''+esc(x.id)+'\')"><div><b>'+esc(x.week||String(x.id).slice(0,10))+'</b><br><span style="color:var(--muted);font-size:10.5px">'+(x.chosen||0)+' trades · $'+trNum(x.allocated||0)+'</span></div><div>›</div></div>').join("")+'</div>';
+  if(d.history&&d.history.length>1)h+='<div class="card"><div class="lbl">🗂 Past weeks</div>'+d.history.slice(1).map(x=>'<div class="crow" onclick="trWeek(\''+esc(x.id)+'\')"><div><b>'+esc(x.week||String(x.id).slice(0,10))+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc(mkName(x.market))+' · '+(x.chosen||0)+' trades · $'+trNum(x.allocated||0)+'</span></div><div>›</div></div>').join("")+'</div>';
   w.innerHTML=h;}
 function trRender(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok),N=ok.length;
   const ini=n=>({Claude:"Cl",ChatGPT:"GPT",Grok:"Gk",Gemini:"Gm",Perplexity:"Px"}[n]||n.slice(0,2));
   // 1) HOW THE BOARD VOTED (first)
-  let h='<div class="card"><div class="lbl">🗳 How the board voted · '+esc(wkName(p.week))+'</div>'+
+  let h='<div class="card"><div class="lbl">🗳 How the board voted · '+esc(wkName(p.week))+(r.market&&r.market!=="all"?' · '+esc(mkName(r.market)):'')+'</div>'+
     '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--muted)"><td style="padding:4px 2px">Trade</td>'+ok.map(m=>'<td style="text-align:center;padding:4px 2px">'+esc(ini(m.name))+'</td>').join("")+'<td style="text-align:right;padding:4px 2px">Result</td></tr>'+
     (r.trades||[]).map(t=>{const on=t.allocation>0;return '<tr style="border-top:1px solid var(--line)"><td style="padding:6px 2px;white-space:nowrap"><b>'+(t.direction==="BUY"?"🟢":"🔴")+' '+esc(t.symbol)+'</b></td>'+
       ok.map(m=>{const v=(t.votes||[]).find(x=>x.name===m.name);return '<td style="text-align:center">'+(v?(v.vote==="YES"?"✅":"❌"):"·")+'</td>';}).join("")+
