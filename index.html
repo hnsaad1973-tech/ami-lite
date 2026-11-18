@@ -53,11 +53,16 @@
   .cell .tradingview-widget-container__widget,.cell iframe{width:100%!important;height:100%!important;}
   .tradingview-widget-copyright{display:none!important;}
   .tabs button.my{color:var(--gold2);font-weight:600;}
-  .trade{grid-column:1/-1;display:flex;flex-direction:column;min-height:0;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .trade{grid-column:1/-1;display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden;}
   .trh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
   .trh b{color:var(--ink);font-size:12px;letter-spacing:0;text-transform:none;}
   .trh .pl{margin-left:auto;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;}
-  .trl{flex:0 0 auto;min-height:0;}
+  .trl{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+  .trx{flex:1 1 0;min-height:0;display:grid;grid-template-columns:40% 60%;border-bottom:1px solid var(--line);}
+  .trx .inf{padding:5px 8px;font-size:11px;line-height:1.35;overflow:hidden;}.trx .inf b{font-size:13px;}.trx .inf small{display:block;color:var(--muted);font-size:10px;}
+  .trl.cmp .trx .inf{padding:3px 6px;font-size:10px;line-height:1.25;}.trl.cmp .trx .inf b{font-size:11px;}.trl.cmp .trx .inf small{font-size:9px;}
+  .trl.two{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;}.trl.two .trx{grid-template-columns:44% 56%;border-right:1px solid var(--line);}
+  .trx .cht{min-height:0;position:relative;padding:4px 6px 4px 0;}.trx .cht svg{position:absolute;inset:4px 6px 4px 0;width:calc(100% - 6px);height:calc(100% - 8px);}
   .trr{display:grid;grid-template-columns:1.2fr .9fr .8fr auto;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;}
   .trr .sy{font-weight:600;}.trr .sy small{display:block;font-weight:400;color:var(--muted);font-size:10px;}
   .trr .px{text-align:right;}.trr .ch{text-align:right;font-weight:600;}
@@ -591,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=68;
+const AMI_LEVEL=69;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1137,38 +1142,37 @@ function renderTrade(){
       '<div class="t2" style="font-size:10.5px">Every order shows the full details and needs your Confirm · max $'+fmt(IBKR.maxTrade,0)+' per trade</div></div>';
   }else{
     const d=ibkrData||{positions:[]},p=+d.pnl||0,ps=d.positions||[];
-    let h='<div class="trh"><b>OneRoyal MT4'+(d.demo!==false?' · Demo':'')+'</b> · '+ps.length+' open<span class="pl '+(p>=0?"up":"dn")+'">'+(p>=0?"+":"")+fmt(p,2)+' '+(d.currency||"USD")+'</span></div>'+
-      '<div class="t2" style="padding:6px 12px;font-size:11px;color:var(--muted)">'+(ibkrData?'Balance $'+fmt(d.balance,2)+' · Equity $'+fmt(d.equity,2)+' · Free margin $'+fmt(d.free_margin,2):'Loading the account…')+'</div><div class="trl">';
+    let h='<div class="trh" title="Live from MetaTrader, refreshed every 30 seconds. New trades are placed only from the Board room after you concur."><b>MT4'+(d.demo!==false?' Demo':'')+'</b>'+
+      (ibkrData?'<span style="text-transform:none;letter-spacing:0">Bal $'+fmt(d.balance,0)+' · Eq $'+fmt(d.equity,0)+' · '+ps.length+' open</span>':'<span style="text-transform:none;letter-spacing:0">Loading…</span>')+
+      '<span class="pl '+(p>=0?"up":"dn")+'">'+(p>=0?"+$":"−$")+fmt(Math.abs(p),2)+'</span></div><div class="trl'+(ps.length>2?' cmp':'')+(ps.length>3?' two':'')+'">';
     ps.slice().sort((a,b)=>(+b.pnl||0)-(+a.pnl||0)).forEach(x=>{
       const q=+x.pnl||0,dg=+x.price<20?5:2;
-      h+='<div class="trr"><div class="sy">'+esc(String(x.symbol))+'<small>'+(x.side==="SELL"?'<span style="color:#e06c6c">SELL</span>':'<span style="color:#5cc98a">BUY</span>')+' '+fmt(x.lots,2)+' lot · open '+fmt(x.open,dg)+'</small>'+
-        '<small>SL '+(x.stop?fmt(x.stop,dg):'—')+' · TP '+(x.target?fmt(x.target,dg):'—')+(x.ami?' · AMI board':'')+'</small></div>'+
-        '<div class="px">'+fmt(x.price,dg)+'</div><div class="ch '+(q>=0?"up":"dn")+'">'+(q>=0?"▲ +$":"▼ −$")+fmt(Math.abs(q),2)+'</div></div>'+trChart(x,dg);});
-    if(!ps.length)h+='<div class="tre"><div class="t2">'+(ibkrData?'No open trades.':'')+'</div></div>';
-    h+='</div><div class="t2" style="padding:8px 12px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line)">Live from MetaTrader, refreshed every 30 seconds. New trades are placed only from the Board room after you concur.</div>';
+      if(ps.length>3){h+='<div class="trx"><div class="inf" style="white-space:nowrap"><b>'+esc(String(x.symbol))+'</b><small style="color:'+(x.side==="SELL"?'#e06c6c':'#5cc98a')+'">'+x.side+' '+fmt(x.lots,2)+'</small><div style="font-weight:600" class="'+(q>=0?"up":"dn")+'">'+(q>=0?"+$":"−$")+fmt(Math.abs(q),2)+'</div></div><div class="cht">'+trChart(x)+'</div></div>';return;}
+      h+='<div class="trx"><div class="inf"><b>'+esc(String(x.symbol))+'</b> '+(x.side==="SELL"?'<span style="color:#e06c6c">SELL</span>':'<span style="color:#5cc98a">BUY</span>')+' '+fmt(x.lots,2)+
+        '<div style="font-weight:600" class="'+(q>=0?"up":"dn")+'">'+fmt(x.price,dg)+' · '+(q>=0?"+$":"−$")+fmt(Math.abs(q),2)+'</div>'+
+        (ps.length>2?'<small><span style="color:#d9a441">E '+fmt(x.open,dg)+'</span> <span style="color:#e06c6c">SL '+(x.stop?fmt(x.stop,dg):'—')+'</span> <span style="color:#5cc98a">TP '+(x.target?fmt(x.target,dg):'—')+'</span></small>':
+        '<small><span style="color:#d9a441">Entry '+fmt(x.open,dg)+'</span></small><small><span style="color:#e06c6c">SL '+(x.stop?fmt(x.stop,dg):'—')+'</span> · <span style="color:#5cc98a">TP '+(x.target?fmt(x.target,dg):'—')+'</span></small>')+'</div>'+
+        '<div class="cht">'+trChart(x)+'</div></div>';});
+    if(!ps.length)h+='<div class="tre" style="margin:auto"><div class="t2">'+(ibkrData?'No open trades. New trades come from the Board room.':'')+'</div></div>';
+    h+='</div>';
     wrap.innerHTML=h;
   }
   g.appendChild(wrap);
 }
-/* v66: 24-hour chart (15-min closes) under each open trade: price line, entry (gold dashed), stop (red), target (green) */
-function trChart(x,dg){
+/* v69: 24-hour chart (15-min closes) beside each open trade, stretched to fit: price, entry (gold dashed), stop (red), target (green); off-chart levels show as a thin edge band */
+function trChart(x){
   const c=(x.chart||[]).filter(k=>k&&k[1]>0);if(c.length<2)return "";
-  const W=340,Hh=120,L=4,R=62,T=8,B=16,cl=c.map(k=>k[1]);
-  let lo=Math.min(...cl,x.open,x.price),hi=Math.max(...cl,x.open,x.price);const pad=(hi-lo)*0.15||x.price*0.001;lo-=pad;hi+=pad;
-  const t0=c[0][0],t1=Math.max(c[c.length-1][0],Date.now()),X=t=>L+(W-L-R)*(t-t0)/((t1-t0)||1),Y=v=>T+(Hh-T-B)*(hi-v)/((hi-lo)||1);
-  const line=(v,col,lab,dash)=>{if(!v)return "";const off=v>hi?"top":v<lo?"bot":"";const y=off==="top"?T:off==="bot"?Hh-B:Y(v);
-    return (off?"":'<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="'+col+'" stroke-width="1" '+(dash?'stroke-dasharray="4 3"':'')+'/>')+
-      '<text x="'+(W-R+4)+'" y="'+(y+3)+'" fill="'+col+'" font-size="9">'+lab+' '+fmt(v,dg)+(off==="top"?" ↑":off==="bot"?" ↓":"")+'</text>';};
+  const W=200,Hh=100,cl=c.map(k=>k[1]);
+  let lo=Math.min(...cl,x.open,x.price),hi=Math.max(...cl,x.open,x.price);const pad=(hi-lo)*0.12||x.price*0.001;lo-=pad;hi+=pad;
+  const t0=c[0][0],t1=Math.max(c[c.length-1][0],Date.now()),X=t=>W*(t-t0)/((t1-t0)||1),Y=v=>Hh*(hi-v)/((hi-lo)||1);
+  const lv=(v,col,dash)=>{if(!v)return "";if(v>hi)return '<rect x="0" y="0" width="'+W+'" height="2" fill="'+col+'" opacity=".8"/>';if(v<lo)return '<rect x="0" y="'+(Hh-2)+'" width="'+W+'" height="2" fill="'+col+'" opacity=".8"/>';
+    return '<line x1="0" x2="'+W+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'" stroke="'+col+'" stroke-width="1" vector-effect="non-scaling-stroke"'+(dash?' stroke-dasharray="4 3"':'')+'/>';};
   const pts=c.map(k=>X(k[0]).toFixed(1)+","+Y(k[1]).toFixed(1)).join(" ")+" "+X(t1).toFixed(1)+","+Y(x.price).toFixed(1);
-  const up=(x.side==="SELL")?x.price<=x.open:x.price>=x.open,col=up?"#5cc98a":"#e06c6c";
+  const win=(x.side==="SELL")?x.price<=x.open:x.price>=x.open,col=win?"#5cc98a":"#e06c6c";
   const ot=Date.parse(x.opened||""),ox=ot>t0?X(ot):0;
-  const hh=t=>{const d=new Date(t);return String(d.getUTCHours()).padStart(2,"0")+":00";};
-  return '<div class="trc" style="padding:2px 8px 8px;border-bottom:1px solid var(--line)"><svg viewBox="0 0 '+W+' '+Hh+'" width="100%" style="display:block">'+
-    line(x.target,"#5cc98a","TP")+line(x.stop,"#e06c6c","SL")+line(x.open,"#d9a441","Entry",1)+
-    (ox?'<line x1="'+ox+'" x2="'+ox+'" y1="'+T+'" y2="'+(Hh-B)+'" stroke="#d9a441" stroke-width="0.6" stroke-dasharray="2 3"/>':'')+
-    '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-linejoin="round"/>'+
-    '<circle cx="'+X(t1).toFixed(1)+'" cy="'+Y(x.price).toFixed(1)+'" r="2.6" fill="'+col+'"/>'+
-    '<text x="'+L+'" y="'+(Hh-3)+'" fill="#8a8f98" font-size="9">'+hh(t0)+' GMT</text><text x="'+(W-R)+'" y="'+(Hh-3)+'" fill="#8a8f98" font-size="9" text-anchor="end">now · 24h</text></svg></div>';
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">'+lv(x.target,"#5cc98a")+lv(x.stop,"#e06c6c")+lv(x.open,"#d9a441",1)+
+    (ox?'<line x1="'+ox.toFixed(1)+'" x2="'+ox.toFixed(1)+'" y1="0" y2="'+Hh+'" stroke="#d9a441" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke" opacity=".6"/>':'')+
+    '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
 }
 function openTicket(side,sym,px){
   if(!IBKR.connected)return;
