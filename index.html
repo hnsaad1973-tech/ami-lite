@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=65;
+const AMI_LEVEL=66;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1139,12 +1139,32 @@ function renderTrade(){
       const q=+x.pnl||0,dg=+x.price<20?5:2;
       h+='<div class="trr"><div class="sy">'+esc(String(x.symbol))+'<small>'+(x.side==="SELL"?'<span style="color:#e06c6c">SELL</span>':'<span style="color:#5cc98a">BUY</span>')+' '+fmt(x.lots,2)+' lot · open '+fmt(x.open,dg)+'</small>'+
         '<small>SL '+(x.stop?fmt(x.stop,dg):'—')+' · TP '+(x.target?fmt(x.target,dg):'—')+(x.ami?' · AMI board':'')+'</small></div>'+
-        '<div class="px">'+fmt(x.price,dg)+'</div><div class="ch '+(q>=0?"up":"dn")+'">'+(q>=0?"▲ +$":"▼ −$")+fmt(Math.abs(q),2)+'</div></div>';});
+        '<div class="px">'+fmt(x.price,dg)+'</div><div class="ch '+(q>=0?"up":"dn")+'">'+(q>=0?"▲ +$":"▼ −$")+fmt(Math.abs(q),2)+'</div></div>'+trChart(x,dg);});
     if(!ps.length)h+='<div class="tre"><div class="t2">'+(ibkrData?'No open trades.':'')+'</div></div>';
     h+='</div><div class="t2" style="padding:8px 12px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line)">Live from MetaTrader, refreshed every 30 seconds. New trades are placed only from the Board room after you concur.</div>';
     wrap.innerHTML=h;
   }
   g.appendChild(wrap);
+}
+/* v66: 24-hour chart (15-min closes) under each open trade: price line, entry (gold dashed), stop (red), target (green) */
+function trChart(x,dg){
+  const c=(x.chart||[]).filter(k=>k&&k[1]>0);if(c.length<2)return "";
+  const W=340,Hh=120,L=4,R=62,T=8,B=16,cl=c.map(k=>k[1]);
+  let lo=Math.min(...cl,x.open,x.price),hi=Math.max(...cl,x.open,x.price);const pad=(hi-lo)*0.15||x.price*0.001;lo-=pad;hi+=pad;
+  const t0=c[0][0],t1=Math.max(c[c.length-1][0],Date.now()),X=t=>L+(W-L-R)*(t-t0)/((t1-t0)||1),Y=v=>T+(Hh-T-B)*(hi-v)/((hi-lo)||1);
+  const line=(v,col,lab,dash)=>{if(!v)return "";const off=v>hi?"top":v<lo?"bot":"";const y=off==="top"?T:off==="bot"?Hh-B:Y(v);
+    return (off?"":'<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="'+col+'" stroke-width="1" '+(dash?'stroke-dasharray="4 3"':'')+'/>')+
+      '<text x="'+(W-R+4)+'" y="'+(y+3)+'" fill="'+col+'" font-size="9">'+lab+' '+fmt(v,dg)+(off==="top"?" ↑":off==="bot"?" ↓":"")+'</text>';};
+  const pts=c.map(k=>X(k[0]).toFixed(1)+","+Y(k[1]).toFixed(1)).join(" ")+" "+X(t1).toFixed(1)+","+Y(x.price).toFixed(1);
+  const up=(x.side==="SELL")?x.price<=x.open:x.price>=x.open,col=up?"#5cc98a":"#e06c6c";
+  const ot=Date.parse(x.opened||""),ox=ot>t0?X(ot):0;
+  const hh=t=>{const d=new Date(t);return String(d.getUTCHours()).padStart(2,"0")+":00";};
+  return '<div class="trc" style="padding:2px 8px 8px;border-bottom:1px solid var(--line)"><svg viewBox="0 0 '+W+' '+Hh+'" width="100%" style="display:block">'+
+    line(x.target,"#5cc98a","TP")+line(x.stop,"#e06c6c","SL")+line(x.open,"#d9a441","Entry",1)+
+    (ox?'<line x1="'+ox+'" x2="'+ox+'" y1="'+T+'" y2="'+(Hh-B)+'" stroke="#d9a441" stroke-width="0.6" stroke-dasharray="2 3"/>':'')+
+    '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-linejoin="round"/>'+
+    '<circle cx="'+X(t1).toFixed(1)+'" cy="'+Y(x.price).toFixed(1)+'" r="2.6" fill="'+col+'"/>'+
+    '<text x="'+L+'" y="'+(Hh-3)+'" fill="#8a8f98" font-size="9">'+hh(t0)+' GMT</text><text x="'+(W-R)+'" y="'+(Hh-3)+'" fill="#8a8f98" font-size="9" text-anchor="end">now · 24h</text></svg></div>';
 }
 function openTicket(side,sym,px){
   if(!IBKR.connected)return;
