@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=59;
+const AMI_LEVEL=60;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1331,14 +1331,14 @@ function trRender(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok),N=ok.
       ok.map(m=>{const v=(t.votes||[]).find(x=>x.name===m.name);return '<td style="text-align:center">'+(v?(v.vote==="YES"?"✅":"❌"):"·")+'</td>';}).join("")+
       '<td style="text-align:right;white-space:nowrap;font-weight:700;color:'+(on?'var(--gold2)':'var(--muted)')+'">'+t.yes+'/'+t.voters+' · '+(on?'$'+trNum(t.allocation):'Skip')+'</td></tr>';}).join("")+
     '</table></div><div class="note" style="margin-top:6px">'+ok.map(m=>esc(ini(m.name))+' = '+esc(m.name)).join(" · ")+((r.members||[]).some(m=>!m.ok)?' · Missing: '+(r.members||[]).filter(m=>!m.ok).map(m=>esc(m.name)).join(", "):'')+'</div>'+
-    '<div style="margin-top:8px;font-size:14px"><b>Board decision: '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' · $'+trNum(r.allocated)+' of $'+trNum(r.budget)+'</b><br><span class="note">Max loss if every stop is hit: $'+trNum(r.max_loss)+' · weekly cap $'+trNum(r.loss_cap||600)+'</span></div></div>';
+    '<div style="margin-top:8px;font-size:14px"><b>Board decision: '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' · $'+trNum(r.allocated)+' of $'+trNum(r.budget)+'</b><br><span class="note">Max loss if every stop is hit: $'+trNum(r.max_loss)+' · weekly cap $'+trNum(r.loss_cap||600)+'</span></div>'+
+    (!r.execution&&r.chosen>0?'<div style="margin-top:10px">'+pnBtn("✅ Concur & place orders","trConcur('"+esc(r.id)+"',this)",1)+pnBtn("⏸ Don\'t trade this week","trDecline('"+esc(r.id)+"')")+'</div>':'')+
+    (!r.chosen?'<div class="note" style="margin-top:8px">No trade reached the votes needed, so there is nothing to place this week.</div>':'')+'</div>';
   // 2) CONCUR & PLACE ORDERS
   const ex=r.execution;
   if(ex){h+='<div class="card"><div class="lbl">'+(/placed/.test(ex.status)?'✅ Orders sent':ex.status==="declined"?'⏸ Not traded':ex.status==="waiting"?'⏳ Orders waiting for the broker':'⚠️ Orders not placed')+'</div><div class="note">'+esc(ex.note||"")+'</div>'+
     (ex.orders||[]).map(o=>'<div class="note" style="margin:3px 0">'+({placed:"✅",waiting:"⏳",skipped:"⏭",rejected:"❌",failed:"❌"}[o.status]||"•")+' <b>'+esc(o.direction+" "+o.symbol)+'</b>'+(o.lots?' · '+o.lots+' lots':'')+' · stop '+trNum(o.stop)+' · target '+trNum(o.target)+(o.error?' — '+esc(o.error):'')+'</div>').join("")+
     (ex.status==="waiting"||ex.status==="failed"||ex.status==="partly placed"?pnBtn("🔁 Send again","trConcur('"+esc(r.id)+"',this,1)",1):'')+'</div>';}
-  else if(r.chosen>0){h+='<div class="card"><div class="lbl">✍️ Your decision</div><div class="note">Concur with the board and AMI sends the '+r.chosen+' order'+(r.chosen==1?'':'s')+' above to OneRoyal, each with its stop-loss and target.</div>'+
-    pnBtn("✅ Concur & place orders","trConcur('"+esc(r.id)+"',this)",1)+pnBtn("⏸ Don\'t trade this week","trDecline('"+esc(r.id)+"')")+'</div>';}
   // 3) THE TRADES IN DETAIL
   h+='<div class="card"><div class="lbl">📋 The trades in detail</div>';
   (r.trades||[]).forEach(t=>{const on=t.allocation>0;
@@ -1450,7 +1450,7 @@ const BOARD=[["Claude","Anthropic","claude-opus-5-5","claude","Deep reasoning; c
 async function openBoard(toAsk){openChat("Board room","");document.querySelectorAll("#bdtr,#pnbox,#bdmem").forEach(e=>e.removeAttribute("id"));PNFILE=null;PNFILES=[];PNPATH=[];clearTimeout(TRT);
   const w=bubble("a",'<div class="gp"><div id="bdtr"><div class="card"><div class="note">Loading the board room…</div></div></div>'+pnForm()+'<div id="bdmem"></div></div>');w.style.maxWidth="100%";w.style.width="100%";
   if(toAsk)setTimeout(()=>{const b=document.getElementById("pnbox");if(b)b.scrollIntoView({block:"start"});},50);else w.scrollIntoView({block:"start"});
-  trApi({action:"get"}).then(d=>{bdTrade(d);if(d.run&&d.run.status==="working")trPoll();}).catch(e=>{const t=document.getElementById("bdtr");if(t)t.innerHTML='<div class="card"><div class="note">Couldn\'t load the trading study: '+esc(e.message)+'</div></div>';});
+  trApi({action:"get"}).then(d=>{bdTrade(d);if(!toAsk){const t=document.getElementById("bdtr");if(t)t.scrollIntoView({block:"start"});}if(d.run&&d.run.status==="working")trPoll();}).catch(e=>{const t=document.getElementById("bdtr");if(t)t.innerHTML='<div class="card"><div class="note">Couldn\'t load the trading study: '+esc(e.message)+'</div></div>';});
   let st={};try{st=await pnApi({action:"status"});}catch(_){}
   const n=BOARD.filter(b=>st[b[3]]).length,m=document.getElementById("bdmem");if(!m)return;
   m.innerHTML='<div class="card"><div class="lbl">👥 Board of directors · '+n+' of 5 seated</div>'+BOARD.map(b=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(b[0])+'</b> <span style="color:var(--muted);font-size:11px">'+esc(b[1])+' · '+esc(b[4])+'</span><br><span style="color:var(--muted);font-size:10.5px">'+esc(b[2])+'</span></div><div style="white-space:nowrap">'+(st[b[3]]?'🟢':'⚪')+'</div></div>').join("")+
