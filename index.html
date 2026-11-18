@@ -591,7 +591,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=58;
+const AMI_LEVEL=59;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1393,28 +1393,42 @@ function trPlain(r){const p=r.pack||{},ok=(r.members||[]).filter(m=>m.ok);let s=
   s+="\nRules: "+(r.rules||"");return s.trim();}
 /* ===== Advisory Panel — Trade opinion (edge function `panel`) ===== */
 async function pnApi(o){const r=await fetch(SB_URL+"/functions/v1/panel",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
-let PNFILE=null;
+let PNFILE=null; // (old single-file pick; replaced by PNFILES)
 function pnBtn(t,fn,gold){return '<button style="border:none;border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer;margin:4px 6px 0 0;'+(gold?'background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A':'background:var(--line);color:var(--ink)')+'" onclick="'+fn+'">'+t+'</button>';}
 function pnForm(){const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:10px;font-size:14px;margin:6px 0;font-family:inherit';
-  return '<div class="card" id="pnbox"><div class="lbl">❓ Ask the board</div><div class="note">Any question, business plan or feasibility study — type it or attach a Drive file. All 5 members study it on their own and vote.</div>'+
+  return '<div class="card" id="pnbox"><div class="lbl">❓ Ask the board</div><div class="note">Any question, business plan or feasibility study — type it or attach a Drive file. All 5 members study it on their own and vote. Attach up to 5 Drive files — plans, financials, contracts, reports.</div>'+
     '<input id="pnTitle" style="'+st+'" placeholder="Title (e.g. Storage units — Tubman Blvd)">'+
     '<textarea id="pnText" rows="5" style="'+st+'" placeholder="The question, plan, numbers…"></textarea>'+
     '<div id="pnFile" class="note"></div>'+
     '<div style="display:flex;gap:6px;margin:4px 0"><input id="pnQ" style="'+st+';margin:0" placeholder="Find a Drive file by name"><button style="border:none;border-radius:10px;padding:0 14px;font-weight:600;background:var(--line);color:var(--ink)" onclick="pnFind()">Find</button></div>'+
-    '<div id="pnList"></div>'+pnBtn("📨 Send to the board","pnSend()",1)+pnBtn("🗂 Past opinions","pnHist()")+'</div>';}
+    pnCoBtns()+'<div id="pnList"></div>'+pnBtn("📨 Send to the board","pnSend()",1)+pnBtn("🗂 Past opinions","pnHist()")+'</div>';}
 function openPanel(){openBoard(true);}
-async function pnFind(){const q=document.getElementById("pnQ").value.trim(),L=document.getElementById("pnList");if(!q)return;L.innerHTML='<div class="note">Searching…</div>';
-  try{const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"drive_list",q,token})});const j=await r.json();
-    const fs=(j.files||[]).filter(f=>!/folder/.test(f.type)).slice(0,8);
-    L.innerHTML=fs.length?fs.map((f,i)=>'<div class="crow" style="padding:8px 4px" onclick="pnPick('+i+')"><div>'+esc(f.name)+'<br><span style="color:var(--muted);font-size:10.5px">'+esc(f.type)+' · '+esc(f.modified||"")+'</span></div><div>＋</div></div>').join(""):'<div class="note">No files found.</div>';
-    L._fs=fs;}catch(e){L.innerHTML='<div class="note">Search failed: '+esc(e.message)+'</div>';}}
-function pnPick(i){const L=document.getElementById("pnList"),f=(L._fs||[])[i];if(!f)return;PNFILE=f;L.innerHTML="";
-  document.getElementById("pnFile").innerHTML='📎 <b>'+esc(f.name)+'</b> · <a href="#" onclick="PNFILE=null;this.parentNode.innerHTML=\'\';return false">remove</a>';
-  const t=document.getElementById("pnTitle");if(!t.value)t.value=f.name.replace(/\.[a-z]+$/i,"");}
+/* Drive files for the board: search by name, or browse a company's folders; up to 5 files */
+const PNCO=[["Leone","1qw_-mvcO0e0McEXYnGMncYDLXC2FCiQX"],["Cape Realities","1rB2dXvWVvvZuZEH9oSV5YyZQw_G13mr8"],["Platinum","1EaJzEKmkGQa6RZwClHTT4gg2WrLGLcwO"],["The Lead","1EVJOqgcvmIu7Hkvx6-4dlgt7LFI6s6Ks"],["M Hotel","1Z67zH3NSsmzrviEp-uTO1OehA83Il47_"],["JV Ventures","1sttdX5fK060WebS2vy9CDOW2j6j3RqSX"],["Waves","1nVZMrxsMJEE8x-jiLg_NxjbDh78PPjSR"],["Horizon","14aVYqW0lWJ8UEPuYILrlxVPKAXposZIo"],["Leases","1lX14AN4YzEysss8a9-pbxscxCB5pr_5e"],["Old companies","1QV89IrMgbQXXhRxRpaT8kXhtTTWbuDMn"]];
+let PNFILES=[],PNPATH=[];
+function pnCoBtns(){return '<div class="note" style="margin-top:6px"><b>Or browse a company</b></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0">'+PNCO.map((c,i)=>'<button onclick="pnBrowse('+i+')" style="border:none;border-radius:20px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--line);color:var(--ink)">📁 '+esc(c[0])+'</button>').join("")+'</div>';}
+async function pnDrive(body){const r=await fetch(SB_URL+"/functions/v1/ai",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({action:"drive_list",token},body))});const j=await r.json();if(j.error)throw new Error(j.error);return j.files||[];}
+function pnShow(fs,crumb){const L=document.getElementById("pnList");if(!L)return;L._fs=fs;
+  const back=PNPATH.length>1?'<div class="crow" style="padding:6px 4px" onclick="pnUp()"><div>⬅ Back</div><div></div></div>':'';
+  L.innerHTML=(crumb?'<div class="note" style="margin:6px 0 2px"><b>'+esc(crumb)+'</b></div>':'')+back+(fs.length?fs.map((f,i)=>{const dir=/folder/.test(f.type),on=PNFILES.some(x=>x.id===f.id);
+    return '<div class="crow" style="padding:8px 4px" onclick="pnTap('+i+')"><div>'+(dir?'📁 ':'📄 ')+esc(f.name)+'<br><span style="color:var(--muted);font-size:10.5px">'+(dir?'folder':esc(f.type))+' · '+esc(f.modified||"")+'</span></div><div>'+(dir?'›':on?'✅':'＋')+'</div></div>';}).join(""):'<div class="note">Nothing here.</div>');}
+async function pnOpen(id,name){const L=document.getElementById("pnList");if(L)L.innerHTML='<div class="note">Opening '+esc(name)+'…</div>';
+  try{pnShow(await pnDrive({folder:id}),PNPATH.map(p=>p[1]).join(" › "));}catch(e){if(L)L.innerHTML='<div class="note">Could not open: '+esc(e.message)+'</div>';}}
+function pnBrowse(i){const c=PNCO[i];PNPATH=[[c[1],c[0]]];pnOpen(c[1],c[0]);}
+function pnUp(){PNPATH.pop();const p=PNPATH[PNPATH.length-1];if(p)pnOpen(p[0],p[1]);}
+function pnTap(i){const L=document.getElementById("pnList"),f=(L._fs||[])[i];if(!f)return;
+  if(/folder/.test(f.type)){PNPATH.push([f.id,f.name]);pnOpen(f.id,f.name);return;}
+  const k=PNFILES.findIndex(x=>x.id===f.id);if(k>=0)PNFILES.splice(k,1);else{if(PNFILES.length>=5){toast("Up to 5 files per question.",2500);return;}PNFILES.push(f);}
+  pnChosen();pnShow(L._fs,PNPATH.length?PNPATH.map(p=>p[1]).join(" › "):"");
+  const t=document.getElementById("pnTitle");if(t&&!t.value&&PNFILES.length)t.value=PNFILES[0].name.replace(/\.[a-z]+$/i,"");}
+function pnDrop(id){PNFILES=PNFILES.filter(x=>x.id!==id);pnChosen();const L=document.getElementById("pnList");if(L&&L._fs)pnShow(L._fs,PNPATH.map(p=>p[1]).join(" › "));}
+function pnChosen(){const el=document.getElementById("pnFile");if(!el)return;el.innerHTML=PNFILES.length?'<b>📎 For the board ('+PNFILES.length+'/5):</b>'+PNFILES.map(f=>'<div style="margin:2px 0">• '+esc(f.name)+' · <a href="#" onclick="pnDrop(\''+f.id+'\');return false">remove</a></div>').join(""):"";}
+async function pnFind(){const q=document.getElementById("pnQ").value.trim(),L=document.getElementById("pnList");if(!q)return;L.innerHTML='<div class="note">Searching…</div>';PNPATH=[];
+  try{pnShow((await pnDrive({q})).filter(f=>!/folder/.test(f.type)).slice(0,12),'Search: '+q);}catch(e){L.innerHTML='<div class="note">Search failed: '+esc(e.message)+'</div>';}}
 async function pnSend(){const text=document.getElementById("pnText").value.trim(),title=document.getElementById("pnTitle").value.trim();
-  if(!PNFILE&&text.length<20){toast("Paste the plan or attach a file first.",3000);return;}
-  const w=bubble("a",'⏳ Sent to the board: Claude, ChatGPT, Grok, Gemini and Perplexity. Each is studying it on its own — this takes about 1–2 minutes…');w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
-  try{const r=await pnApi({action:"ask",text,title,file_id:PNFILE?PNFILE.id:""});w.innerHTML=pnRender(r);}catch(e){w.innerHTML="⚠️ The panel couldn't finish: "+esc(e.message);}
+  if(!PNFILES.length&&text.length<20){toast("Type the question or attach a file first.",3000);return;}
+  const w=bubble("a",'⏳ Sent to the board: Claude, ChatGPT, Grok, Gemini and Perplexity'+(PNFILES.length?' with '+PNFILES.length+' Drive file'+(PNFILES.length>1?'s':''):'')+'. Each is studying it on its own — this takes about 1–3 minutes…');w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
+  try{const r=await pnApi({action:"ask",text,title,file_ids:PNFILES.map(f=>f.id)});w.innerHTML=pnRender(r);}catch(e){w.innerHTML="⚠️ The board couldn't finish: "+esc(e.message);}
   w.scrollIntoView({block:"start"});}
 const PNV={"GO":["✅","var(--pos,#3ecf8e)"],"CONDITIONAL":["🟡","#E4B75A"],"NO-GO":["❌","#e5534b"]};
 function pnList(t,a){return a&&a.length?'<div class="note" style="margin-top:6px"><b>'+t+'</b></div><ul style="margin:2px 0 0 18px;padding:0;font-size:12.5px;line-height:1.45">'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";}
@@ -1433,7 +1447,7 @@ async function pnHist(){const w=bubble("a","Loading past opinions…");w.style.m
   catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}w.scrollIntoView({block:"start"});}
 /* ===== Board of directors (AI board, 18 Nov 2026) ===== */
 const BOARD=[["Claude","Anthropic","claude-opus-5-5","claude","Deep reasoning; checks the arithmetic"],["ChatGPT","OpenAI","gpt-5.5","chatgpt","Broad business view"],["Grok","xAI","grok-4.7","grok","Contrarian, real-time sentiment"],["Gemini","Google","gemini-4-carbon (now 3.8 Flash until billing is on)","gemini","Different training, strong on data"],["Perplexity","Perplexity","perplexity/sonar (live web search)","perplexity","Live web fact-checker for prices and news"]];
-async function openBoard(toAsk){openChat("Board room","");document.querySelectorAll("#bdtr,#pnbox,#bdmem").forEach(e=>e.removeAttribute("id"));PNFILE=null;clearTimeout(TRT);
+async function openBoard(toAsk){openChat("Board room","");document.querySelectorAll("#bdtr,#pnbox,#bdmem").forEach(e=>e.removeAttribute("id"));PNFILE=null;PNFILES=[];PNPATH=[];clearTimeout(TRT);
   const w=bubble("a",'<div class="gp"><div id="bdtr"><div class="card"><div class="note">Loading the board room…</div></div></div>'+pnForm()+'<div id="bdmem"></div></div>');w.style.maxWidth="100%";w.style.width="100%";
   if(toAsk)setTimeout(()=>{const b=document.getElementById("pnbox");if(b)b.scrollIntoView({block:"start"});},50);else w.scrollIntoView({block:"start"});
   trApi({action:"get"}).then(d=>{bdTrade(d);if(d.run&&d.run.status==="working")trPoll();}).catch(e=>{const t=document.getElementById("bdtr");if(t)t.innerHTML='<div class="card"><div class="note">Couldn\'t load the trading study: '+esc(e.message)+'</div></div>';});
