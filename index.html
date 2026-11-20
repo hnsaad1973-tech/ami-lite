@@ -426,7 +426,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
-  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Windows</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full</button></div>
+  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Windows</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full</button><button class="th" onclick="openControl()" title="Control room">🎛 Control</button></div>
 
   <div class="grid">
     <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3D27E"/><stop offset="1" stop-color="#C79A3C"/></linearGradient></defs></svg>
@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=73;
+const AMI_LEVEL=74;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1549,12 +1549,51 @@ async function labSeats(){const w=bubble("a","Loading seats…");w.style.maxWidt
   try{const ss=(await labApi({action:"seats"})).seats||[];
     w.innerHTML='<div class="gp"><div class="card"><div class="lbl">👥 Lab seats · '+ss.filter(s=>s.connected).length+' of '+ss.length+' connected</div>'+ss.map(s=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><div><b>'+esc(s.name)+'</b>'+(s.voting?'':' · no vote')+'<br><span style="color:var(--muted);font-size:11px">'+T[s.tier]+'</span></div><div>'+(s.connected?'🟢':'⚪ key needed')+'</div></div>').join("")+'</div></div>';}
   catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}w.scrollIntoView({block:"start"});}
+
+/* ===== AMI Control Room (20 Nov 2026) — edge function `control` ===== */
+async function ctApi(o){const r=await fetch(SB_URL+"/functions/v1/control",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
+const usd=(v,d)=>"$"+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:d===undefined?2:d,maximumFractionDigits:d===undefined?2:d});
+const knum=v=>{v=Number(v||0);return v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?(v/1e3).toFixed(1)+"k":String(Math.round(v));};
+function ctBars(rows,key,fmt,color){const W=320,Hh=90,n=rows.length||1,max=Math.max(...rows.map(r=>Number(r[key])||0),0.0001),bw=W/n;
+  return '<svg viewBox="0 0 '+W+' '+(Hh+16)+'" style="width:100%;height:auto">'+rows.map((r,i)=>{const v=Number(r[key])||0,h=v/max*Hh;return '<rect x="'+(i*bw+1).toFixed(1)+'" y="'+(Hh-h).toFixed(1)+'" width="'+Math.max(1,bw-2).toFixed(1)+'" height="'+Math.max(h,v>0?1:0).toFixed(1)+'" rx="1.5" fill="'+color+'"><title>'+r.day+': '+fmt(v)+'</title></rect>';}).join("")+
+    '<text x="0" y="'+(Hh+13)+'" font-size="9" fill="var(--muted)">'+esc(String(rows[0]&&rows[0].day||"").slice(5))+'</text><text x="'+W+'" y="'+(Hh+13)+'" font-size="9" fill="var(--muted)" text-anchor="end">today · peak '+fmt(max)+'</text></svg>';}
+function ctKpi(label,val,sub){return '<div style="flex:1 1 30%;min-width:96px;border:1px solid var(--line);border-radius:12px;padding:8px 10px"><div class="note" style="margin:0">'+label+'</div><div style="font-size:19px;font-weight:700;color:var(--gold)">'+val+'</div>'+(sub?'<div class="note" style="margin:0;font-size:10.5px">'+sub+'</div>':'')+'</div>';}
+async function openControl(){openChat("Control room","");const w=bubble("a",'<div class="note">Loading the control room…</div>');w.style.maxWidth="100%";w.style.width="100%";w.id="ctbox";
+  try{w.innerHTML=ctRender(await ctApi({action:"overview"}));}catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}w.scrollIntoView({block:"start"});}
+async function ctCheck(b){if(b)b.textContent="Checking…";const w=document.getElementById("ctbox");try{w.innerHTML=ctRender(await ctApi({action:"check"}));}catch(e){toast("Check failed: "+e.message,3000);}}
+let CTSUBS=[];
+function ctRender(d){const k=d.kpi||{},hc=d.health||{checks:[]};CTSUBS=d.subs||[];
+  const red=(hc.checks||[]).filter(c=>!c.ok);
+  let h='<div class="gp"><div class="card"><div class="lbl">🎛 AMI Control Room</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+
+    ctKpi("Today",usd(k.today),(k.calls_today||0)+" AI calls")+ctKpi("This month",usd(k.month),"projected "+usd(k.month_projection,0))+ctKpi("This year",usd(k.year),"projected "+usd(k.year_projection,0))+
+    ctKpi("Tokens today",knum(k.tokens_today),knum(k.tokens_month)+" this month")+ctKpi("AI hours today",Number(k.hours_today||0).toFixed(2),Number(k.hours_month||0).toFixed(1)+" this month")+
+    ctKpi("Connections",((hc.checks||[]).length-red.length)+"/"+(hc.checks||[]).length,red.length?red.length+" need attention":"all green")+'</div>'+
+    '<div class="note" style="margin-top:6px">Cost meter counts every AI call AMI\'s Lab makes from 20 Nov 2026 (main chat, board room and trading join next). Prices are estimates until checked against each provider\'s bill.</div></div>';
+  h+='<div class="card"><div class="lbl">💰 Cost per day — last 30 days</div>'+ctBars(d.daily||[],"cost",v=>usd(v),"var(--gold)")+'</div>';
+  h+='<div class="card"><div class="lbl">🔤 Tokens per day</div>'+ctBars(d.daily||[],"tokens",knum,"#5B8DEF")+'<div class="lbl" style="margin-top:8px">⏱ AI working hours per day</div>'+ctBars(d.daily||[],"hours",v=>Number(v).toFixed(2)+" h","#3ecf8e")+'</div>';
+  const seats=d.seats||[],sm=Math.max(...seats.map(s=>s.cost),0.0001);
+  h+='<div class="card"><div class="lbl">👥 Cost by seat — this month</div>'+(seats.length?seats.map(s=>'<div style="font-size:12.5px;margin:5px 0"><div style="display:flex;justify-content:space-between"><span>'+esc(s.seat)+'</span><span>'+usd(s.cost)+' · '+knum(s.tokens)+' tok</span></div><div style="height:6px;background:var(--line);border-radius:4px"><div style="height:6px;width:'+(s.cost/sm*100).toFixed(1)+'%;background:var(--gold);border-radius:4px"></div></div></div>').join(""):'<div class="note">No AI calls logged yet this month.</div>')+
+    ((d.jobs||[]).length?'<div class="lbl" style="margin-top:8px">🧪 Recent jobs</div>'+d.jobs.map(j=>'<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>'+esc(j.job)+'</span><span>'+usd(j.cost)+'</span></div>').join(""):'')+'</div>';
+  h+='<div class="card"><div class="lbl">🔌 Connections'+(hc.at?' · checked '+esc(String(hc.at).slice(11,16))+' UTC':'')+'</div>'+(hc.checks||[]).map(c=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px"><span>'+esc(c.name)+'</span><span>'+(c.ok?'🟢':(/no key|no token/.test(c.note)?'⚪ '+esc(c.note):'🔴 '+esc(c.note)))+'</span></div>').join("")+
+    (hc.twilio_balance!=null?'<div class="note" style="margin-top:6px">WhatsApp (Twilio) balance: '+usd(hc.twilio_balance)+'</div>':'')+pnBtn("🔄 Check now","ctCheck(this)",1)+'</div>';
+  h+='<div class="card"><div class="lbl">📅 Subscriptions, renewals & funding</div><div class="note">Tap one to enter its plan, cost, renewal or expiry date, balance and daily cap. AMI WhatsApps you 14, 7 and 1 day before each date, when a balance is low, and when a daily cap is passed.</div>'+
+    CTSUBS.map((s,i)=>{const dd=[s.renew_days,s.expiry_days].filter(x=>x!==null&&x!==undefined).map(Number),soon=dd.length?Math.min(...dd):null;
+      return '<div class="crow" onclick="ctEdit('+i+')" style="padding:8px 4px"><div><b>'+esc(s.name)+'</b><br><span style="color:var(--muted);font-size:10.5px">'+esc([s.plan,s.cost_usd!=null?usd(s.cost_usd)+(s.cycle?"/"+s.cycle:""):null,s.balance_usd!=null?"balance "+usd(s.balance_usd):null,s.daily_cap_usd!=null?"cap "+usd(s.daily_cap_usd)+"/day":null].filter(Boolean).join(" · ")||s.notes||"")+'</span></div><div style="text-align:right;font-size:12px">'+
+        (soon===null?'<span style="color:var(--muted)">date?</span>':(soon<=7?'<b style="color:#e5534b">'+soon+' d</b>':soon<=30?'<b style="color:#E4B75A">'+soon+' d</b>':soon+' d'))+' ›</div></div>';}).join("")+pnBtn("＋ Add","ctEdit(-1)")+'</div></div>';
+  return h;}
+function ctEdit(i){const s=i>=0?CTSUBS[i]:{name:""},f=[["name","Name"],["plan","Plan"],["cost_usd","Cost (USD)"],["cycle","Cycle (month / year / prepaid)"],["renews_on","Renews on (YYYY-MM-DD)"],["expires_on","Expires on (YYYY-MM-DD)"],["paid_with","Paid with (e.g. Visa ending 4417)"],["balance_usd","Balance / credit left (USD)"],["low_balance_usd","Warn me below (USD)"],["daily_cap_usd","Daily spending cap (USD)"],["notes","Notes"]];
+  const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px;font-size:14px;margin:3px 0 6px;font-family:inherit';
+  const w=bubble("a",'<div class="gp"><div class="card"><div class="lbl">✏️ '+esc(s.name||"New subscription")+'</div>'+(s.link?'<div class="note"><a href="'+esc(s.link)+'" target="_blank">Open the billing page ↗</a></div>':'')+
+    f.map(([k,l])=>'<div class="note" style="margin:4px 0 0">'+l+'</div><input data-k="'+k+'" style="'+st+'" value="'+esc(s[k]==null?"":String(s[k]).slice(0,k.endsWith("_on")?10:200))+'">').join("")+pnBtn("💾 Save","ctSave(this,"+(s.id||0)+")",1)+'</div></div>');
+  w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});}
+async function ctSave(b,id){const box=b.closest(".card"),o={id:id||undefined};box.querySelectorAll("input[data-k]").forEach(x=>o[x.dataset.k]=x.value.trim());
+  if(!o.name){toast("Name first.",2500);return;}b.textContent="Saving…";try{await ctApi({action:"sub_save",s:o});toast("Saved",1500);openControl();}catch(e){b.textContent="💾 Save";toast("Couldn't save: "+e.message,3000);}}
 /* ===== 4 group tiles (18 Nov 2026) ===== */
 const GROUPS={
  time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()]]],
  fin:["🏛 Management & Finance",[["🏢 Companies financial","Each company: figures, capital & equity, import financials",()=>openCompanies()],["📊 Group companies financial","Group total, cash flow by quarter",()=>openPosition()],["🧭 Companies management structure","Directors, managers, reporting lines",null]]],
  design:["🎨 Design & Development",[["🖌 Design Studio","Renders, sketches, floor plans, elevations",()=>openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')],["💻 Software · CAD","CAD drawings, software builds and tools",null]]],
- adv:["🧠 Advisory Panel",[["🏛 Board room","Ask the board · this week's trade vote · confirm orders",()=>openBoard()],["📈 Trade advisory","One tap: run the week's trading study — the board votes",()=>openTrade()],["🧪 AMI Lab","Send files — the 10-seat board works on them together, then votes",()=>openLab()]]]};
+ adv:["🧠 Advisory Panel",[["🏛 Board room","Ask the board · this week's trade vote · confirm orders",()=>openBoard()],["📈 Trade advisory","One tap: run the week's trading study — the board votes",()=>openTrade()],["🧪 AMI Lab","Send files — the 10-seat board works on them together, then votes",()=>openLab()],["🎛 Control room","Cost meter · tokens · hours · connections · renewals",()=>openControl()]]]};
 function openGroup(k){const g=GROUPS[k];if(!g)return;document.getElementById("grpt").textContent=g[0];const L=document.getElementById("glist");L.innerHTML="";
   g[1].forEach(([t,d,fn])=>{const b=document.createElement("div");b.className="gi";b.innerHTML="<div><b>"+t+"</b><span>"+d+"</span></div>"+(fn?"":"<em>Being built</em>");
     b.onclick=()=>{if(!fn){toast(t.replace(/^\S+\s/,"")+" — being built. Coming soon.",3000);return;}closeGroup();fn();};L.appendChild(b);});
