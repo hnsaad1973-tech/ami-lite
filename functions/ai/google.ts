@@ -66,7 +66,21 @@ export async function gmailRead(id: string) {
   try { text = new TextDecoder().decode(Uint8Array.from(text, (c) => c.charCodeAt(0))); } catch (_) {}
   return { id: m.id, threadId: m.threadId, from: hdr(m, "From"), to: hdr(m, "To"), subject: hdr(m, "Subject"), date: hdr(m, "Date"), body: (text || m.snippet || "").slice(0, 8000) };
 }
-export async function gmailDraft(p: { to?: string; subject?: string; body: string; thread_id?: string }) {
+// v4.9: a Drive file (PDF, or a Google Doc exported as PDF) attached to an email
+async function driveFileBytes(id: string): Promise<{ name: string; mime: string; b64: string }> {
+  const m = await g(`${DR}/files/${id}?fields=id,name,mimeType`);
+  const t = await token();
+  const isGoogle = String(m.mimeType).startsWith("application/vnd.google-apps");
+  const url = isGoogle ? `${DR}/files/${id}/export?mimeType=application/pdf` : `${DR}/files/${id}?alt=media`;
+  const r = await fetch(url, { headers: { Authorization: "Bearer " + t } });
+  if (!r.ok) throw new Error("Could not read the file to attach (" + r.status + ")");
+  const b = new Uint8Array(await r.arrayBuffer());
+  if (b.length > 18_000_000) throw new Error("The file is too big to email (over 18 MB).");
+  let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  const name = isGoogle ? String(m.name).replace(/\.pdf$/i, "") + ".pdf" : m.name;
+  return { name, mime: isGoogle ? "application/pdf" : (m.mimeType || "application/octet-stream"), b64: btoa(s) };
+}
+export async function gmailDraft(p: { to?: string; cc?: string; subject?: string; body: string; thread_id?: string; file_id?: string }) {
   let to = p.to || "", subject = p.subject || "", extra = "";
   if (p.thread_id) {
     const t = await g(`${GM}/threads/${p.thread_id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Reply-To`);
@@ -79,9 +93,25 @@ export async function gmailDraft(p: { to?: string; subject?: string; body: strin
   }
   if (!to) throw new Error("No recipient for the draft.");
   const enc = (s: string) => /[^\x20-\x7e]/.test(s) ? `=?UTF-8?B?${btoa(String.fromCharCode(...new TextEncoder().encode(s)))}?=` : s;
-  const raw = `To: ${to}\r\nSubject: ${enc(subject)}\r\n${extra}MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${p.body}`;
+  let raw = `To: ${to}\r\n${p.cc ? `Cc: ${p.cc}\r\n` : ""}Subject: ${enc(subject)}\r\n${extra}MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${p.body}`;
+  let attached = "";
+  if (p.file_id) {
+    const f = await driveFileBytes(p.file_id); attached = f.name;
+    const bd = "amimix" + Date.now();
+    const bodyB64 = btoa(String.fromCharCode(...new TextEncoder().encode(p.body))).replace(/.{76}/g, "$&\r\n");
+    raw = `To: ${to}\r\n${p.cc ? `Cc: ${p.cc}\r\n` : ""}Subject: ${enc(subject)}\r\n${extra}MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${bd}"\r\n\r\n` +
+      `--${bd}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${bodyB64}\r\n` +
+      `--${bd}\r\nContent-Type: ${f.mime}; name="${f.name.replace(/"/g, "")}"\r\nContent-Disposition: attachment; filename="${f.name.replace(/"/g, "")}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${f.b64.replace(/.{76}/g, "$&\r\n")}\r\n--${bd}--`;
+  }
   const d = await g(`${GM}/drafts`, { method: "POST", body: JSON.stringify({ message: { raw: b64url(raw), ...(p.thread_id ? { threadId: p.thread_id } : {}) } }) });
-  return { draft_created: true, draft_id: d.id, to, subject, note: "Saved as a DRAFT in Gmail — not sent." };
+  return { draft_created: true, draft_id: d.id, to, subject, ...(attached ? { attachment: attached } : {}), note: "Saved as a DRAFT in Gmail — not sent." };
+}
+
+// v4.8: send an email (only called after the Chairman's YES — checked in index.ts). Builds it as a draft, then sends that draft.
+export async function gmailSend(p: { to?: string; cc?: string; subject?: string; body: string; thread_id?: string; file_id?: string }) {
+  const d: any = await gmailDraft(p);
+  const s = await g(`${GM}/drafts/send`, { method: "POST", body: JSON.stringify({ id: d.draft_id }) });
+  return { sent: true, message_id: s.id, thread_id: s.threadId, to: d.to, subject: d.subject, ...(d.attachment ? { attachment: d.attachment } : {}) };
 }
 
 // ---------- Drive ----------
@@ -181,7 +211,8 @@ export async function calendarAdd(p: { title: string; start: string; end?: strin
   const s = new Date(p.start); if (isNaN(s.getTime())) throw new Error("Bad start time.");
   const e = p.end ? new Date(p.end) : new Date(s.getTime() + 3600e3);
   const j = await g(`${CAL}/calendars/primary/events`, { method: "POST", body: JSON.stringify({ summary: p.title, description: p.notes || "", location: p.location || "",
-    start: { dateTime: s.toISOString(), timeZone: "Africa/Monrovia" }, end: { dateTime: e.toISOString(), timeZone: "Africa/Monrovia" } }) });
+    start: { dateTime: s.toISOString(), timeZone: "Africa/Monrovia" }, end: { dateTime: e.toISOString(), timeZone: "Africa/Monrovia" },
+    reminders: { useDefault: false, overrides: [] } }) }); // v4.9.1: no Google alerts — AMI WhatsApp reminders only
   return { added: true, title: j.summary, start: j.start?.dateTime, link: j.htmlLink };
 }
 
@@ -240,19 +271,19 @@ async function driveUpload(bytes: Uint8Array, type: string, name: string, folder
   return j.webViewLink as string;
 }
 export async function imageMake(p: { prompt: string; image_url?: string; name?: string; folder_id?: string; size?: string }) {
-  const key = Deno.env.get("OPENAI_API_KEY"); if (!key) throw new Error("OPENAI_API_KEY is not set in Supabase secrets.");
+  const key = (Deno.env.get("OPENAI_API_KEY") || "").trim(); if (!key) throw new Error("OPENAI_API_KEY is not set in Supabase secrets.");
   const size = ["1024x1024", "1536x1024", "1024x1536"].includes(String(p.size)) ? String(p.size) : "1536x1024";
   let r: Response;
   if (p.image_url) {
     const src = await fetch(p.image_url); if (!src.ok) throw new Error("Could not open the sketch: " + src.status);
     const blob = await src.blob();
     const fd = new FormData();
-    fd.append("model", "gpt-image-1"); fd.append("prompt", p.prompt); fd.append("size", size); fd.append("quality", "medium"); fd.append("output_format", "jpeg");
+    fd.append("model", "gpt-image-2"); fd.append("prompt", p.prompt); fd.append("size", size); fd.append("quality", "medium"); fd.append("output_format", "jpeg");
     fd.append("image", new File([blob], "sketch.jpg", { type: blob.type || "image/jpeg" }));
     r = await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd });
   } else {
     r = await fetch("https://api.openai.com/v1/images/generations", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-image-1", prompt: p.prompt, size, quality: "medium", output_format: "jpeg", n: 1 }) });
+      body: JSON.stringify({ model: "gpt-image-2", prompt: p.prompt, size, quality: "medium", output_format: "jpeg", n: 1 }) });
   }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error("OpenAI image failed (" + (j?.error?.message || r.status) + "). FALLBACK NOW: execute_zapier_write_action, selected_api \"ChatGPTCLIAPI\", " + (p.image_url
@@ -270,6 +301,28 @@ export async function imageMake(p: { prompt: string; image_url?: string; name?: 
     const sj = await sg.json().catch(() => ({})); if (sj.signedURL) view = `${SBU}/storage/v1${sj.signedURL}`; }
   const drive = await driveUpload(bytes, "image/jpeg", name, p.folder_id || "16IOI6ngn5ITaGuUtI84v_hgtkINNBi_T");
   return { made: true, image_link: view, drive_link: drive, name };
+}
+
+// ---------- v4.9: PDF documents (letters, invoices, quotes, memos) ----------
+// HTML -> Google Doc (editable) -> PDF, both saved in the chosen Drive folder.
+const DOCS_FOLDER = "1RBawWfb3LdoRcyoiVUroa6N5rjvtXIKf"; // Ami archive > AMI (default when no company folder is given)
+export async function makePdf(p: { title: string; html: string; folder_id?: string; keep_doc?: any }) {
+  const folder = p.folder_id || DOCS_FOLDER;
+  const title = String(p.title || "Document").replace(/[\\/:*?"<>|]/g, "-").slice(0, 120);
+  const html = /<html/i.test(p.html) ? p.html : `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px}th{background:#eee}</style></head><body>${p.html}</body></html>`;
+  const t = await token(); const bd = "amidoc" + Date.now();
+  const meta = JSON.stringify({ name: title, mimeType: "application/vnd.google-apps.document", parents: [folder] });
+  const body = `--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${bd}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n${html}\r\n--${bd}--`;
+  const c = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink", { method: "POST", headers: { Authorization: "Bearer " + t, "Content-Type": `multipart/related; boundary=${bd}` }, body });
+  const doc = await c.json(); if (!c.ok) throw new Error("Could not create the document: " + (doc?.error?.message || c.status));
+  const ex = await fetch(`${DR}/files/${doc.id}/export?mimeType=application/pdf`, { headers: { Authorization: "Bearer " + t } });
+  if (!ex.ok) throw new Error("Could not make the PDF (" + ex.status + ")");
+  const bytes = new Uint8Array(await ex.arrayBuffer());
+  const pdfLink = await driveUpload(bytes, "application/pdf", title + ".pdf", folder);
+  const pdfId = (pdfLink.match(/\/d\/([\w-]+)/) || [])[1] || "";
+  const keep = !(p.keep_doc === false || p.keep_doc === "false");
+  if (!keep) await g(`${DR}/files/${doc.id}`, { method: "PATCH", body: JSON.stringify({ trashed: true }) }).catch(() => null);
+  return { pdf_id: pdfId, pdf_link: pdfLink, ...(keep ? { doc_link: doc.webViewLink, note: "The Google Doc is the editable copy; the PDF is ready to send or print." } : {}) };
 }
 
 // ---------- Design Studio file picking (app buttons, not model tools) ----------
@@ -296,8 +349,10 @@ export const GOOGLE_TOOLS = [
   { name: "gmail_read", description: "Open one email in full (body text) by its id.", input_schema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } },
   { name: "inbox_archive", description: "Archive emails (removes them from the inbox; NEVER deletes). Give a Gmail query, or ids separated by commas. With unspam 'true', the given ids are moved out of Spam into the inbox.",
     input_schema: { type: "object", properties: { query: { type: "string" }, ids: { type: "string" }, unspam: { type: "string" } } } },
-  { name: "gmail_draft", description: "Create a Gmail DRAFT (never sends). For a reply give thread_id (recipient and subject are filled from the thread). For a new email give to and subject.",
-    input_schema: { type: "object", properties: { thread_id: { type: "string" }, to: { type: "string" }, subject: { type: "string" }, body: { type: "string" } }, required: ["body"] } },
+  { name: "gmail_draft", description: "Create a Gmail DRAFT (never sends). For a reply give thread_id (recipient and subject are filled from the thread). For a new email give to and subject. file_id attaches a Drive file (a Google Doc is attached as PDF).",
+    input_schema: { type: "object", properties: { thread_id: { type: "string" }, to: { type: "string" }, subject: { type: "string" }, body: { type: "string" }, file_id: { type: "string" } }, required: ["body"] } },
+  { name: "make_pdf", description: "Make a finished PDF document (letter, invoice, quote, memo, report, notice) from HTML you write: saved in Drive as an editable Google Doc plus the PDF. Write complete, clean HTML: company name and address at the top, date, reference, recipient, body, tables with figures, signature block. No 'Draft' labels. Put it in the right company folder (folder_id) when you know it. Returns pdf_id and links; send the PDF link to the Chairman (he prints it from his phone) or attach it to an email with file_id.",
+    input_schema: { type: "object", properties: { title: { type: "string", description: "file name, e.g. 'Leone - Invoice 0123 - EU Delegation - Nov 2026'" }, html: { type: "string", description: "the full document as HTML" }, folder_id: { type: "string" }, keep_doc: { type: "string", description: "'false' to keep only the PDF" } }, required: ["title", "html"] } },
   { name: "drive_search", description: "Find files in his Google Drive by part of the name, words inside the file, and/or a folder id (lists that folder). Newest first.",
     input_schema: { type: "object", properties: { name: { type: "string" }, text: { type: "string" }, folder_id: { type: "string" } } } },
   { name: "drive_read", description: "Read the text of up to 3 Drive files (Docs, Sheets with ALL tabs, PDFs, Word, Excel, PowerPoint). file_ids separated by commas.",
@@ -326,6 +381,7 @@ export async function runGoogleTool(name: string, p: any): Promise<any> {
     case "gmail_read": return await gmailRead(p.id);
     case "inbox_archive": return await inboxArchive(p);
     case "gmail_draft": return await gmailDraft(p);
+    case "make_pdf": return await makePdf(p);
     case "drive_search": return await driveSearch(p);
     case "drive_read": return await driveRead(p);
     case "sheet_read": return await sheetRead(p);

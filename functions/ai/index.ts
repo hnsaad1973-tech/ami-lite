@@ -1,5 +1,5 @@
-// AMI `ai` edge function — v4.6 (14 Nov 2026) — Studio: upload any file / pick from Drive; v4.5.1 — images direct from OpenAI (image_make) with Zapier fallback until OpenAI credit is added; Zapier otherwise only for Pinterest; v4.4.2 — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
-import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, googleReady, sheetTabs, brainImportReady, driveSearch, driveThumb, driveUploadB64 } from "./google.ts";
+// AMI `ai` edge function — v4.9.2 (20 Nov 2026) — SECURITY: kill switch (LOCK AMI on WhatsApp) + app-lock unlock token required for app calls; v4.9.1 (18 Nov 2026) — BRAIN UPGRADE: Sonnet 5.5 main, Haiku 5.5 fast, Opus 5.5 for Think Tank (with fallbacks); fewer false "not sent" warnings; link-limit errors hidden; Google Calendar events without alerts; v4.9 (16 Nov 2026) — PDF DOCUMENTS (make_pdf: HTML → Google Doc + PDF in Drive) and email attachments (file_id); v4.8 — SEND EMAIL (send_email from his Gmail after his YES; to himself directly); v4.7 — TO-DO TOOL (todo_list: open to-do items + today's/tomorrow's reminders), apps switch on for to-do/today/plan/status questions, NO-NARRATION GUARD (a reply that only says "checking… one moment" without using a tool is sent back to do the work); v4.6 — Studio: upload any file / pick from Drive; v4.5.1 — images direct from OpenAI (image_make) with Zapier fallback until OpenAI credit is added; Zapier otherwise only for Pinterest; v4.4.2 — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
+import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, gmailSend, googleReady, sheetTabs, brainImportReady, driveSearch, driveThumb, driveUploadB64 } from "./google.ts";
 // Includes: "clear chat", "ami status", server-checked send claims,
 // direct WhatsApp via Twilio (delivery check + template fallback), YES required before messaging others,
 // verification rule with real tool errors, Think Tank only when the message STARTS with it,
@@ -167,7 +167,7 @@ SENDING RULE: Before sending any email, WhatsApp or message to ANYONE other than
 WHATSAPP NOTE: WhatsApp only allows free-text to someone who messaged AMI's number in the last 24 hours. Otherwise an approved template is needed. If a send fails for that reason, tell him plainly.
 CONTACTS: Use the phone numbers in your saved memory. If you don't have someone's WhatsApp number, ask him for it and save it with save_memory.
 
-KNOWLEDGE / ARCHIVE: His documents are in Google Drive, folder "Ami archive", with subfolders: Leone (incl. "Security — Wright & Embassies" and its "KPI Meeting"), Cape Realities (incl. Construction and Showroom 11th Street), Platinum, The Lead, M Hotel, JV Ventures (incl. CBL & SIGMA and Dongfeng), Personal, AMI. JOUN has its own folder outside the archive. When he asks about a document, contract, figure or project, search Drive with drive_search, read with drive_read, and cite the file name. Gmail: inbox_digest / gmail_read / gmail_draft (drafts only — never send email without his YES). His Google Calendar: calendar_events / calendar_add.
+KNOWLEDGE / ARCHIVE: His documents are in Google Drive, folder "Ami archive", with subfolders: Leone (incl. "Security — Wright & Embassies" and its "KPI Meeting"), Cape Realities (incl. Construction and Showroom 11th Street), Platinum, The Lead, M Hotel, JV Ventures (incl. CBL & SIGMA and Dongfeng), Personal, AMI. JOUN has its own folder outside the archive. When he asks about a document, contract, figure or project, search Drive with drive_search, read with drive_read, and cite the file name. Gmail: inbox_digest / gmail_read / gmail_draft, and send_email to send from his Gmail. EMAIL ORDERS: when he asks you to write/prepare/send an email, write it in full (to, cc, subject, body, signed "Hussein Saad"), show it to him and ask for YES; when he replies YES, call send_email with exactly that email (thread_id if it is a reply). Emails to himself (hnsaad1973@gmail.com) may be sent directly. DOCUMENTS: when he asks for a letter, invoice, quote, memo, notice or report, write it in full and make it with make_pdf (right company folder, no "Draft" label); send him the PDF link. To email it, show the email and wait for YES, then send_email with file_id = the pdf_id. His Google Calendar: calendar_events / calendar_add.
 PRICING: when he asks to price, cost or estimate anything, call price_lookup FIRST (the group's pricing database of past quotes, BOQs and supplier price lists). Give the newest unit price with date, supplier, project and source; show the range if several; state the currency and never mix USD / SLE / LRD; say if it is a supplier quote, our BOQ rate, a budget or an actual cost. Only if nothing matches, give an estimate clearly labelled "estimate".
 
 MEMORY: Use the save_memory tool when he says "remember", or when he tells you a lasting fact about himself, his companies, people (including their phone numbers) or preferences. Do not save passwords, card numbers or ID numbers.
@@ -264,7 +264,7 @@ async function scheduleOrders(kind: string, orders: string): Promise<string> {
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST",
       headers: { "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") || "", "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5", max_tokens: 1200,
+      body: JSON.stringify({ model: "claude-haiku-5-5", max_tokens: 1200,
         system: `Today is ${today} (${now.toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" })}), Monrovia time = UTC. This list was dictated ${kind === "evening" ? "in the evening as TOMORROW's to-do list, so items with no date are for " + tomorrow : "today"}.
 For each numbered item return its date and time ONLY if the item states or clearly implies them (e.g. "at 10", "Monday", "tomorrow morning" = 09:00, "before noon" = 11:00, "end of day" = 17:00). Never invent a date or time. ${kind === "evening" ? "Items with a time but no date are on " + tomorrow + "." : "Items with a time but no date are today."}
 Return ONLY JSON: {"items":[{"title":"<short item text>","date":"YYYY-MM-DD or null","time":"HH:MM or null"}]}`,
@@ -289,6 +289,28 @@ Return ONLY JSON: {"items":[{"title":"<short item text>","date":"YYYY-MM-DD or n
   if (listed.length) out += `\n📋 To-do only (no date/time given):\n- ` + listed.join("\n- ");
   if (!items.length) out += "\n(I couldn't read dates from the list, so it's in the To-do list only.)";
   return out;
+}
+
+// v4.7: the To-do list as AMI's brain can read it — open items (minus ticked) + reminders for the next days
+async function todoSnapshot(days = 2) {
+  const lr = await db("ami_calls?orders=not.is.null&orders_status=neq.cancelled&orders_status=neq.superseded&select=call_sid,kind,orders,orders_status,sent_at,done_items&order=sent_at.desc&limit=15");
+  const lists = lr.ok ? await lr.json() : [];
+  const open: any[] = [];
+  for (const l of lists) {
+    const done: string[] = Array.isArray(l.done_items) ? l.done_items : [];
+    const items = String(l.orders || "").split("\n").map((x) => x.trim()).filter(Boolean);
+    const left = items.filter((it) => !done.some((d) => d === it || it.includes(d) || d.includes(it.replace(/^\d+[.)]\s*/, ""))));
+    if (left.length) open.push({ list: l.kind, made: String(l.sent_at || "").slice(0, 16).replace("T", " "), status: l.orders_status, items: left });
+  }
+  const er = await db("ami_events?select=title,kind,on_date,at_time,repeat,notes&limit=500");
+  const evs = er.ok ? await er.json() : [];
+  const now = new Date(), until = new Date(now.getTime() + Math.max(1, Math.min(days, 14)) * 86400000);
+  const reminders = evs.map((ev: any) => ({ ev, next: nextOcc(ev, new Date(now.getTime() - 3600000)) }))
+    .filter((x: any) => x.next && x.next < until && x.ev.kind !== "medication")
+    .sort((a: any, b: any) => a.next - b.next)
+    .map((x: any) => ({ when: x.next.toISOString().slice(0, 16).replace("T", " "), title: x.ev.title, kind: x.ev.kind, notes: x.ev.notes || "" }));
+  return { today: now.toISOString().slice(0, 10), open_todo_lists: open, reminders_next_days: reminders,
+    note: open.length || reminders.length ? "From AMI's To-do list and Calendar & Events. His Google Calendar is separate: use calendar_events for it." : "No open to-do items and no reminders in AMI. Check his Google Calendar with calendar_events too." };
 }
 
 Deno.serve(async (req) => {
@@ -335,6 +357,20 @@ Deno.serve(async (req) => {
       if (!userRes || !userRes.ok) return json({ reply: "Not signed in." }, 401);
       const user = await userRes.json();
       if ((user.email || "").toLowerCase() !== email) return json({ reply: "Access denied." }, 403);
+    }
+    // v4.9.2 SECURITY: kill switch ("LOCK AMI" on WhatsApp) + app lock (Face ID / WhatsApp code unlock token required from the app)
+    let unlockTok = ""; try { unlockTok = String(JSON.parse(raw).unlock || ""); } catch (_) {}
+    if (internalKey && /(^|ORDER:\s*)\s*(🔒\s*)?lock\s+ami\s*[.!]?\s*$/i.test(String(message).trim())) {
+      const k = await fetch(`${SB}/rest/v1/rpc/ami_kill`, { method: "POST", headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "application/json" }, body: JSON.stringify({ p_on: true }) });
+      const msg = k.ok ? "🔒 AMI is LOCKED, Chairman. Every sign-in has been ended and AMI will not act on any order. To turn her back on: open the AMI app, sign in with your email link, then Face ID or the WhatsApp code." : "⚠️ Could not lock AMI (database " + k.status + "). Try again.";
+      await sendWhatsApp(SELF_WA, msg);
+      return json({ reply: msg, killed: k.ok });
+    }
+    {
+      const gateRes = await fetch(`${SB}/rest/v1/rpc/ami_gate`, { method: "POST", headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "application/json" }, body: JSON.stringify({ p_unlock: unlockTok, p_need_unlock: !internalKey }) });
+      const gate = gateRes.ok ? await gateRes.json().catch(() => null) : null;
+      if (gate === "killed") return json({ reply: "🔒 AMI is switched off by the kill switch. To turn her back on, open the AMI app, sign in, and use Face ID or the WhatsApp code.", killed: true }, 423);
+      if (!internalKey && gate !== "ok") return json({ reply: "🔒 AMI is locked. Unlock with Face ID or the WhatsApp code.", locked: true }, 423);
     }
     if (image && !message.trim()) message = "Read this photo and tell me what matters.";
     if (internalKey && message.trim() === "INBOX_BRIEF") message = INBOX_BRIEF_PROMPT;
@@ -522,7 +558,7 @@ Deno.serve(async (req) => {
     // "ami status" shows which connections AMI can actually see (never the values)
     if (!image && /^\s*(ami\s+)?status\s*$/i.test(message)) {
       const has = (k: string) => (Deno.env.get(k) ? "✅" : "❌ missing");
-      return json({ reply: `AMI status (v4.4 — drawing: plans, elevations, sections, 3D (PDF + AutoCAD), pricing database, direct Google, master brain, studio, calendar, inbox brief + buttons, to-do, phone calls, camera, voice):\n- ANTHROPIC_API_KEY: ${has("ANTHROPIC_API_KEY")}\n- TWILIO_ACCOUNT_SID: ${has("TWILIO_ACCOUNT_SID")}\n- TWILIO_AUTH_TOKEN: ${has("TWILIO_AUTH_TOKEN")}\n- Google direct (Gmail/Drive/Sheets/Calendar): ${googleReady() ? "✅" : "❌ keys missing"}\n- ZAPIER_MCP_URL: ${has("ZAPIER_MCP_URL")}\n- ZAPIER_MCP_TOKEN: ${has("ZAPIER_MCP_TOKEN")}\n- WhatsApp sending: ${TW_SID && TW_TOKEN ? "direct via Twilio ✅" : "via Zapier only"}\n- Sender: ${TW_FROM}\n- Company brain: ${brain ? "loaded (" + brain.updated + ") ✅" : "❌ not loaded"}` });
+      return json({ reply: `AMI status (v4.9.2 — kill switch + app lock; brain: Sonnet 5.5 / Haiku 5.5 / Opus 5.5 Think Tank; PDF documents + email attachments, send email after YES, to-do tool, no-narration guard, drawing: plans, elevations, sections, 3D (PDF + AutoCAD), pricing database, direct Google, master brain, studio, calendar, inbox brief + buttons, to-do, phone calls, camera, voice):\n- ANTHROPIC_API_KEY: ${has("ANTHROPIC_API_KEY")}\n- TWILIO_ACCOUNT_SID: ${has("TWILIO_ACCOUNT_SID")}\n- TWILIO_AUTH_TOKEN: ${has("TWILIO_AUTH_TOKEN")}\n- Google direct (Gmail/Drive/Sheets/Calendar): ${googleReady() ? "✅" : "❌ keys missing"}\n- ZAPIER_MCP_URL: ${has("ZAPIER_MCP_URL")}\n- ZAPIER_MCP_TOKEN: ${has("ZAPIER_MCP_TOKEN")}\n- WhatsApp sending: ${TW_SID && TW_TOKEN ? "direct via Twilio ✅" : "via Zapier only"}\n- Sender: ${TW_FROM}\n- Company brain: ${brain ? "loaded (" + brain.updated + ") ✅" : "❌ not loaded"}` });
     }
 
     // The main job. Background jobs (morning brief, call orders) run after we answer, so the 150-second gateway limit never cuts them off.
@@ -545,12 +581,17 @@ Deno.serve(async (req) => {
       ? [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } }, { type: "text", text: message }]
       : message;
     const msgs: any[] = [...history.map((m: any) => ({ role: m.role, content: m.content })), { role: "user", content: userContent }];
+    const GOOGLE_READY_FOR_SEND = googleReady();
     const tools: any[] = [
       { type: "web_search_20250305", name: "web_search", max_uses: deep ? 10 : 5 },
       { type: "web_fetch_20250910", name: "web_fetch", max_uses: deep ? 6 : 3 },
+      { name: "todo_list", description: "Read the Chairman's To-do list in AMI (open items from his call/evening lists and inbox actions, minus the ones he ticked done) plus AMI's calendar reminders for today and tomorrow. Use it for: what's on my to-do list, what do I have today/tomorrow, what's pending, my plan for the day.",
+        input_schema: { type: "object", properties: { days: { type: "string", description: "how many days of reminders to include, default 2" } } } },
       { name: "save_memory", description: "Save one lasting fact about the Chairman, his companies, people (including phone numbers) or preferences to long-term memory.",
         input_schema: { type: "object", properties: { fact: { type: "string" } }, required: ["fact"] } },
     ];
+    if (GOOGLE_READY_FOR_SEND) tools.push({ name: "send_email", description: "SEND an email from the Chairman's Gmail (hnsaad1973@gmail.com). Only in the turn where he has replied YES to the exact draft you showed him (emails to himself can go directly). For a reply give thread_id. Signed 'Hussein Saad'.",
+      input_schema: { type: "object", properties: { to: { type: "string", description: "recipient email(s), comma separated" }, cc: { type: "string" }, subject: { type: "string" }, body: { type: "string" }, thread_id: { type: "string" }, file_id: { type: "string", description: "Drive file id to attach (e.g. the pdf_id from make_pdf)" } }, required: ["body"] } });
     // Direct WhatsApp only when Twilio keys are saved; otherwise AMI uses Zapier's Twilio action.
     if (TW_SID && TW_TOKEN) tools.push({ name: "send_whatsapp", description: "Send a WhatsApp message from AMI's number. To the Chairman himself: send directly. To anyone else: only after he has replied YES to the exact draft. Phone in international format, e.g. +231777123456.",
       input_schema: { type: "object", properties: { to: { type: "string", description: "Recipient phone, international format" }, message: { type: "string" } }, required: ["to", "message"] } });
@@ -560,7 +601,7 @@ Deno.serve(async (req) => {
     // Voice mode: fast model, short spoken replies; Zapier only when the request needs his apps
     const fast = voice && !deep && !image && !studio;
     // Connect his apps (Zapier: Gmail, Drive, Calendar…) only when the request needs them — saves ~10 seconds otherwise
-    const needApps = deliver === "whatsapp" || studio || !!company || !!storeKey || /mail|inbox|whats ?app|message|send|text him|text her|drive|file|folder|archive|document|contract|letter|invoice|lease|report|pdf|quote|quotation|tender|bid|boq|price|pricing|prices|cost|costing|estimate|how much|rate for|supplier|calendar|meeting|schedule|appointment|zapier|doc\b|docs|sheet|spreadsheet|print/i.test(message);
+    const needApps = deliver === "whatsapp" || studio || !!company || !!storeKey || /mail|inbox|whats ?app|message|send|text him|text her|drive|file|folder|archive|document|contract|letter|invoice|lease|report|pdf|quote|quotation|tender|bid|boq|price|pricing|prices|cost|costing|estimate|how much|rate for|supplier|calendar|meeting|schedule|appointment|zapier|doc\b|docs|sheet|spreadsheet|print|to-?\s?do|task|today|tomorrow|tonight|this week|agenda|plan|pending|remind|status|approv|follow ?up|missed|check/i.test(message);
     if (GOOGLE && needApps) tools.push(...GOOGLE_TOOLS);
     // Zapier only for Pinterest — or for everything if the Google keys are missing
     const needMcp = studio || /pinterest/i.test(message) || (!GOOGLE && needApps); // Zapier only when there is no direct way (studio: image fallback only, no tasks used unless image_make fails)
@@ -572,11 +613,13 @@ Deno.serve(async (req) => {
     let sendAttempted = false;
     let data: any = null;
     let useFast = fast;
+    let noOpus = false; let sonnetModel = "claude-sonnet-5-5"; // v4.9.1 brain: fallbacks if a new model is refused
     const needDigest = storeKey === "inbox_brief";
     for (let attempt = 0; attempt < 2; attempt++) {
     for (let i = 0; i < 14; i++) {
+      const modelNow = useFast ? "claude-haiku-5-5" : deep && !noOpus ? "claude-opus-5-5" : sonnetModel;
       const body: any = {
-        model: useFast ? "claude-haiku-4-5" : "claude-sonnet-4-5",
+        model: modelNow,
         max_tokens: deep ? 16000 : voice ? 600 : company ? 4000 : 2000,
         // standing instructions + brain cached (faster); today's date sent separately so the cache stays valid
         system: [{ type: "text", text: buildSystem(facts, deep, voice && !deep, studio), cache_control: { type: "ephemeral" } },
@@ -584,7 +627,7 @@ Deno.serve(async (req) => {
         messages: msgs,
         tools,
       };
-      if (deep) body.thinking = { type: "enabled", budget_tokens: 10000 };
+      if (deep) { if (/-5-5$/.test(modelNow)) { body.thinking = { type: "adaptive" }; body.output_config = { effort: "high" }; } else body.thinking = { type: "enabled", budget_tokens: 10000 }; } // 5.5 models: adaptive thinking
       if (mcpUrl && needMcp) body.mcp_servers = [{ type: "url", url: mcpUrl, name: "zapier", ...(mcpToken ? { authorization_token: mcpToken } : {}) }];
 
       const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -595,6 +638,8 @@ Deno.serve(async (req) => {
       });
       data = await r.json();
       if (!r.ok && useFast) { useFast = false; i--; continue; } // fast model failed: retry once on the main model
+      if (!r.ok && modelNow === "claude-opus-5-5") { console.log("opus refused:", data?.error?.message); noOpus = true; i--; continue; } // Think Tank: fall back to Sonnet
+      if (!r.ok && modelNow === "claude-sonnet-5-5" && r.status !== 429 && r.status !== 529) { console.log("sonnet 5.5 refused:", data?.error?.message); sonnetModel = "claude-sonnet-4-5"; i--; continue; }
       if (!r.ok) return json({ reply: "AI error: " + (data?.error?.message || r.status) }, 500);
 
       // Collect real errors from server-side tools (Zapier, web search/fetch)
@@ -610,7 +655,7 @@ Deno.serve(async (req) => {
           const t = Array.isArray(b.content) ? b.content.map((c: any) => c.text || "").join(" ") : String(b.content || "");
           toolErrors.push("Zapier: " + t.slice(0, 300));
         }
-        if ((b.type === "web_search_tool_result" || b.type === "web_fetch_tool_result") && b.content?.type?.endsWith("error")) {
+        if ((b.type === "web_search_tool_result" || b.type === "web_fetch_tool_result") && b.content?.type?.endsWith("error") && !/url_not_in_prior_context|url_not_accessible|too_many_requests|max_uses/.test(String(b.content.error_code || ""))) {
           toolErrors.push(`${b.type.replace("_tool_result", "")}: ${b.content.error_code || "error"}`);
         }
       }
@@ -618,7 +663,7 @@ Deno.serve(async (req) => {
       if (internalKey) console.log("ai round", i, data.stop_reason, "tools so far:", toolsUsed.join(","), "usage:", JSON.stringify(data.usage || {}));
       if (data.stop_reason === "pause_turn") { msgs.push({ role: "assistant", content: data.content }); continue; }
       if (data.stop_reason === "tool_use") {
-        const uses = (data.content || []).filter((b: any) => b.type === "tool_use" && (b.name === "save_memory" || b.name === "send_whatsapp" || GOOGLE_NAMES.has(b.name)));
+        const uses = (data.content || []).filter((b: any) => b.type === "tool_use" && (b.name === "save_memory" || b.name === "send_whatsapp" || b.name === "send_email" || b.name === "todo_list" || GOOGLE_NAMES.has(b.name)));
         if (!uses.length) break;
         const results: any[] = [];
         // Google tools run in parallel
@@ -630,6 +675,25 @@ Deno.serve(async (req) => {
         }));
         for (const u of uses) {
           if (gRes.has(u.id)) { results.push(gRes.get(u.id)); continue; }
+          if (u.name === "send_email") {
+            toolsUsed.push("send_email");
+            const to = String(u.input?.to || "").trim();
+            const toSelf = !!to && to.split(/[,;\s]+/).filter(Boolean).every((x: string) => x.toLowerCase() === email);
+            if (!toSelf && !saidYes) {
+              results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: "NOT SENT: emails to other people need the Chairman's YES first. Show him the exact email (to, cc, subject, body) and ask him to reply YES." });
+              continue;
+            }
+            sendAttempted = true;
+            try { const out = await gmailSend(u.input || {}); confirmed.push(`Email sent from Gmail to ${out.to} — "${out.subject}" (id ${out.message_id}).`); results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify(out) }); }
+            catch (e) { const m = (e as Error).message; toolErrors.push("send_email: " + m.slice(0, 200)); results.push({ type: "tool_result", tool_use_id: u.id, content: "NOT SENT: " + m, is_error: true }); }
+            continue;
+          }
+          if (u.name === "todo_list") {
+            toolsUsed.push("todo_list");
+            try { const out = JSON.stringify(await todoSnapshot(+u.input?.days || 2)); toolText += " " + out; results.push({ type: "tool_result", tool_use_id: u.id, content: out }); }
+            catch (e) { toolErrors.push("todo_list: " + (e as Error).message); results.push({ type: "tool_result", tool_use_id: u.id, content: "ERROR: " + (e as Error).message, is_error: true }); }
+            continue;
+          }
           if (u.name === "save_memory") {
             const fact = String(u.input?.fact || "").trim();
             if (!fact) { results.push({ type: "tool_result", tool_use_id: u.id, content: "Nothing to save.", is_error: true }); continue; }
@@ -664,6 +728,16 @@ Deno.serve(async (req) => {
       toolErrors.length = 0; continue;
     }
     // the brief must come from Gmail itself: if the inbox tool never ran, try once more, then report it plainly
+    // NO-NARRATION GUARD: a reply that only announces work ("checking… one moment") without any tool having run goes back once to actually do it
+    const said = (data?.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(" ");
+    const usedAny = toolsUsed.length > 0 || (data?.content || []).some((b: any) => /tool_use|tool_result/.test(String(b.type || "")));
+    if (attempt === 0 && !usedAny && !voice && /(one moment|just a moment|give me a (moment|second|minute)|let me (check|search|look|find|pull)|i'?m (checking|searching|looking|pulling)|checking (your|now|the)|searching (your|now|for)|looking (into|up|for) (it|that|your)|i'?ll (check|search|look|get back)|stand by|hold on)/i.test(said)) {
+      console.log("narration without tools: retrying");
+      msgs.push({ role: "assistant", content: said.slice(0, 2000) || "(no text)" });
+      msgs.push({ role: "user", content: "Do NOT announce what you will do. Use your tools NOW (todo_list for the To-do list and today's reminders; calendar_events for his Google Calendar; inbox_digest for Gmail; drive_search / drive_read for files) and reply with the actual answer only. Answer only my latest question, not older ones in the chat." });
+      if (GOOGLE && !tools.some((t: any) => GOOGLE_NAMES.has(t.name))) tools.push(...GOOGLE_TOOLS);
+      continue;
+    }
     if (needDigest && !toolsUsed.some((t) => /digest/i.test(t)) && attempt === 0) {
       console.log("brief: inbox_digest not called, retrying");
       msgs.splice(0, msgs.length, { role: "user", content: message + "\n\nIMPORTANT: call the inbox_digest tool now. Never answer from memory or earlier chats." });
@@ -699,8 +773,10 @@ Deno.serve(async (req) => {
     }
     if (briefFailed) { text = "⚠️ No inbox brief this time, Chairman — I couldn't reach your Gmail (the inbox tool didn't run), so I'm not guessing. Tap Check now in the Inbox tile to retry." + (toolsUsed.length ? "\nTools that did run: " + toolsUsed.join(", ") : ""); refs = ""; }
     // Server-side verification: confirm real sends, flag claimed sends that never happened
-    if (confirmed.length) text += "\n\n✅ Confirmed by Twilio:\n- " + confirmed.join("\n- ");
-    if (!sendAttempted && /\b(sent|sending|delivered|i've sent|message (has been|was) sent)\b/i.test(text) && /whatsapp|message|email/i.test(text))
+    if (confirmed.length) text += "\n\n✅ Confirmed:\n- " + confirmed.join("\n- ");
+    const sendClaim = /\b(i(?:'ve| have)?\s+(?:just\s+|now\s+|already\s+)?sent|(?:has|have|was|were) been sent|(?:message|email|it|they)\s+(?:was|were|is)\s+sent|(?:has|have) been delivered)\b/i.test(text) || /✅\s*sent/i.test(text);
+    const notAClaim = /\b(draft|reply yes|say yes|shall i send|should i send|want me to send|ready to send|before (i|it is) send)/i.test(text);
+    if (!sendAttempted && sendClaim && !notAClaim && /whatsapp|message|email/i.test(text))
       toolErrors.push("No send was actually attempted in this reply. Nothing was sent. Ask again or type: ami status");
     // links: an image or Drive link must come from a tool result in this reply, otherwise it is invented — remove it
     const fake: string[] = [];
