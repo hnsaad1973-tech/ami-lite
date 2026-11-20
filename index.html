@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=77;
+const AMI_LEVEL=78;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1595,13 +1595,14 @@ let CT={rows:[]},CTQ="";
 const ctSt='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px;font-size:14px;margin:3px 0 6px;font-family:inherit';
 async function openContacts(){openChat("Contacts","");const w=bubble("a",'<div class="gp"><div class="card"><div class="lbl">👥 Contacts</div><div id="ctStat" class="note">Loading…</div>'+
   '<div style="display:flex;gap:6px;margin:4px 0"><input id="ctQ" style="'+ctSt+';margin:0" placeholder="Search name, company, group, number, email" onkeydown="if(event.key===\'Enter\')ctFind()"><button style="border:none;border-radius:10px;padding:0 14px;font-weight:600;background:var(--line);color:var(--ink)" onclick="ctFind()">Find</button></div>'+
-  pnBtn("＋ Add contact","ctEditC(0)",1)+pnBtn("🔄 Sync from sheet","ctSync(this)")+pnBtn("✉️ Emails from Gmail","msOpen()")+'</div><div id="ctList"></div></div>');
+  pnBtn("＋ Add contact","ctEditC(0)",1)+pnBtn("🔄 Sync from sheet","ctSync(this)")+pnBtn("✉️ Emails from Gmail","msOpen()")+pnBtn("📧 Email requests","rqOpen()")+'</div><div id="ctList"></div></div>');
   w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});ctFind();}
 async function ctFind(){CTQ=(document.getElementById("ctQ")||{}).value||"";const L=document.getElementById("ctList");if(L)L.innerHTML='<div class="card"><div class="note">Searching…</div></div>';
   try{CT=await fuApi({action:"contacts",q:CTQ});ctShow();}catch(e){if(L)L.innerHTML='<div class="card"><div class="note">Couldn\'t load: '+esc(e.message)+'</div></div>';}}
 function ctShow(){const s=document.getElementById("ctStat"),L=document.getElementById("ctList");
   if(s)s.innerHTML=CT.total+' contacts · '+CT.with_whatsapp+' with WhatsApp · '+CT.with_email+' with email'+(CT.synced_at?' · synced '+esc(String(CT.synced_at).slice(0,16).replace("T"," ")):'')+'<br>'+(CT.groups||[]).slice(0,8).map(g=>'<a href="#" onclick="document.getElementById(\'ctQ\').value=\''+esc(g.grp).replace(/'/g,"")+'\';ctFind();return false" style="color:var(--gold)">'+esc(g.grp)+' ('+g.n+')</a>').join(" · ");
-  if(!L)return;L.innerHTML='<div class="card">'+(CT.rows.length?CT.rows.map((c,i)=>'<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><b>'+esc(c.name)+'</b>'+(c.source!=="sheet"?' <span style="color:var(--gold);font-size:10.5px">new</span>':'')+'<br><span style="color:var(--muted);font-size:11.5px">'+esc([c.role,c.company,c.grp,c.country].filter(Boolean).join(" · "))+'</span><br><span style="font-size:12px">'+(c.phone?'📱 '+esc(c.phone)+' ':'')+(c.email?'✉️ '+esc(c.email):'')+'</span><br>'+
+  if(!L)return;const noEm=CT.rows.filter(c=>c.phone&&!c.email).length;
+  L.innerHTML=(noEm?'<div class="card"><div class="note">Tick the people you want, then AMI WhatsApps them asking for their email. Replies are saved to the contact automatically.</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+pnBtn("☑️ Tick all on this page","ctPickAll()")+'<span id="ctAskBtn"></span>'+(CTQ?pnBtn("📧 Ask the whole group \""+esc(CTQ)+"\"","rqGroup()"):'')+'</div></div>':'')+'<div class="card">'+(CT.rows.length?CT.rows.map((c,i)=>'<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px">'+(c.phone&&!c.email?'<input type="checkbox" class="ctPick" data-id="'+c.id+'" onchange="ctPicked()" style="width:18px;height:18px;vertical-align:middle;margin-right:6px">':'')+'<b>'+esc(c.name)+'</b>'+(c.source!=="sheet"?' <span style="color:var(--gold);font-size:10.5px">new</span>':'')+'<br><span style="color:var(--muted);font-size:11.5px">'+esc([c.role,c.company,c.grp,c.country].filter(Boolean).join(" · "))+'</span><br><span style="font-size:12px">'+(c.phone?'📱 '+esc(c.phone)+' ':'')+(c.email?'✉️ '+esc(c.email):'')+'</span><br>'+
     '<span style="display:inline-flex;gap:4px;flex-wrap:wrap">'+(c.phone?pnBtn("💬 WhatsApp","ctMsg("+i+")",1):'')+(c.email?pnBtn("✉️ Email","ctMail("+i+")"):'')+(c.phone?pnBtn("📌 New job","ctJob("+i+")"):'')+pnBtn("✏️","ctEditC("+(i+1)+")")+'</span></div>').join(""):'<div class="note">No contacts found'+(CTQ?' for "'+esc(CTQ)+'"':'')+'.</div>')+(CT.rows.length>=60?'<div class="note">Showing the first 60 — search to narrow.</div>':'')+'</div>';}
 async function ctSync(b){b.textContent="Syncing…";try{const r=await fuApi({action:"sync_contacts"});toast(r.contacts+" contacts loaded from the sheet",2500);ctFind();}catch(e){toast("Sync failed: "+e.message,4000);}b.textContent="🔄 Sync from sheet";}
 function ctEditC(k){const c=k?CT.rows[k-1]:{},f=[["name","Name"],["phone","WhatsApp / mobile (+231…)"],["email","Email"],["company","Company"],["role","Role / position"],["grp","Group (e.g. Staff, Clients, Banks & finance)"],["country","Country"],["note","Note"]];
@@ -1633,6 +1634,21 @@ function msRender(){let h='<div class="gp"><div class="card"><div class="lbl">�
 async function msRun(b){b.textContent="Starting…";try{await msApi({action:"run"});toast("Scanning your Gmail — about 1–2 minutes",3000);msLoad();}catch(e){toast(e.message,3500);}}
 async function msSure(b){if(!confirm("Save all "+MS.sure+" sure matches to your contacts and the sheet?"))return;b.textContent="Saving…";try{const r=await msApi({action:"accept_sure"});toast(r.accepted+" emails saved ("+r.sheet+" written to the sheet)",3500);msLoad();}catch(e){toast(e.message,3500);}}
 async function msOne(a,id){try{await msApi({action:a,ids:[id]});MS.rows=MS.rows.filter(x=>x.id!==id);msLoad();}catch(e){toast(e.message,3500);}}
+
+/* ===== Ask contacts for their email on WhatsApp (edge function `mailscan`) ===== */
+function ctPicked(){const n=document.querySelectorAll(".ctPick:checked").length,b=document.getElementById("ctAskBtn");if(b)b.innerHTML=n?pnBtn("📧 Ask "+n+" for email","rqAsk()",1):"";}
+function ctPickAll(){document.querySelectorAll(".ctPick").forEach(x=>x.checked=true);ctPicked();}
+async function rqAsk(){const ids=[...document.querySelectorAll(".ctPick:checked")].map(x=>Number(x.dataset.id));if(!ids.length)return;
+  if(!confirm("AMI will WhatsApp "+ids.length+" contact(s):\n\n\"Hello [name], this is AMI, Hussein Saad's assistant. We are updating Hussein's contact records. Could you please reply to this message with your email address? Please reply here and I will pass your answer to Hussein.\"\n\nCost about $"+(ids.length*0.04).toFixed(2)+" (from the monthly WhatsApp budget). Send?"))return;
+  try{const r=await msApi({action:"ask",ids});toast(r.sent+" asked"+(r.already_asked?" · "+r.already_asked+" already asked this month":"")+(r.skipped_budget?" · "+r.skipped_budget+" not sent (budget)":"")+(r.failed?" · "+r.failed+" failed":""),5000);ctFind();}catch(e){toast(e.message,4000);}}
+async function rqGroup(){try{const p=await msApi({action:"ask_group",grp:CTQ,preview:true});if(!p.count){toast("Nobody in \""+CTQ+"\" needs an email (or it isn't a group name).",3500);return;}
+  if(!confirm("Ask all "+p.count+" people in \""+CTQ+"\" who have WhatsApp but no email?\n\nCost about $"+p.cost+". Budget used this month: $"+p.spent.toFixed(2)+" of $"+p.cap+". AMI stops at the cap."))return;
+  const r=await msApi({action:"ask_group",grp:CTQ});toast(r.sent+" asked"+(r.skipped_budget?" · "+r.skipped_budget+" not sent (budget cap)":""),5000);}catch(e){toast(e.message,4000);}}
+async function rqOpen(){const w=bubble("a","Loading email requests…");w.style.maxWidth="100%";w.style.width="100%";
+  try{const r=await msApi({action:"requests"});const ic={saved:"✅",replied:"💬",sent:"⏳"};
+    w.innerHTML='<div class="gp"><div class="card"><div class="lbl">📧 Email requests</div><div class="note">'+r.sent+' asked · ✅ '+r.saved+' emails saved · 💬 '+r.replied+' replied without an email · ⏳ '+r.waiting+' waiting. Replies are read every 10 minutes.</div>'+
+      (r.recent||[]).map(x=>'<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px">'+(ic[x.status]||"")+' <b>'+esc(x.name)+'</b>'+(x.email?' — '+esc(x.email):'')+(x.reply&&!x.email?'<br><span style="color:var(--muted)">"'+esc(String(x.reply).slice(0,120))+'"</span>':'')+'</div>').join("")+'</div></div>';}
+  catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}w.scrollIntoView({block:"start"});}
 /* ===== Follow-up engine (20 Nov 2026) — edge function `followup` ===== */
 async function fuApi(o){const r=await fetch(SB_URL+"/functions/v1/followup",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
 let FU={items:[],people:[]};
