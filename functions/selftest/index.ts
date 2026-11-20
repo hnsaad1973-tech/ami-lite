@@ -1,4 +1,7 @@
-// AMI `selftest` v1.2 (20 Nov 2026) — daily health check of AMI 1.
+// AMI `selftest` v1.3 (20 Nov 2026) — STANDING ORDER (Chairman, 20 Nov 2026): check all systems every 24 hours and report fails or bugs on WhatsApp.
+// v1.3 adds bug checks: AI calls failing (3+ in 24 h per seat), Lab jobs stopped or paused, WhatsApp messages refused by the Twilio check,
+// kill switch left on, AI spending at 80%+ of a cap, Control Room connections that stopped working.
+// v1.2 (20 Nov 2026) — daily health check of AMI 1.
 // 1) every edge function answers (no boot error / crash), 2) every outside key still works (Anthropic, OpenAI, xAI, Gemini,
 // Perplexity, MetaApi, Twilio + balance, Google), 3) no scheduled job failed in the last 24 h, 4) trading guard ran recently.
 // Result kept in ami_brain "selftest"; WhatsApp to the Chairman only when something is wrong (or {notify:"always"}).
@@ -13,7 +16,7 @@ const TO = (ms: number) => AbortSignal.timeout(ms);
 const FUNCS = ["ai", "lock", "trade", "panel", "lab", "control", "whatup", "amisend", "todox", "equity", "followup", "mailscan", "wake", "saycall", "newsalert",
   "secrelay", "drivefile", "drivesort", "driveperm", "drawplan", "drawelev", "pricebuild", "sheetbuild", "actualforms", "monthlyforms", "leadfs", "leadreminders",
   "boarddesign", "tracksea", "contactfind", "pdfsplit", "ziplist", "billcheck", "authlink", "meetscribe", "waprofile", "tplmake", "tplsubmit"];
-const OLD = ["generate-recipes-with-ai-sdk", "gtest", "sttcheck", "oaicheck", "callcheck", "tplcheck"];
+const OLD = ["generate-recipes-with-ai-sdk", "gtest", "sttcheck", "oaicheck", "callcheck", "tplcheck", "twdiag"]; // all retired 20 Nov 2026
 
 async function setting(k: string) { try { return String((await (await fetch(`${SB}/rest/v1/ami_settings?key=eq.${k}&select=value`, { headers: H })).json())?.[0]?.value || "").trim(); } catch (_) { return ""; } }
 async function getKey(k: string) { const r = await fetch(`${SB}/rest/v1/ami_brain?key=eq.${k}&select=data`, { headers: H }); return r.ok ? (await r.json())[0]?.data ?? null : null; }
@@ -39,6 +42,43 @@ async function keyCheck(name: string, fn: () => Promise<Response | string>) {
   try { const r = await fn(); if (typeof r === "string") return { name, ok: !/^ERR/.test(r), note: r.replace(/^ERR:?\s*/, "") };
     return { name, ok: r.ok, note: r.ok ? "" : "refused (" + r.status + ")" }; }
   catch (e) { return { name, ok: false, note: (e as Error).message.slice(0, 100) }; }
+}
+
+// v1.3: bugs — things that answer but are not working properly
+async function bugChecks(): Promise<string[]> {
+  const out: string[] = [];
+  const since = new Date(Date.now() - 24 * 3600000).toISOString();
+  try { // AI calls that failed
+    const r = await fetch(`${SB}/rest/v1/ami_usage?ok=eq.false&at=gte.${since}&select=source,seat`, { headers: H });
+    const rows: any[] = r.ok ? await r.json() : [];
+    const by: Record<string, number> = {};
+    for (const x of rows) { const k = `${x.source || "?"} / ${x.seat || "?"}`; by[k] = (by[k] || 0) + 1; }
+    for (const [k, n] of Object.entries(by)) if (n >= 3) out.push(`AI calls failing: ${k} failed ${n}x in 24 h`);
+  } catch (_) {}
+  try { // Lab jobs stopped or paused in the last 2 days
+    const idx: any[] = (await getKey("lab_index")) || [];
+    for (const j of idx) if ((j.stage === "error" || j.stage === "paused") && Date.parse(j.at || 0) > Date.now() - 48 * 3600000)
+      out.push(`Lab job "${String(j.title || j.id).slice(0, 60)}" ${j.stage === "error" ? "stopped with an error" : "is paused"}`);
+  } catch (_) {}
+  try { // WhatsApp messages refused by the Twilio signature check (counter reset after each report)
+    const n = Number(await setting("whatup_sig_fail")) || 0;
+    if (n > 0) {
+      out.push(`WhatsApp: ${n} incoming message(s) failed the Twilio security check${(await setting("whatup_sig_enforce")) === "yes" ? " and were blocked" : ""}. If you sent one that got no answer, tell Claude.`);
+      await fetch(`${SB}/rest/v1/ami_settings`, { method: "POST", headers: { ...H, Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ key: "whatup_sig_fail", value: "0" }) });
+    }
+  } catch (_) {}
+  try { if ((await setting("kill_switch")) === "on") out.push("Kill switch is ON — AMI is switched off. Unlock in the app to turn her back on."); } catch (_) {}
+  try { // spending at 80%+ of a cap
+    const r = await fetch(`${SB}/rest/v1/rpc/ami_spend`, { method: "POST", headers: H, body: "{}" }); const sp = r.ok ? await r.json() : null;
+    if (sp && sp.cap_daily && +sp.today >= 0.8 * +sp.cap_daily) out.push(`AI spending today $${(+sp.today).toFixed(2)} of the $${sp.cap_daily} daily cap`);
+    if (sp && sp.cap_monthly && +sp.month >= 0.8 * +sp.cap_monthly) out.push(`AI spending this month $${(+sp.month).toFixed(2)} of the $${sp.cap_monthly} monthly cap`);
+  } catch (_) {}
+  try { // Control Room connections (ignores seats with no key yet)
+    const h = await getKey("control_health");
+    if (h?.at && Date.parse(h.at) > Date.now() - 36 * 3600000)
+      for (const c of h.checks || []) if (!c.ok && !/no key|no token/.test(String(c.note || ""))) out.push(`Control Room: ${c.name} not working (${String(c.note || "").slice(0, 80)})`);
+  } catch (_) {}
+  return out;
 }
 
 async function runTest() {
@@ -74,6 +114,7 @@ async function runTest() {
     fetch(`${SB}/rest/v1/rpc/ami_cron_failures`, { method: "POST", headers: H, body: JSON.stringify({ p_hours: 24 }) }).then((r) => r.ok ? r.json() : []).catch(() => []),
     getKey("trade_guard"),
   ]);
+  const bugs = await bugChecks();
   const down = pings.filter((p) => !p.up), badKeys = keys.filter((k) => !k.ok);
   const now = new Date(), weekday = now.getUTCDay() >= 1 && now.getUTCDay() <= 5;
   const guardAgeMin = guard?.at ? Math.round((Date.now() - Date.parse(guard.at)) / 60000) : null;
@@ -83,6 +124,7 @@ async function runTest() {
     ...badKeys.map((k) => `${k.name}: ${k.note || "not working"}`),
     ...(cronFails as any[]).map((c: any) => `Scheduled job ${c.jobname} failed ${c.failures}x in 24 h${c.last_error ? " — " + c.last_error : ""}`),
     ...(guardStale ? [`Trading guard has not run for ${guardAgeMin ?? "?"} min (should run every 15 min on weekdays)`] : []),
+    ...bugs,
   ];
   const result = { at: started, ok: !problems.length, functions_up: pings.length - down.length, functions_total: pings.length, functions: pings, keys, cron_failures: cronFails,
     guard_age_min: guardAgeMin, old_test_functions: OLD, problems };
