@@ -426,7 +426,7 @@
     <div class="charts" id="charts"></div>
   </div>
   <div class="news" id="news" onclick="openNews()"><span class="tag" id="ntag">News</span><span class="hl" id="hl">Loading financial headlines…</span></div>
-  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Windows</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full</button><button class="th" onclick="openControl()" title="Control room">🎛 Control</button></div>
+  <div class="trow"><button class="th" id="thb" onclick="tilesHide()">▴ Tiles</button><button class="ochat" onclick="openAmiChat()" title="Chat with AMI">💬 Chat</button><button class="th gpt" onclick="openLauncher()" title="Open another window">＋ Windows</button><button class="th" onclick="fullScr()" title="Full screen">⛶ Full</button><button class="th" onclick="openControl()" title="Control room">🎛 Control</button><button class="th" onclick="openKeys()" title="Replace a key safely">🔑 Keys</button><button class="th" onclick="lockNow()" title="Lock AMI now">🔒 Lock</button></div>
 
   <div class="grid">
     <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3D27E"/><stop offset="1" stop-color="#C79A3C"/></linearGradient></defs></svg>
@@ -554,6 +554,21 @@
     </div>
   </div>
 
+  <div class="login" id="keyscr" style="z-index:9998" onclick="if(event.target===this)this.classList.remove('show')">
+    <div class="card">
+      <h1>🔑 Replace a key</h1>
+      <p>Paste the new key here — never in a chat. It goes straight into AMI's locked store. The old one stops being used at once.</p>
+      <select id="kyname" style="width:100%;border:1px solid var(--panelbd);border-radius:12px;padding:12px;background:var(--bg2);color:var(--text,#eee);margin-bottom:10px">
+        <option value="gemini">Gemini (Google AI Studio)</option>
+        <option value="perplexity">Perplexity</option>
+        <option value="metaapi">MetaApi token</option>
+      </select>
+      <input id="kyval" type="password" placeholder="paste the new key" autocomplete="off">
+      <button style="margin-top:10px" onclick="keySave()">Save new key</button>
+      <button style="margin-top:10px;background:transparent;border:1px solid var(--panelbd);color:var(--gold2)" onclick="document.getElementById('keyscr').classList.remove('show')">Close</button>
+      <div class="msg" id="kyinfo"></div>
+    </div>
+  </div>
   <div class="login" id="lockscr" style="z-index:10000">
     <div class="card">
       <h1>🔒 AMI 1</h1>
@@ -640,6 +655,10 @@ async function lockSetup(){
 }
 async function lockCodeSend(){lkInfo("Sending…");const j=await lockApi({action:"code_send"});if(j.error){lkInfo(j.error);return;}lockCid=j.cid;document.getElementById("lkcodebox").style.display="";lkInfo("Code sent to your WhatsApp. Valid 5 minutes.");setTimeout(()=>document.getElementById("lkcodein").focus(),100);}
 async function lockCodeVerify(){const code=document.getElementById("lkcodein").value.trim();if(!/^\d{6}$/.test(code)){lkInfo("Enter the 6 digits.");return;}const j=await lockApi({action:"code_verify",cid:lockCid,code});document.getElementById("lkcodein").value="";lockDone(j);}
+function openKeys(){document.getElementById("kyval").value="";document.getElementById("kyinfo").textContent="";document.getElementById("keyscr").classList.add("show");}
+async function keySave(){const v=document.getElementById("kyval").value.trim(),n=document.getElementById("kyname").value;if(v.length<20){document.getElementById("kyinfo").textContent="That doesn't look like a full key.";return;}
+  document.getElementById("kyinfo").textContent="Checking and saving…";const j=await lockApi({action:"key_save",name:n,value:v});document.getElementById("kyval").value="";
+  document.getElementById("kyinfo").textContent=j.ok?("✅ "+j.message):("⚠️ "+(j.error||"Not saved."));}
 async function lockNow(){const u=lkGet();lkSet("");if(u)await lockApi({action:"lock_now",unlock:u});lockShow("Locked.");}
 ["click","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,()=>{lastAct=Date.now();},{passive:true}));
 function idleCheck(){if(token&&!lockShown&&Date.now()-lastAct>IDLE_MIN*60000){lockNow();}}
@@ -674,7 +693,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=79;
+const AMI_LEVEL=80;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
