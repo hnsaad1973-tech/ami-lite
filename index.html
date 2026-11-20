@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=76;
+const AMI_LEVEL=77;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1595,7 +1595,7 @@ let CT={rows:[]},CTQ="";
 const ctSt='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px;font-size:14px;margin:3px 0 6px;font-family:inherit';
 async function openContacts(){openChat("Contacts","");const w=bubble("a",'<div class="gp"><div class="card"><div class="lbl">👥 Contacts</div><div id="ctStat" class="note">Loading…</div>'+
   '<div style="display:flex;gap:6px;margin:4px 0"><input id="ctQ" style="'+ctSt+';margin:0" placeholder="Search name, company, group, number, email" onkeydown="if(event.key===\'Enter\')ctFind()"><button style="border:none;border-radius:10px;padding:0 14px;font-weight:600;background:var(--line);color:var(--ink)" onclick="ctFind()">Find</button></div>'+
-  pnBtn("＋ Add contact","ctEditC(0)",1)+pnBtn("🔄 Sync from sheet","ctSync(this)")+'</div><div id="ctList"></div></div>');
+  pnBtn("＋ Add contact","ctEditC(0)",1)+pnBtn("🔄 Sync from sheet","ctSync(this)")+pnBtn("✉️ Emails from Gmail","msOpen()")+'</div><div id="ctList"></div></div>');
   w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});ctFind();}
 async function ctFind(){CTQ=(document.getElementById("ctQ")||{}).value||"";const L=document.getElementById("ctList");if(L)L.innerHTML='<div class="card"><div class="note">Searching…</div></div>';
   try{CT=await fuApi({action:"contacts",q:CTQ});ctShow();}catch(e){if(L)L.innerHTML='<div class="card"><div class="note">Couldn\'t load: '+esc(e.message)+'</div></div>';}}
@@ -1619,6 +1619,20 @@ async function ctMailGo(b,i){const c=CT.rows[i],box=b.closest(".card"),subject=b
 async function ctJob(i){const c=CT.rows[i],task=prompt("New job for "+c.name+" — what must be done?");if(!task||!task.trim())return;
   const due=prompt("Due date (YYYY-MM-DD):",new Date(Date.now()+2*864e5).toISOString().slice(0,10));if(!due)return;
   try{await fuApi({action:"add",f:{task,who:c.name,phone:c.phone,company:c.company,due,every_days:1}});toast("Job added — AMI will chase "+c.name.split(" ")[0]+" from "+due,3500);}catch(e){toast(e.message,3500);}}
+
+/* ===== Emails for contacts from Gmail (edge function `mailscan`) ===== */
+async function msApi(o){const r=await fetch(SB_URL+"/functions/v1/mailscan",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
+let MS={rows:[]},MST=null;
+async function msOpen(){const w=bubble("a",'<div class="note">Loading email suggestions…</div>');w.style.maxWidth="100%";w.style.width="100%";w.id="msbox";await msLoad();w.scrollIntoView({block:"start"});}
+async function msLoad(){const w=document.getElementById("msbox");if(!w)return;clearTimeout(MST);try{MS=await msApi({action:"list"});w.innerHTML=msRender();if(/scanning|matching|starting/.test(MS.status||""))MST=setTimeout(msLoad,10000);}catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}}
+function msRender(){let h='<div class="gp"><div class="card"><div class="lbl">✉️ Emails for your contacts — from your Gmail</div><div class="note">AMI reads who you have emailed with (last 2 years) and matches the addresses to contacts that have no email. Nothing is saved until you accept; accepted emails go into AMI and your Contacts Master sheet.</div>'+
+  '<div class="note"><b>Status:</b> '+esc(MS.status||"not run yet")+'</div><div class="note">'+MS.open+' suggestions waiting · '+MS.sure+' sure matches · '+MS.accepted+' accepted so far</div>'+
+  (MS.sure?pnBtn("✅ Accept all "+MS.sure+" sure matches","msSure(this)",1):'')+pnBtn("🔄 Scan Gmail again","msRun(this)")+'</div>';
+  if(MS.rows.length)h+='<div class="card">'+MS.rows.map(r=>'<div style="padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><b>'+esc(r.contact_name)+'</b> '+(r.confidence==="sure"?'<span style="color:#3ecf8e;font-size:11px">sure</span>':'<span style="color:#E4B75A;font-size:11px">check</span>')+'<br>✉️ '+esc(r.email)+'<br><span style="color:var(--muted);font-size:11px">'+(r.display?'shown as "'+esc(r.display)+'" · ':'')+r.msgs+' emails</span><br>'+pnBtn("✅","msOne('accept',"+r.id+")",1)+pnBtn("✖","msOne('reject',"+r.id+")")+'</div>').join("")+'</div>';
+  return h+'</div>';}
+async function msRun(b){b.textContent="Starting…";try{await msApi({action:"run"});toast("Scanning your Gmail — about 1–2 minutes",3000);msLoad();}catch(e){toast(e.message,3500);}}
+async function msSure(b){if(!confirm("Save all "+MS.sure+" sure matches to your contacts and the sheet?"))return;b.textContent="Saving…";try{const r=await msApi({action:"accept_sure"});toast(r.accepted+" emails saved ("+r.sheet+" written to the sheet)",3500);msLoad();}catch(e){toast(e.message,3500);}}
+async function msOne(a,id){try{await msApi({action:a,ids:[id]});MS.rows=MS.rows.filter(x=>x.id!==id);msLoad();}catch(e){toast(e.message,3500);}}
 /* ===== Follow-up engine (20 Nov 2026) — edge function `followup` ===== */
 async function fuApi(o){const r=await fetch(SB_URL+"/functions/v1/followup",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
 let FU={items:[],people:[]};
