@@ -554,6 +554,20 @@
     </div>
   </div>
 
+  <div class="login" id="lockscr" style="z-index:10000">
+    <div class="card">
+      <h1>🔒 AMI 1</h1>
+      <p id="lkmsg">AMI is locked.</p>
+      <button id="lkface" onclick="lockFace()">Unlock with Face ID</button>
+      <button id="lkcode" style="margin-top:10px;background:transparent;border:1px solid var(--panelbd);color:var(--gold2)" onclick="lockCodeSend()">Send code to my WhatsApp</button>
+      <div id="lkcodebox" style="display:none;margin-top:12px">
+        <input id="lkcodein" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code">
+        <button style="margin-top:10px" onclick="lockCodeVerify()">Unlock</button>
+      </div>
+      <button id="lksetup" style="display:none;margin-top:10px;background:transparent;border:1px solid var(--panelbd);color:var(--gold2)" onclick="lockSetup()">Set up Face ID on this device</button>
+      <div class="msg" id="lkinfo"></div>
+    </div>
+  </div>
   <div class="login show" id="login">
     <div class="card">
       <h1>AMI 1</h1>
@@ -568,6 +582,69 @@
 const SB_URL="https://pdzhlslzwjlhxklqcwus.supabase.co";
 const SB_KEY="sb_publishable_vHhWZVOnyl7_qQicqcYn2A_rZVvfYsd";
 const sb=supabase.createClient(SB_URL,SB_KEY);
+
+/* v79 SECURITY — Face ID app lock + kill switch.
+   Every call to AMI's server carries an unlock token (Face ID or WhatsApp code, 12 h). Idle 30 min = locked again.
+   "LOCK AMI" on WhatsApp switches AMI off everywhere; unlocking here turns her back on. */
+const LOCK_URL=SB_URL+"/functions/v1/lock", IDLE_MIN=30;
+let lockCid="", lockShown=false, lastAct=Date.now();
+function lkGet(){try{const j=JSON.parse(localStorage.getItem("ami_unlock")||"null");return j&&new Date(j.expires_at)>new Date()?j.unlock:"";}catch(_){return "";}}
+function lkSet(u,exp){try{if(u)localStorage.setItem("ami_unlock",JSON.stringify({unlock:u,expires_at:exp}));else localStorage.removeItem("ami_unlock");}catch(_){}}
+const _fetch=window.fetch.bind(window);
+window.fetch=function(u,o){
+  try{const url=String(u&&u.url||u);
+    if(url.includes("/functions/v1/")&&!url.includes("/functions/v1/lock")&&o&&typeof o.body==="string"&&o.body.charAt(0)==="{"){
+      const b=JSON.parse(o.body);b.unlock=lkGet();o=Object.assign({},o,{body:JSON.stringify(b)});}
+  }catch(_){}
+  return _fetch(u,o).then(r=>{try{if(r.status===423&&!String(u&&u.url||u).includes("/functions/v1/lock"))lockShow();}catch(_){}return r;});
+};
+function lkDevice(){const a=navigator.userAgent;return /iPad/.test(a)?"iPad":/iPhone/.test(a)?"iPhone":/Android/.test(a)?"Android":/Windows/.test(a)?"Windows PC":/Mac/.test(a)?"Mac":"device";}
+async function lockApi(o){const r=await _fetch(LOCK_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({token,unlock:lkGet(),device:lkDevice()},o))});return await r.json().catch(()=>({error:"No answer ("+r.status+")"}));}
+const b64uToBuf=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u.buffer;};
+const bufToB64u=b=>{const u=new Uint8Array(b);let s="";for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");};
+function lkInfo(t){document.getElementById("lkinfo").textContent=t||"";}
+function lockHide(){lockShown=false;document.getElementById("lockscr").classList.remove("show");}
+async function lockShow(msg){
+  lockShown=true;document.getElementById("lockscr").classList.add("show");
+  document.getElementById("lkcodebox").style.display="none";lkInfo("");
+  const st=token?await lockApi({action:"status"}):{};
+  if(st.unlocked&&!st.killed){lockHide();return;}
+  document.getElementById("lkmsg").textContent=msg||(st.killed?"AMI was switched off with the kill switch. Unlock to turn her back on.":"AMI is locked.");
+  const hasFace=!!(window.PublicKeyCredential)&&(st.passkeys||[]).length>0;
+  document.getElementById("lkface").style.display=hasFace?"":"none";
+  document.getElementById("lksetup").style.display=(window.PublicKeyCredential&&!st.killed)?"":"none";
+  document.getElementById("lksetup").textContent=(st.passkeys||[]).length?"Add Face ID on this device":"Set up Face ID on this device";
+}
+async function lockCheck(){if(!token)return;lastAct=Date.now();if(lkGet()){const st=await lockApi({action:"status"});if(st.unlocked&&!st.killed){lockHide();return;}lkSet("");}lockShow();}
+function lockDone(j){if(j&&j.unlock){lkSet(j.unlock,j.expires_at);lockHide();toast("🔓 Unlocked",1500);lastAct=Date.now();}else lkInfo((j&&j.error)||"Not unlocked.");}
+async function lockFace(){
+  try{lkInfo("Waiting for Face ID…");
+    const o=await lockApi({action:"auth_options"});if(o.error){lkInfo(o.error);return;}
+    const pk=o.options;pk.challenge=b64uToBuf(pk.challenge);(pk.allowCredentials||[]).forEach(c=>c.id=b64uToBuf(c.id));
+    const c=await navigator.credentials.get({publicKey:pk});
+    const resp={id:c.id,rawId:bufToB64u(c.rawId),type:c.type,clientExtensionResults:c.getClientExtensionResults?c.getClientExtensionResults():{},authenticatorAttachment:c.authenticatorAttachment||undefined,
+      response:{clientDataJSON:bufToB64u(c.response.clientDataJSON),authenticatorData:bufToB64u(c.response.authenticatorData),signature:bufToB64u(c.response.signature),userHandle:c.response.userHandle?bufToB64u(c.response.userHandle):undefined}};
+    lockDone(await lockApi({action:"auth_verify",cid:o.cid,response:resp}));
+  }catch(e){lkInfo("Face ID cancelled or not available here. Use the WhatsApp code.");}
+}
+async function lockSetup(){
+  try{lkInfo("Follow the Face ID prompt…");
+    const o=await lockApi({action:"reg_options"});if(o.error){lkInfo(o.error);return;}
+    const pk=o.options;pk.challenge=b64uToBuf(pk.challenge);pk.user.id=b64uToBuf(pk.user.id);(pk.excludeCredentials||[]).forEach(c=>c.id=b64uToBuf(c.id));
+    const c=await navigator.credentials.create({publicKey:pk});
+    const resp={id:c.id,rawId:bufToB64u(c.rawId),type:c.type,clientExtensionResults:c.getClientExtensionResults?c.getClientExtensionResults():{},authenticatorAttachment:c.authenticatorAttachment||undefined,
+      response:{clientDataJSON:bufToB64u(c.response.clientDataJSON),attestationObject:bufToB64u(c.response.attestationObject),transports:c.response.getTransports?c.response.getTransports():[]}};
+    const j=await lockApi({action:"reg_verify",cid:o.cid,response:resp});
+    if(j.unlock)toast("✅ Face ID set up on this "+lkDevice(),2500);lockDone(j);
+  }catch(e){lkInfo("Face ID setup cancelled or not available on this device.");}
+}
+async function lockCodeSend(){lkInfo("Sending…");const j=await lockApi({action:"code_send"});if(j.error){lkInfo(j.error);return;}lockCid=j.cid;document.getElementById("lkcodebox").style.display="";lkInfo("Code sent to your WhatsApp. Valid 5 minutes.");setTimeout(()=>document.getElementById("lkcodein").focus(),100);}
+async function lockCodeVerify(){const code=document.getElementById("lkcodein").value.trim();if(!/^\d{6}$/.test(code)){lkInfo("Enter the 6 digits.");return;}const j=await lockApi({action:"code_verify",cid:lockCid,code});document.getElementById("lkcodein").value="";lockDone(j);}
+async function lockNow(){const u=lkGet();lkSet("");if(u)await lockApi({action:"lock_now",unlock:u});lockShow("Locked.");}
+["click","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,()=>{lastAct=Date.now();},{passive:true}));
+function idleCheck(){if(token&&!lockShown&&Date.now()-lastAct>IDLE_MIN*60000){lockNow();}}
+setInterval(idleCheck,60000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){idleCheck();if(token&&!lockShown&&!lkGet())lockShow();}});
 let token=null, section="Ask AMI", busy=false;
 
 async function initAuth(){
@@ -579,6 +656,7 @@ const OWNER="hnsaad1973@gmail.com";
 function setSession(s){
   if(s&&String(s.user?.email||"").toLowerCase()!==OWNER){sb.auth.signOut();s=null;}
   token=s?s.access_token:null;document.getElementById("login").classList.toggle("show",!token);
+  if(token)lockCheck();
   if(token&&!histDone){histDone=true;chatHistory();waLoad(true);}}
 async function sendLink(){
   const email=document.getElementById("email").value.trim();
@@ -596,7 +674,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=78;
+const AMI_LEVEL=79;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
