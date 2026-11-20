@@ -1,4 +1,4 @@
-// AMI `trade` v2.0 (20 Nov 2026) — TRADING SAFETY: kill switch + app-lock check (ami_gate); "guard" action (run every 15 min by cron):
+// AMI `trade` v2.1 (20 Nov 2026) — spending cap on new studies + every AI call logged in ami_usage; v2.0 — TRADING SAFETY: kill switch + app-lock check (ami_gate); "guard" action (run every 15 min by cron):
 //   weekly loss cap enforced in code ($600 from the Monday balance -> every position closed) and Friday close (from 20:00 UTC Friday nothing stays open);
 //   "close" action (one position or all, Chairman only, app unlocked); MetaApi token now read from the Keys store first (ami_settings), env secret as fallback.
 // v1.9.1 (18 Nov 2026; one-time send lock per study (no duplicate orders); whole budget invested across approved trades, risk = share of the $600 weekly cap; retries MetaApi read hiccups and chart fetch; 24h 15-min chart per open position; live account + positions for the trading panel (action account); MT4 success code ERR_NO_ERROR counted as placed; picks the broker's tradable symbol version (e.g. EURUSDs); short MT4 order comment; price retry one-by-one, unpriced trades dropped instead of stopping; live price check by Perplexity before voting, Gemini retries when Google is busy; market tabs: all / fx / metals / energy / indices / stocks; Concur & place orders via MetaApi (OneRoyal MT5), decline; risk-based lot sizing from the broker's symbol spec; + Perplexity voter (5th seat); + Gemini voter, sizing for a board of up to 5; week set in code = next Mon-Fri; research text kept across search rounds, stops if prices are missing; structured answers via the answer tool, research then candidates) — Trading Hub (weekly, Mon open -> Fri close). DEMO: no orders are placed.
@@ -17,6 +17,9 @@ const FRIDAY_CLOSE_UTC = 20; // Friday 20:00 UTC (Monrovia time) — markets shu
 const SELF_WA = "+231777170170";
 async function getKey(k: string) { const r = await fetch(`${SB}/rest/v1/ami_brain?key=eq.${k}&select=data`, { headers: H }); return r.ok ? (await r.json())[0]?.data ?? null : null; }
 async function setKey(k: string, data: unknown) { await fetch(`${SB}/rest/v1/ami_brain`, { method: "POST", headers: { ...H, Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ key: k, data, updated_at: new Date().toISOString() }) }); }
+async function logUse(provider: string, model: string, tin: number, tout: number) {
+  await fetch(`${SB}/rest/v1/ami_usage`, { method: "POST", headers: { ...H, Prefer: "return=minimal" }, body: JSON.stringify({ source: "trade", provider, model, job: "trade study", tokens_in: Math.round(tin || 0), tokens_out: Math.round(tout || 0), ok: true }) }).catch(() => null);
+}
 function jparse(t: string) { const s = t.indexOf("{"), e = t.lastIndexOf("}"); return JSON.parse(t.slice(s, e + 1)); }
 // if a model's JSON is broken (e.g. web-search citations inside it), have a fast model rewrite it as clean JSON
 async function jfix(t: string) {
@@ -33,6 +36,7 @@ async function claudeTool(model: string, system: string, user: string, schema: a
     body: JSON.stringify({ model, max_tokens: max, system: system + "\nIMPORTANT: give your final answer ONLY by calling the 'answer' tool.", messages: [{ role: "user", content: user }], tools: [{ name: "answer", description: "Give the answer", input_schema: schema }] }) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j?.error?.message || "Claude error " + r.status);
+  if (j.usage) await logUse("anthropic", model, (+j.usage.input_tokens || 0) + (+j.usage.cache_read_input_tokens || 0) * 0.1, +j.usage.output_tokens || 0);
   const t = (j.content || []).find((b: any) => b.type === "tool_use"); if (!t) throw new Error("Claude gave no structured answer");
   return t.input;
 }
@@ -49,6 +53,7 @@ async function claude(model: string, system: string, user: string, search = fals
     const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: TO(170000), headers: { "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") || "", "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ ...body, messages: msgs }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j?.error?.message || "Claude error " + r.status);
+    if (j.usage) await logUse("anthropic", model, (+j.usage.input_tokens || 0) + (+j.usage.cache_read_input_tokens || 0) * 0.1, +j.usage.output_tokens || 0);
     acc += (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""); last = String(j.stop_reason || "");
     if (j.stop_reason === "pause_turn") { msgs = [...msgs, { role: "assistant", content: j.content }]; continue; }
     return acc;
@@ -69,6 +74,7 @@ async function pplx(system: string, user: string): Promise<{ model: string; text
       body: JSON.stringify({ model, instructions: system + "\nCheck current facts and prices with web search. Answer ONLY with the JSON, no citation markers inside it.", input: user, tools: [{ type: "web_search" }] }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { last = new Error(j?.error?.message || "error " + r.status); continue; }
+    if (j.usage) await logUse("perplexity", model, +j.usage.input_tokens || 0, +j.usage.output_tokens || 0);
     const text = (j.output || []).filter((o: any) => o.type === "message").flatMap((o: any) => o.content || []).filter((c: any) => c.type === "output_text").map((c: any) => c.text).join("") || String(j.output_text || "");
     if (text) return { model, text: text.replace(/\[\d+\]/g, "") };
     last = new Error("empty answer");
@@ -84,6 +90,7 @@ async function oai(base: string, key: string, model: string, system: string, use
   const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: TO(150000), headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: user }], ...extra }) });
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error?.message || "error " + r.status);
+  if (j.usage) await logUse(base.includes("x.ai") ? "xai" : base.includes("googleapis") ? "google" : "openai", model, +j.usage.prompt_tokens || 0, +j.usage.completion_tokens || 0);
   return String(j.choices?.[0]?.message?.content || "");
 }
 
@@ -277,6 +284,8 @@ Deno.serve(async (req) => {
   if (p.action === "get") return json({ run: await getKey("trade_run"), history: ((await getKey("trade_weeks")) || []).map((w: any) => ({ id: w.id, week: w.pack?.week, bias: w.bias, market: w.market || "all", chosen: w.chosen, allocated: w.allocated })) });
   if (p.action === "week") { const h = (await getKey("trade_weeks")) || []; return json({ run: h.find((w: any) => w.id === p.id) || null }); }
   if (p.action === "start") {
+    { const sr = await fetch(`${SB}/rest/v1/rpc/ami_spend`, { method: "POST", headers: H, body: "{}" }); const sp = sr.ok ? await sr.json().catch(() => null) : null;
+      if (sp?.over) return json({ error: `AI spending cap reached (today $${(+sp.today).toFixed(2)} of $${sp.cap_daily}; month $${(+sp.month).toFixed(2)} of $${sp.cap_monthly}). The study can run after the cap resets.` }, 429); }
     const cur = await getKey("trade_run");
     if (cur?.status === "working" && Date.now() - Date.parse(cur.id) < 6 * 60000) return json({ error: "A study is already running — give it a few minutes." }, 409);
     const bias = ["buy", "short", "either"].includes(p.bias) ? p.bias : "either";

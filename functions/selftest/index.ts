@@ -1,4 +1,4 @@
-// AMI `selftest` v1.1 (20 Nov 2026) — daily health check of AMI 1.
+// AMI `selftest` v1.2 (20 Nov 2026) — daily health check of AMI 1.
 // 1) every edge function answers (no boot error / crash), 2) every outside key still works (Anthropic, OpenAI, xAI, Gemini,
 // Perplexity, MetaApi, Twilio + balance, Google), 3) no scheduled job failed in the last 24 h, 4) trading guard ran recently.
 // Result kept in ami_brain "selftest"; WhatsApp to the Chairman only when something is wrong (or {notify:"always"}).
@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
     if ((g.ok ? await g.json().catch(() => null) : null) !== "ok") return json({ error: "AMI is locked." }, 423);
   }
   if (p.action === "last") return json({ result: await getKey("selftest") });
+  if (p.action === "alert") { if (!ik) return json({ error: "Access denied." }, 403); await waSelf(String(p.text || "").slice(0, 1200)); return json({ ok: true }); }
   if (p.action !== "run") return json({ error: "Unknown action." }, 400);
   const r = await runTest();
   if (!r.ok || p.notify === "always") {
