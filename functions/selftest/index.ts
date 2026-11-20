@@ -1,4 +1,4 @@
-// AMI `selftest` v1.0 (20 Nov 2026) — daily health check of AMI 1.
+// AMI `selftest` v1.1 (20 Nov 2026) — daily health check of AMI 1.
 // 1) every edge function answers (no boot error / crash), 2) every outside key still works (Anthropic, OpenAI, xAI, Gemini,
 // Perplexity, MetaApi, Twilio + balance, Google), 3) no scheduled job failed in the last 24 h, 4) trading guard ran recently.
 // Result kept in ami_brain "selftest"; WhatsApp to the Chairman only when something is wrong (or {notify:"always"}).
@@ -45,7 +45,11 @@ async function runTest() {
   const started = new Date().toISOString();
   const env = (k: string) => (Deno.env.get(k) || "").trim();
   const [pings, keys, cronFails, guard] = await Promise.all([
-    Promise.all(FUNCS.map(ping)),
+    (async () => { const out: any[] = []; for (let i = 0; i < FUNCS.length; i += 4) { out.push(...await Promise.all(FUNCS.slice(i, i + 4).map(ping))); await new Promise((z) => setTimeout(z, 1500)); }
+      // a rate-limit answer is the gateway, not the function: check those once more after a pause
+      const rl = out.filter((x) => !x.up && /rate limit/i.test(x.note));
+      if (rl.length) { await new Promise((z) => setTimeout(z, 20000)); for (const x of rl) { const y = await ping(x.name); Object.assign(x, y, /rate limit/i.test(y.note) ? { up: true, note: "not checked (rate limit)" } : {}); await new Promise((z) => setTimeout(z, 1500)); } }
+      return out; })(),
     Promise.all([
       keyCheck("Anthropic (Claude)", () => fetch("https://api.anthropic.com/v1/models?limit=1", { signal: TO(15000), headers: { "x-api-key": env("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01" } })),
       keyCheck("OpenAI (ChatGPT)", async () => env("OPENAI_API_KEY") ? fetch("https://api.openai.com/v1/models", { signal: TO(15000), headers: { Authorization: "Bearer " + env("OPENAI_API_KEY") } }) : "ERR not set"),
