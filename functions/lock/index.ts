@@ -1,4 +1,4 @@
-// AMI `lock` edge function — v1.2 (20 Nov 2026)
+// AMI `lock` edge function — v1.3 (20 Nov 2026)
 // Face ID / passkey app lock + WhatsApp unlock code + kill-switch status for AMI 1.
 // Every call needs the Chairman's sign-in token (body.token). Unlock tokens last 12 hours.
 import {
@@ -166,14 +166,14 @@ Deno.serve(async (req) => {
         test = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1", { headers: { "x-goog-api-key": val } });
         rows = ["gemini_key", "gemini_api_key"];
       } else if (name === "perplexity") {
-        test = await fetch("https://api.perplexity.ai/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + val, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "sonar", max_tokens: 1, messages: [{ role: "user", content: "OK" }] }) });
+        test = await fetch("https://api.perplexity.ai/v1/agent", { method: "POST", headers: { Authorization: "Bearer " + val, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "perplexity/sonar", input: "OK", max_output_tokens: 16 }) });
         rows = ["perplexity_key"];
       } else if (name === "metaapi") {
         test = await fetch("https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts", { headers: { "auth-token": val } });
         rows = ["metaapi_token"];
       } else return json({ error: "Unknown key name." }, 400);
-      if (!test || !test.ok) return json({ error: `The new key was refused by ${name} (${test ? test.status : "no answer"}). Nothing was changed.` }, 400);
+      if (!test || !test.ok) return json({ error: `The new key was refused by ${name} (${test ? test.status : "no answer"}; the pasted key was ${val.length} characters, starting ${val.slice(0, 5)}). Nothing was changed.` }, 400);
       for (const k of rows) await db("ami_settings", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ key: k, value: val }) });
       return json({ ok: true, message: `${name} key tested and saved. Now delete the old key on the ${name} website.` });
     }
