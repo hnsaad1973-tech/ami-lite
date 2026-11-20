@@ -693,7 +693,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=80;
+const AMI_LEVEL=81;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1230,6 +1230,13 @@ async function loadIBKR(){
     if(ibkRetry++<3){setTimeout(loadIBKR,6000);return;}
     if(!ibkrData)document.getElementById("ibkv").textContent="Conn. error";}
 }
+/* v81 trading safety: close one trade or all (Chairman confirms), weekly loss cap + Friday close run on the server every 15 min */
+async function trCloseCall(body,label){toast("Closing "+label+"…",3000);
+  try{const r=await fetch(IBKR.endpoint,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({action:"close",token},body))});const j=await r.json();
+    if(j.error)toast("⚠️ "+j.error,4000);else toast("✅ "+(j.note||"Closed"),3000);}catch(e){toast("⚠️ "+e.message,4000);}
+  setTimeout(loadIBKR,1500);}
+function trClose(x){const q=+x.pnl||0;if(!confirm("Close "+x.symbol+" "+x.side+" "+fmt(x.lots,2)+" now?\nCurrent P&L: "+(q>=0?"+$":"-$")+fmt(Math.abs(q),2)))return;trCloseCall({position_id:String(x.id)},x.symbol);}
+function trCloseAll(){const n=((ibkrData&&ibkrData.positions)||[]).length;if(!n)return;if(!confirm("Close ALL "+n+" open trades now?"))return;trCloseCall({all:true},"all trades");}
 function fmt(n,d){return (+n||0).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
 function renderTrade(){
   const g=document.getElementById("charts");
@@ -1245,7 +1252,7 @@ function renderTrade(){
     let h='<div class="trh" title="Live from MetaTrader, refreshed every 30 seconds. New trades are placed only from the Board room after you concur."><b>MT4'+(d.demo!==false?' Demo':'')+'</b>'+
       (ibkrData?'<span style="text-transform:none;letter-spacing:0">Bal $'+fmt(d.balance,0)+' · Eq $'+fmt(d.equity,0)+' · '+ps.length+' open</span>':'<span style="text-transform:none;letter-spacing:0">Loading…</span>')+
       '<span class="pl '+(p>=0?"up":"dn")+'">'+(p>=0?"+$":"−$")+fmt(Math.abs(p),2)+'</span></div><div class="trl'+(ps.length>2?' cmp':'')+(ps.length>3?' two':'')+'">';
-    ps.slice().sort((a,b)=>(+b.pnl||0)-(+a.pnl||0)).forEach(x=>{
+    const sorted=ps.slice().sort((a,b)=>(+b.pnl||0)-(+a.pnl||0));sorted.forEach(x=>{
       const q=+x.pnl||0,dg=+x.price<20?5:2;
       if(ps.length>3){h+='<div class="trx"><div class="inf" style="white-space:nowrap"><b>'+esc(String(x.symbol))+'</b><small style="color:'+(x.side==="SELL"?'#e06c6c':'#5cc98a')+'">'+x.side+' '+fmt(x.lots,2)+'</small><div style="font-weight:600" class="'+(q>=0?"up":"dn")+'">'+(q>=0?"+$":"−$")+fmt(Math.abs(q),2)+'</div></div><div class="cht">'+trChart(x)+'</div></div>';return;}
       h+='<div class="trx"><div class="inf"><b>'+esc(String(x.symbol))+'</b> '+(x.side==="SELL"?'<span style="color:#e06c6c">SELL</span>':'<span style="color:#5cc98a">BUY</span>')+' '+fmt(x.lots,2)+
@@ -1255,7 +1262,11 @@ function renderTrade(){
         '<div class="cht">'+trChart(x)+'</div></div>';});
     if(!ps.length)h+='<div class="tre" style="margin:auto"><div class="t2">'+(ibkrData?'No open trades. New trades come from the Board room.':'')+'</div></div>';
     h+='</div>';
+    if(ps.length)h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--muted);padding:4px 8px 2px">'+
+      '<span>'+(d.week_pnl!=null?('Week '+(d.week_pnl>=0?'+$':'−$')+fmt(Math.abs(d.week_pnl),0)+' · cap −$'+fmt(d.loss_cap||600,0)+' · Fri 20:00 close'):'Tap a trade to close it')+'</span>'+
+      '<button onclick="trCloseAll()" style="border:1px solid #e06c6c;background:transparent;color:#e06c6c;border-radius:8px;padding:3px 8px;font-size:10.5px;cursor:pointer">Close all</button></div>';
     wrap.innerHTML=h;
+    wrap.querySelectorAll(".trx").forEach((el,i)=>{const x=sorted[i];if(!x)return;el.style.cursor="pointer";el.title="Tap to close this trade";el.onclick=()=>trClose(x);});
   }
   g.appendChild(wrap);
 }
