@@ -1,4 +1,4 @@
-// AMI `lock` edge function — v1.3 (20 Nov 2026)
+// AMI `lock` edge function — v1.4 (20 Nov 2026: key_save "twilio" — Twilio primary auth token for the WhatsApp signature check, tested against Twilio and against a real signed message) — v1.3 (20 Nov 2026)
 // Face ID / passkey app lock + WhatsApp unlock code + kill-switch status for AMI 1.
 // Every call needs the Chairman's sign-in token (body.token). Unlock tokens last 12 hours.
 import {
@@ -172,6 +172,21 @@ Deno.serve(async (req) => {
       } else if (name === "metaapi") {
         test = await fetch("https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts", { headers: { "auth-token": val } });
         rows = ["metaapi_token"];
+      } else if (name === "twilio") {
+        // v1.4: Twilio PRIMARY auth token — whatup uses it to check that WhatsApp messages really come from Twilio
+        const sid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
+        test = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, { headers: { Authorization: "Basic " + btoa(`${sid}:${val}`) } });
+        if (test.ok) { // does it sign WhatsApp messages? check it against the last message that failed the check
+          const rr = await db("ami_settings?key=eq.whatup_sig_raw&select=value");
+          const raw = rr.ok ? JSON.parse((await rr.json())[0]?.value || "null") : null;
+          if (raw?.got && Array.isArray(raw.pairs)) {
+            const data = "https://pdzhlslzwjlhxklqcwus.supabase.co/functions/v1/whatup" + (raw.q || "") + raw.pairs.map(([a, b]: [string, string]) => a + b).join("");
+            const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(val), { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+            const u = new Uint8Array(await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(data))); let s = ""; for (const b of u) s += String.fromCharCode(b);
+            if (btoa(s) !== raw.got) return json({ error: "Twilio accepted this token, but it is not the one that signs WhatsApp messages. In the Twilio console copy the PRIMARY Auth Token (not the secondary). Nothing was changed." }, 400);
+          }
+        }
+        rows = ["twilio_sign_token"];
       } else return json({ error: "Unknown key name." }, 400);
       if (!test || !test.ok) return json({ error: `The new key was refused by ${name} (${test ? test.status : "no answer"}; the pasted key was ${val.length} characters, starting ${val.slice(0, 5)}). Nothing was changed.` }, 400);
       for (const k of rows) await db("ami_settings", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ key: k, value: val }) });

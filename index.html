@@ -562,6 +562,7 @@
         <option value="gemini">Gemini (Google AI Studio)</option>
         <option value="perplexity">Perplexity</option>
         <option value="metaapi">MetaApi token</option>
+        <option value="twilio">Twilio Primary Auth Token</option>
       </select>
       <input id="kyval" type="password" placeholder="paste the new key" autocomplete="off">
       <button style="margin-top:10px" onclick="keySave()">Save new key</button>
@@ -693,7 +694,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=81;
+const AMI_LEVEL=82;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1676,7 +1677,7 @@ function ctRender(d){const k=d.kpi||{},hc=d.health||{checks:[]};CTSUBS=d.subs||[
     ctKpi("Today",usd(k.today),(k.calls_today||0)+" AI calls")+ctKpi("This month",usd(k.month),"projected "+usd(k.month_projection,0))+ctKpi("This year",usd(k.year),"projected "+usd(k.year_projection,0))+
     ctKpi("Tokens today",knum(k.tokens_today),knum(k.tokens_month)+" this month")+ctKpi("AI hours today",Number(k.hours_today||0).toFixed(2),Number(k.hours_month||0).toFixed(1)+" this month")+
     ctKpi("Connections",((hc.checks||[]).length-red.length)+"/"+(hc.checks||[]).length,red.length?red.length+" need attention":"all green")+'</div>'+
-    '<div class="note" style="margin-top:6px">Cost meter counts every AI call AMI\'s Lab makes from 20 Nov 2026 (main chat, board room and trading join next). Prices are estimates until checked against each provider\'s bill.</div></div>';
+    '<div class="note" style="margin-top:6px">Cost meter counts every AI call AMI makes (chat, Lab, advisory panel, trading) from 20 Nov 2026. Caps: $5 a day, $100 a month. Prices are estimates until checked against each provider\'s bill.</div></div>';
   h+='<div class="card"><div class="lbl">💰 Cost per day — last 30 days</div>'+ctBars(d.daily||[],"cost",v=>usd(v),"var(--gold)")+'</div>';
   h+='<div class="card"><div class="lbl">🔤 Tokens per day</div>'+ctBars(d.daily||[],"tokens",knum,"#5B8DEF")+'<div class="lbl" style="margin-top:8px">⏱ AI working hours per day</div>'+ctBars(d.daily||[],"hours",v=>Number(v).toFixed(2)+" h","#3ecf8e")+'</div>';
   const seats=d.seats||[],sm=Math.max(...seats.map(s=>s.cost),0.0001);

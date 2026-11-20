@@ -1,4 +1,4 @@
-// AMI `whatup` — WhatsApp webhook (Twilio) — v3.4 (20 Nov 2026) — signature check diagnostics: when a message fails the check, its signature and fields are kept (last one only, in ami_settings.whatup_sig_raw) so the cause can be found; more URL variants tried.
+// AMI `whatup` — WhatsApp webhook (Twilio) — v3.5 (20 Nov 2026) — the signature check also uses the Twilio primary auth token saved from the app's 🔑 Keys box (ami_settings.twilio_sign_token); the token in the secrets turned out not to be the signing one. v3.4 (20 Nov 2026) — signature check diagnostics: when a message fails the check, its signature and fields are kept (last one only, in ami_settings.whatup_sig_raw) so the cause can be found; more URL variants tried.
 // v3.3 (20 Nov 2026) — SECURITY: checks Twilio's X-Twilio-Signature on every incoming message.
 //   Mode is set in ami_settings: whatup_sig_enforce = "yes" blocks messages without a valid signature; anything else = log only.
 //   Last check result is written to ami_settings.whatup_sig_last; failures are counted in whatup_sig_fail.
@@ -73,7 +73,7 @@ function safeEq(a: string, b: string) {
 }
 async function twilioSigOk(req: Request, form: FormData): Promise<{ ok: boolean; url: string; pairs: [string, string][]; got: string; q: string }> {
   const got = req.headers.get("x-twilio-signature") || "";
-  const tokens = [Deno.env.get("TWILIO_SIGNING_TOKEN") || "", TW_TOKEN].filter(Boolean);
+  const tokens = [await setting("twilio_sign_token"), Deno.env.get("TWILIO_SIGNING_TOKEN") || "", TW_TOKEN].filter(Boolean);
   const pairs: [string, string][] = [];
   for (const [k, v] of form.entries()) if (typeof v === "string") pairs.push([k, v]);
   pairs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
