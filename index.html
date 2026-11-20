@@ -596,7 +596,7 @@ function tick(){const d=new Date();
 tick();setInterval(tick,10000);
 
 /* AMI level: build complete = 50%, learning fills 50 -> 100. Update this one number as we build. */
-const AMI_LEVEL=74;
+const AMI_LEVEL=75;
 (function(){const v=Math.max(0,Math.min(100,AMI_LEVEL)),hue=Math.round(v*1.2);
   const b=document.getElementById("lvlb");b.style.width=v+"%";
   b.style.background="linear-gradient(90deg,hsl(0,75%,52%),hsl("+hue+",70%,48%))";
@@ -1588,9 +1588,36 @@ function ctEdit(i){const s=i>=0?CTSUBS[i]:{name:""},f=[["name","Name"],["plan","
   w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});}
 async function ctSave(b,id){const box=b.closest(".card"),o={id:id||undefined};box.querySelectorAll("input[data-k]").forEach(x=>o[x.dataset.k]=x.value.trim());
   if(!o.name){toast("Name first.",2500);return;}b.textContent="Saving…";try{await ctApi({action:"sub_save",s:o});toast("Saved",1500);openControl();}catch(e){b.textContent="💾 Save";toast("Couldn't save: "+e.message,3000);}}
+
+/* ===== Follow-up engine (20 Nov 2026) — edge function `followup` ===== */
+async function fuApi(o){const r=await fetch(SB_URL+"/functions/v1/followup",{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({},o,{token}))});const j=await r.json().catch(()=>({error:"No answer ("+r.status+")"}));if(!r.ok||j.error)throw new Error(j.error||r.status);return j;}
+let FU={items:[],people:[]};
+async function openFollow(){openChat("Follow-ups","");const w=bubble("a",'<div class="note">Loading follow-ups…</div>');w.style.maxWidth="100%";w.style.width="100%";w.id="fubox";await fuLoad();w.scrollIntoView({block:"start"});}
+async function fuLoad(){const w=document.getElementById("fubox");if(!w)return;try{FU=await fuApi({action:"list"});w.innerHTML=fuRender();}catch(e){w.innerHTML="Couldn't load: "+esc(e.message);}}
+function fuRender(){const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:9px;font-size:14px;margin:3px 0 6px;font-family:inherit';
+  const open=FU.items.filter(x=>x.status==="open"),done=FU.items.filter(x=>x.status!=="open"),pct=Math.min(100,FU.spent/FU.cap*100);
+  let h='<div class="gp"><div class="card"><div class="lbl">📌 New follow-up</div><div class="note">AMI WhatsApps the person on weekdays at 09:00 and 14:00 when it is due, until it is done. Their replies come to you. You get a report every morning at 07:00.</div>'+
+    '<input id="fuTask" style="'+st+'" placeholder="What must be done (e.g. Send the signed lease to the Swedish Embassy)">'+
+    '<input id="fuWho" list="fuPeople" style="'+st+'" placeholder="Who (name)" oninput="fuPick()"><datalist id="fuPeople">'+FU.people.map(p=>'<option value="'+esc(p.name)+'">').join("")+'</datalist>'+
+    '<input id="fuPhone" style="'+st+'" placeholder="WhatsApp number (+231…) — filled in for known people">'+
+    '<div style="display:flex;gap:6px"><div style="flex:1"><div class="note" style="margin:0">Due</div><input id="fuDue" type="date" style="'+st+'" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
+    '<div style="flex:1"><div class="note" style="margin:0">Chase every</div><select id="fuEvery" style="'+st+'"><option value="1">day</option><option value="2">2 days</option><option value="3">3 days</option><option value="7">week</option></select></div></div>'+
+    pnBtn("📌 Add follow-up","fuAdd(this)",1)+'</div>';
+  h+='<div class="card"><div class="lbl">⏳ Open ('+open.length+')</div>'+(open.length?open.map(f=>{const d=Number(f.days_left),col=d<0?"#e5534b":d===0?"#E4B75A":"var(--muted)";
+      return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><b>#'+f.id+' '+esc(f.who)+'</b> — '+esc(f.task)+'<br><span style="color:'+col+';font-size:11.5px">'+(d<0?(-d)+" day(s) overdue":d===0?"due today":"due in "+d+" day(s)")+' · chased '+f.chase_count+'x'+(f.chase_count>=3?' · needs you':'')+'</span><br>'+
+        '<span style="display:inline-flex;gap:4px;flex-wrap:wrap">'+pnBtn("✅ Done","fuDo('done',"+f.id+")",1)+pnBtn("📨 Chase now","fuDo('chase_now',"+f.id+")")+pnBtn("📅 New date","fuMove("+f.id+")")+pnBtn("✖","fuDo('cancel',"+f.id+")")+'</span></div>';}).join(""):'<div class="note">Nothing open.</div>')+'</div>';
+  if(done.length)h+='<div class="card"><div class="lbl">✅ Closed this week</div>'+done.map(f=>'<div style="font-size:12.5px;padding:3px 0;color:var(--muted)">'+(f.status==="done"?"✅":"✖")+' '+esc(f.who)+' — '+esc(f.task)+'</div>').join("")+'</div>';
+  h+='<div class="card"><div class="lbl">💳 Chase budget this month</div><div class="note">'+usd(FU.spent)+' of '+usd(FU.cap,0)+' used (about '+usd(FU.per_message)+' per message). When the cap is reached AMI stops chasing and tells you — nothing is left half-sent.</div><div style="height:6px;background:var(--line);border-radius:4px;margin:6px 0"><div style="height:6px;width:'+pct.toFixed(1)+'%;background:'+(pct>85?"#e5534b":"var(--gold)")+';border-radius:4px"></div></div>'+pnBtn("Change cap","fuCap()")+'</div></div>';
+  return h;}
+function fuPick(){const n=document.getElementById("fuWho").value.trim().toLowerCase(),p=FU.people.find(x=>x.name.toLowerCase()===n);if(p&&p.phone)document.getElementById("fuPhone").value=p.phone;}
+async function fuAdd(b){const f={task:document.getElementById("fuTask").value.trim(),who:document.getElementById("fuWho").value.trim(),phone:document.getElementById("fuPhone").value.trim(),due:document.getElementById("fuDue").value,every_days:document.getElementById("fuEvery").value};
+  if(!f.task||!f.who){toast("Task and person first.",2500);return;}b.textContent="Saving…";try{await fuApi({action:"add",f});toast("Follow-up added",1500);await fuLoad();}catch(e){b.textContent="📌 Add follow-up";toast(e.message,3500);}}
+async function fuDo(a,id){if(a==="cancel"&&!confirm("Cancel follow-up #"+id+"?"))return;try{const r=await fuApi({action:a,id});if(a==="chase_now")toast(r.ok?"Sent to "+r.who:"Not sent: "+(r.error||""),3000);await fuLoad();}catch(e){toast(e.message,3500);}}
+async function fuMove(id){const d=prompt("New due date (YYYY-MM-DD):",new Date(Date.now()+3*864e5).toISOString().slice(0,10));if(!d)return;try{await fuApi({action:"move",id,due:d});await fuLoad();}catch(e){toast(e.message,3500);}}
+async function fuCap(){const c=prompt("Monthly chase budget (USD):",FU.cap);if(c===null)return;try{await fuApi({action:"set_cap",cap:c});await fuLoad();}catch(e){toast(e.message,3500);}}
 /* ===== 4 group tiles (18 Nov 2026) ===== */
 const GROUPS={
- time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()]]],
+ time:["🗓 Time Planning",[["✅ To-do list","Your lists from calls, WhatsApp and the inbox",()=>openTodo()],["📅 Calendar","Events, medication, birthdays · WhatsApp reminders",()=>openCal()],["✉️ Inbox","Morning email brief · Noted / Action",()=>openInbox()],["📌 Follow-ups","AMI chases people on WhatsApp until it's done",()=>openFollow()]]],
  fin:["🏛 Management & Finance",[["🏢 Companies financial","Each company: figures, capital & equity, import financials",()=>openCompanies()],["📊 Group companies financial","Group total, cash flow by quarter",()=>openPosition()],["🧭 Companies management structure","Directors, managers, reporting lines",null]]],
  design:["🎨 Design & Development",[["🖌 Design Studio","Renders, sketches, floor plans, elevations",()=>openChat('Design Studio','Design Studio — describe the render, sketch or plan you want, Chairman. You can also snap a photo with the camera.')],["💻 Software · CAD","CAD drawings, software builds and tools",null]]],
  adv:["🧠 Advisory Panel",[["🏛 Board room","Ask the board · this week's trade vote · confirm orders",()=>openBoard()],["📈 Trade advisory","One tap: run the week's trading study — the board votes",()=>openTrade()],["🧪 AMI Lab","Send files — the 10-seat board works on them together, then votes",()=>openLab()],["🎛 Control room","Cost meter · tokens · hours · connections · renewals",()=>openControl()]]]};
