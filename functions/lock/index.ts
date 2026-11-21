@@ -1,4 +1,4 @@
-// AMI `lock` edge function — v1.4 (20 Nov 2026: key_save "twilio" — Twilio primary auth token for the WhatsApp signature check, tested against Twilio and against a real signed message) — v1.3 (20 Nov 2026)
+// AMI `lock` edge function — v1.5 (21 Nov 2026: key_save also takes the board seats' keys: mistral, cohere, together) — v1.4 (20 Nov 2026: key_save "twilio" — Twilio primary auth token for the WhatsApp signature check, tested against Twilio and against a real signed message) — v1.3 (20 Nov 2026)
 // Face ID / passkey app lock + WhatsApp unlock code + kill-switch status for AMI 1.
 // Every call needs the Chairman's sign-in token (body.token). Unlock tokens last 12 hours.
 import {
@@ -172,6 +172,10 @@ Deno.serve(async (req) => {
       } else if (name === "metaapi") {
         test = await fetch("https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts", { headers: { "auth-token": val } });
         rows = ["metaapi_token"];
+      } else if (name === "mistral" || name === "cohere" || name === "together") {
+        const url = ({ mistral: "https://api.mistral.ai/v1/models", cohere: "https://api.cohere.com/v1/models", together: "https://api.together.xyz/v1/models" } as Record<string, string>)[name];
+        test = await fetch(url, { headers: { Authorization: "Bearer " + val } });
+        rows = [name + "_key"];
       } else if (name === "twilio") {
         // v1.4: Twilio PRIMARY auth token — whatup uses it to check that WhatsApp messages really come from Twilio
         const sid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";

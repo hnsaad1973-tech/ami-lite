@@ -1,4 +1,4 @@
-// AMI `lab` v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
+// AMI `lab` v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
 // v1.2 (20 Nov 2026: every AI call logged to ami_usage — tokens, time, seat, job — for the Control Room cost meter) — v1.1 (20 Nov 2026: opened to the Chairman's AMI 1 sign-in; board VOTE stage after final (9 voting seats, Devil's Advocate excluded); WhatsApp when done; job index for 'Past Lab jobs') — v1.0 (20 Nov 2026) — the AMI Lab: the Chairman sends a job (brief + Drive files); the 10-seat board works on it together.
 // Stages (each runs in the background and starts the next): read -> plan -> work -> merge -> critique -> final.
 //   read     : Drive files to text (Google Docs/Sheets exported; PDFs and images read by Claude vision).
@@ -9,7 +9,7 @@
 //   final    : lead editor fixes what was flagged and writes the cover sheet; saved to Drive.
 //   vote     : the 9 voting seats each vote yes/no with a score and reason (seats that may not see the file vote on the anonymised summary); WhatsApp to the Chairman.
 // TRUST (Chairman, 20 Nov 2026): sensitive jobs -> full file only to the original 5 + General Counsel; every other seat gets
-// only the anonymised general question. Normal jobs -> Mistral and the Actuary also get the file. Qwen and DeepSeek never get files.
+// only the anonymised general question. Normal jobs -> Mistral, the Actuary and the Financial Controller also get the file. The Devil's Advocate only ever gets the anonymised summary.
 // Internal key only. Status: {action:"get", id}.
 const SB = Deno.env.get("SUPABASE_URL") || "", SR = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const H = { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "application/json" };
@@ -68,7 +68,7 @@ const SEATS: Seat[] = [
   { name: "General Counsel", tier: "inner", voting: true, role: "GENERAL COUNSEL for Liberia and Sierra Leone: contracts, leases, regulation (CBL, Sierra Leone), liability. Flag where a licensed local lawyer must sign." },
   { name: "Chief Actuary", tier: "standard", voting: true, role: "CHIEF ACTUARY: reserves, pricing adequacy, loss ratios, solvency, reinsurance, capital. Give figures and formulas." },
   { name: "QS / MEP Engineer", tier: "standard", voting: true, role: "QUANTITY SURVEYOR and MEP ENGINEER: quantities, BOQs, rates, HVAC/VRV and building services, tender compliance, construction risk. Give figures." },
-  { name: "Financial Controller", tier: "general", voting: true, role: "GROUP FINANCIAL CONTROLLER and MODELLER: cash flow, IFRS, budgets, NPV/IRR, controls. Give figures." },
+  { name: "Financial Controller", tier: "standard", voting: true, role: "GROUP FINANCIAL CONTROLLER and MODELLER: cash flow, IFRS, budgets, NPV/IRR, controls. Give figures." },
   { name: "Devil's Advocate", tier: "general", voting: false, role: "DEVIL'S ADVOCATE (non-voting): argue AGAINST; weakest assumption, worst case, hidden costs, FX/liquidity/counterparty and regulatory traps. Quantify." },
 ];
 const seat = (n: string) => SEATS.find((s) => s.name === n)!;
@@ -101,7 +101,7 @@ async function claude(sys: string, user: string, max = 16000) {
 // ---------- usage log (Control Room) ----------
 let JOB_ID = "";
 const PROVIDER: Record<string, string> = { Claude: "Anthropic", "Lead editor": "Anthropic", ChatGPT: "OpenAI", "Chief Actuary": "OpenAI", Grok: "xAI", Gemini: "Google", Perplexity: "Perplexity",
-  "General Counsel": "Cohere", "QS / MEP Engineer": "Mistral", "Financial Controller": "Alibaba Cloud", "Devil's Advocate": "DeepSeek" };
+  "General Counsel": "Cohere", "QS / MEP Engineer": "Mistral", "Financial Controller": "Together (Meta Llama)", "Devil's Advocate": "xAI" };
 async function logUse(seatName: string, r: any, ms: number, ok: boolean) {
   try { await fetch(`${SB}/rest/v1/ami_usage`, { method: "POST", headers: H, body: JSON.stringify({ source: "lab", seat: seatName, provider: PROVIDER[seatName] || null, model: r?.model || null, job: JOB_ID || null, tokens_in: r?.tin || 0, tokens_out: r?.tout || 0, ms, ok }) }); } catch (_) {}
 }
@@ -137,10 +137,13 @@ async function callRaw(name: string, sys: string, user: string): Promise<{ model
       const m = await pickModel("https://api.cohere.ai/compatibility/v1", k, [/^command-a-\d/, /^command-r-plus/]) || "command-a-03-2025"; return oaiText("https://api.cohere.ai/compatibility/v1", k, m, sys, user); }
     case "QS / MEP Engineer": { const k = env("MISTRAL_API_KEY") || await setting("mistral_key"); if (!k) throw new Error("not connected — add MISTRAL_API_KEY");
       return oaiText("https://api.mistral.ai/v1", k, "mistral-large-latest", sys, user); }
-    case "Financial Controller": { const k = env("QWEN_API_KEY") || await setting("qwen_key"); if (!k) throw new Error("not connected — add QWEN_API_KEY");
-      const m = await pickModel("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", k, [/^qwen3?-max$/, /^qwen-max/]) || "qwen-max"; return oaiText("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", k, m, sys, user); }
-    case "Devil's Advocate": { const k = env("DEEPSEEK_API_KEY") || await setting("deepseek_key"); if (!k) throw new Error("not connected — add DEEPSEEK_API_KEY");
-      return oaiText("https://api.deepseek.com/v1", k, "deepseek-reasoner", sys, user); }
+    case "Financial Controller": { // Meta Llama via Together AI; until that key is added, Claude Opus sits in
+      const k = env("TOGETHER_API_KEY") || await setting("together_key");
+      if (k) { const m = await pickModel("https://api.together.xyz/v1", k, [/Llama-4-Maverick/i, /Llama-4/i, /Llama-3\.3-70B/i]) || "meta-llama/Llama-3.3-70B-Instruct-Turbo";
+        return oaiText("https://api.together.xyz/v1", k, m, sys, user); }
+      return claude(sys, user, 8000); }
+    case "Devil's Advocate": { const k = env("XAI_API_KEY"); if (!k) throw new Error("not connected");
+      const m = await pickModel("https://api.x.ai/v1", k, [/^grok-\d+(\.\d+)?$/, /^grok-/]) || "grok-4"; return oaiText("https://api.x.ai/v1", k, m, sys, user); }
   }
   throw new Error("unknown seat");
 }
@@ -283,7 +286,7 @@ Deno.serve(async (req) => {
   if (p.action === "seats") return out({ seats: await Promise.all(SEATS.map(async (s) => ({ name: s.name, tier: s.tier, voting: s.voting,
     connected: !!({ Claude: env("ANTHROPIC_API_KEY"), ChatGPT: env("OPENAI_API_KEY"), "Chief Actuary": env("OPENAI_API_KEY"), Grok: env("XAI_API_KEY"), Gemini: env("GEMINI_API_KEY") || await setting("gemini_key"),
       Perplexity: env("PERPLEXITY_API_KEY") || await setting("perplexity_key"), "General Counsel": env("COHERE_API_KEY") || await setting("cohere_key"), "QS / MEP Engineer": env("MISTRAL_API_KEY") || await setting("mistral_key"),
-      "Financial Controller": env("QWEN_API_KEY") || await setting("qwen_key"), "Devil's Advocate": env("DEEPSEEK_API_KEY") || await setting("deepseek_key") } as any)[s.name] }))) });
+      "Financial Controller": env("ANTHROPIC_API_KEY"), "Devil's Advocate": env("XAI_API_KEY") } as any)[s.name] }))) });
   if (p.action === "start") {
     if ((await gate("", false)) === "killed") return out({ error: "AMI is switched off by the kill switch.", killed: true }, 423);
     const sp = await spend(); if (sp?.over) return out({ error: capMsg(sp) + ". The Lab can start after the cap resets.", capped: true }, 429);

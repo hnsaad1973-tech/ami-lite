@@ -1,4 +1,4 @@
-// AMI `control` v1.1 (20 Nov 2026: SECURITY — app calls need AMI switched on (kill switch) and unlocked (Face ID / WhatsApp code) via ami_gate; overview shows the spending caps (ami_spend))
+// AMI `control` v1.2 (21 Nov 2026: Qwen and DeepSeek removed; Financial Controller = Meta Llama via Together; Devil's Advocate = Grok) — v1.1 (20 Nov 2026: SECURITY — app calls need AMI switched on (kill switch) and unlocked (Face ID / WhatsApp code) via ami_gate; overview shows the spending caps (ami_spend))
 // v1.0.1 (20 Nov 2026: quoted month/year column names) — AMI Control Room: cost meter (day / month / year), tokens, usage hours, cost by seat and job,
 // health of every connected service, subscription register (renewal, expiry, funding, daily caps) and WhatsApp alerts.
 // Usage comes from table ami_usage (every AI call AMI makes is logged there with tokens; cost from ami_prices).
@@ -34,8 +34,7 @@ async function health() {
     ping("Perplexity", async () => (env("PERPLEXITY_API_KEY") || await setting("perplexity_key")) ? true : "no key"),
     ping("General Counsel (Cohere)", async () => models("https://api.cohere.ai/compatibility/v1", env("COHERE_API_KEY") || await setting("cohere_key"))),
     ping("QS / MEP Engineer (Mistral)", async () => models("https://api.mistral.ai/v1", env("MISTRAL_API_KEY") || await setting("mistral_key"))),
-    ping("Financial Controller (Qwen)", async () => models("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", env("QWEN_API_KEY") || await setting("qwen_key"))),
-    ping("Devil's Advocate (DeepSeek)", async () => models("https://api.deepseek.com/v1", env("DEEPSEEK_API_KEY") || await setting("deepseek_key"))),
+    ping("Financial Controller (Meta Llama via Together)", async () => { const k = env("TOGETHER_API_KEY") || await setting("together_key"); return k ? models("https://api.together.xyz/v1", k) : "no key (Claude Opus sits in)"; }),
     ping("WhatsApp (Twilio)", async () => { const b = await internal("amisend", { action: "balance" }); return b.error ? b.error : true; }),
     ping("Google Drive", async () => { const f = await setting("lab_folder"); const d = await internal("drivefile", { action: "list", folder_id: f }); return d.files ? true : (d.error?.message || d.error || "error"); }),
     ping("AMI 1 web app", async () => { const r = await fetch("https://hnsaad1973-tech.github.io/ami-lite/", { signal: TO(12000) }); return r.ok || `error ${r.status}`; }),
