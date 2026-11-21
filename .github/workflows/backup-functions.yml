@@ -1,0 +1,46 @@
+# Weekly backup of every Supabase edge function (AMI 1 + AMI Commercial/Platinum) into this repo.
+# Needs one repository secret: SUPABASE_ACCESS_TOKEN (Supabase > Account > Access Tokens).
+name: Backup Supabase functions
+on:
+  schedule:
+    - cron: "17 3 * * 0"   # every Sunday 03:17 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Download all functions
+        run: |
+          set -u
+          mkdir -p backup
+          for ref in pdzhlslzwjlhxklqcwus xxdqrvcpxhsepwzfmnjs; do
+            name=$([ "$ref" = pdzhlslzwjlhxklqcwus ] && echo ami1 || echo ami-commercial)
+            rm -rf "backup/$name" && mkdir -p "backup/$name"
+            slugs=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$ref/functions" | jq -r '.[].slug')
+            for slug in $slugs; do
+              rm -rf supabase/functions/$slug
+              if supabase functions download "$slug" --project-ref "$ref" --use-api >/dev/null 2>&1 && [ -d "supabase/functions/$slug" ]; then
+                cp -r "supabase/functions/$slug" "backup/$name/$slug"
+                echo "ok  $name/$slug"
+              else
+                echo "FAIL $name/$slug"
+              fi
+            done
+            curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" "https://api.supabase.com/v1/projects/$ref/functions" | jq '[.[] | {slug, version, status, verify_jwt, updated_at}]' > "backup/$name/_functions.json"
+          done
+          rm -rf supabase
+      - name: Commit
+        run: |
+          git config user.name "AMI backup"
+          git config user.email "noreply@github.com"
+          git add backup
+          git diff --cached --quiet || git commit -m "Weekly function backup $(date -u +%F)"
+          git push
