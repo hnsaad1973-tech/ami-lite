@@ -353,8 +353,10 @@
   body.no-tiles .trow{margin-bottom:8px;}
   .ochat{border:none;border-radius:16px;padding:4px 12px;font:600 11px "Inter",sans-serif;cursor:pointer;white-space:nowrap;flex:0 0 auto;
     color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 4px 12px rgba(199,154,60,.3);}
-  .rest .r1{display:none!important;}
-  body.hide-wa:not(.hide-chat) .rest .r2{display:block;}
+  /* window 1 / window 2 switches — always there, gold when that window is closed */
+  .rest{display:flex!important;}
+  .rest button{display:block!important;color:var(--muted);}
+  body.hide-chat .rest .r1,body.hide-wa .rest .r2{color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));border-color:var(--gold);}
   .glist{display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
   .glist .gi{display:flex;align-items:center;gap:12px;border:1px solid var(--panelbd);border-radius:12px;background:var(--panel);padding:12px 14px;cursor:pointer;}
   .glist .gi:hover{border-color:var(--gold);}
@@ -408,7 +410,7 @@
   <div class="top">
     <div class="logo">A</div>
     <div><div class="hi" id="hi">Good evening</div><div class="name">Chairman</div></div>
-    <div class="rest"><button class="r1" onclick="paneHide('chat',false)">💬 Chat</button><button class="r2" onclick="paneHide('wa',false)">🟢 WhatsApp</button></div>
+    <div class="rest"><button class="r1" onclick="paneToggle('chat')" title="Show / hide window 1 (Chat)">1 💬</button><button class="r2" onclick="paneToggle('wa')" title="Show / hide window 2 (WhatsApp)">2 🟢</button></div>
     <button class="cme" onclick="callMe()" aria-label="Call me" title="Call me — AMI rings you"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8z"/></svg></button>
     <button class="ibk" onclick="ibkr()" aria-label="Trading"><div class="k"><i id="ibkd"></i>MT4</div><div class="v" id="ibkv">Awaiting</div></button>
     <div class="clock"><div class="t" id="time">—</div><div class="d" id="date">—</div>
@@ -1813,6 +1815,7 @@ async function amiUpdateCheck(){try{const r=await fetch(location.pathname+"?v="+
 amiUpdateCheck();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")amiUpdateCheck();});
 function openAmiChat(){if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
+function paneToggle(w){paneHide(w,!document.body.classList.contains("hide-"+w));}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
   if(!h)goPane(w==="chat"?1:2);else goPane(0);}
 try{["chat","wa"].forEach(w=>{if(localStorage.getItem("ami_hide_"+w))document.body.classList.add("hide-"+w);});}catch(_){}
