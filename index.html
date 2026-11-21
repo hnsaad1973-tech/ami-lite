@@ -1467,16 +1467,22 @@ function trTabs(k,list,cur){return '<div style="display:flex;flex-wrap:wrap;gap:
 function mkName(m){const f=TR_MK.find(x=>x[0]===m);return f?f[1]:"🌐 All";}
 async function openTrade(){openChat("Trade advisory","");const w=bubble("a","");w.style.maxWidth="100%";w.style.width="100%";
   let last="";window._trWk="";try{const d=await trApi({action:"get"}),r=d.run;if(r&&r.status==="done")window._trWk=(r.pack||{}).week||"";if(r)last=r.status==="working"?'⏳ A study is running now — '+esc(r.step||""):r.status==="done"?'Latest: '+esc(wkName((r.pack||{}).week))+' · '+(r.chosen||0)+' trade'+(r.chosen==1?'':'s')+' chosen'+(r.execution?' · '+esc(r.execution.status):' · waiting for your decision'):r.status==="failed"?'⚠️ Last study failed: '+esc(r.error||""):"";}catch(_){}
-  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">📈 Trade advisory</div><div class="note">AMI researches the markets and this week\'s news, proposes 6 trades, and the board of 5 votes. The result and the Confirm button open in the Board room.</div>'+
+  w.innerHTML='<div class="gp"><div class="card"><div class="lbl">📈 Trade advisory</div><div class="note">AMI researches the markets and this week\'s news, proposes 6 trades, and the voters you pick vote (all 5 by default). The result and the Confirm button open in the Board room.</div>'+
     '<div class="note" style="margin-top:8px"><b>Market</b></div>'+trTabs("mk",TR_MK,trOpt("mk","all"))+
     '<div class="note" style="margin-top:6px"><b>Direction</b></div>'+trTabs("dir",TR_DIR,trOpt("dir","either"))+
+    '<div class="note" style="margin-top:6px"><b>Who votes</b> — tap to choose (at least 2). None picked = all 5. Fewer voters = lower cost.</div><div id="trVPick" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0"></div>'+
     '<button onclick="trGo(this)" style="width:100%;border:none;border-radius:14px;padding:18px 14px;margin-top:10px;font-size:17px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A">▶ '+esc(weekLabel())+'</button><div class="note" style="text-align:center;margin-top:4px">'+esc(wkDates(nextMon()))+' · Monday open to Friday close</div>'+
     (last?'<div class="note" style="margin-top:10px">'+last+'</div>'+pnBtn("🏛 Open the Board room","openBoard()"):'')+'</div></div>';
-  w.scrollIntoView({block:"start"});}
+  w.scrollIntoView({block:"start"});trVDraw();}
+const TRV=["Claude","ChatGPT","Grok","Gemini","Perplexity"];let TRPICK=[];
+function trVDraw(){const b=document.getElementById("trVPick");if(!b)return;const on="background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A",off="background:var(--line);color:var(--ink)";
+  b.innerHTML='<button onclick="TRPICK=[];trVDraw()" style="border:none;border-radius:16px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer;'+(TRPICK.length?off:on)+'">All 5</button>'+TRV.map((n,i)=>'<button onclick="trVPick('+i+')" style="border:none;border-radius:16px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer;'+(TRPICK.includes(n)?on:off)+'">'+n+'</button>').join("")+'<span class="note" style="align-self:center">'+(TRPICK.length===1?'pick one more':TRPICK.length?TRPICK.length+' voters':'all 5 vote')+'</span>';}
+function trVPick(i){const n=TRV[i];TRPICK=TRPICK.includes(n)?TRPICK.filter(x=>x!==n):[...TRPICK,n];trVDraw();}
 function weekISO(){const d=new Date(),day=d.getUTCDay(),add=day===1?0:((8-day)%7||7);const m=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+add)),f=new Date(m.getTime()+4*864e5);return m.toISOString().slice(0,10)+" to "+f.toISOString().slice(0,10);}
 async function trGo(b){if(window._trWk===weekISO()&&!b.dataset.sure){b.dataset.sure=1;b.innerHTML="Already studied — tap again to run a new study";return;}
   b.disabled=true;b.innerHTML="Starting…";
-  try{await trApi({action:"start",bias:trOpt("dir","either"),market:trOpt("mk","all"),budget:10000});toast("Study started — the board will vote in about 3–4 minutes.",3500);}
+  if(TRPICK.length===1){toast("Pick at least 2 voters, or All 5.",3000);b.disabled=false;b.innerHTML="▶ "+weekLabel();return;}
+  try{await trApi({action:"start",bias:trOpt("dir","either"),market:trOpt("mk","all"),budget:10000,voters:TRPICK});toast("Study started — the board will vote in about 3–4 minutes.",3500);}
   catch(e){if(!/already running/i.test(e.message)){toast(e.message,4500);b.disabled=false;b.innerHTML="▶ "+weekLabel();return;}}
   openBoard();}
 function bdShow(){try{localStorage.removeItem("bd_cleared");}catch(_){}trApi({action:"get"}).then(bdTrade).catch(e=>toast(e.message,3000));}
