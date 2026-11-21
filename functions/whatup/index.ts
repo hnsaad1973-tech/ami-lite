@@ -1,4 +1,4 @@
-// AMI `whatup` — WhatsApp webhook (Twilio) — v3.5 (20 Nov 2026) — the signature check also uses the Twilio primary auth token saved from the app's 🔑 Keys box (ami_settings.twilio_sign_token); the token in the secrets turned out not to be the signing one. v3.4 (20 Nov 2026) — signature check diagnostics: when a message fails the check, its signature and fields are kept (last one only, in ami_settings.whatup_sig_raw) so the cause can be found; more URL variants tried.
+// AMI `whatup` — WhatsApp webhook (Twilio) — v3.6 (21 Nov 2026: "report" = latest Lab job) — v3.5 (20 Nov 2026) — the signature check also uses the Twilio primary auth token saved from the app's 🔑 Keys box (ami_settings.twilio_sign_token); the token in the secrets turned out not to be the signing one. v3.4 (20 Nov 2026) — signature check diagnostics: when a message fails the check, its signature and fields are kept (last one only, in ami_settings.whatup_sig_raw) so the cause can be found; more URL variants tried.
 // v3.3 (20 Nov 2026) — SECURITY: checks Twilio's X-Twilio-Signature on every incoming message.
 //   Mode is set in ami_settings: whatup_sig_enforce = "yes" blocks messages without a valid signature; anything else = log only.
 //   Last check result is written to ami_settings.whatup_sig_last; failures are counted in whatup_sig_fail.
@@ -30,6 +30,7 @@ const YES_RE = /^\s*(yes|yes,|yes\.|yes please|yes send|send it|go ahead|confirm
 const CHECK_RE = /^\s*(check|check (my )?(inbox|mail|email|emails|gmail)|inbox)\s*[.!?]?\s*$/i;
 const VOICE_STATUS_RE = /^\s*(ami\s+)?voice\s+status\s*[.!?]?\s*$/i;
 const TODO_RE = /^\s*to-?\s*do(\s*list)?\s*[:\-–]/i;
+const REPORT_RE = /^\s*(lab\s+)?(report|repot|reprt|rapport)s?(\s+(now|please|pls))?\s*[.!?]?\s*$/i; // v3.6: "report" = the latest Lab job
 
 function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function twiml(text: string) {
@@ -356,6 +357,19 @@ Deno.serve(async (req) => {
         const j = await r.json().catch(() => ({}));
         if (j.reply) return twiml(j.reply);
       }
+    }
+
+    // v3.6: "report" -> the latest AMI Lab job (title, stage, board verdict, link, cover-sheet summary)
+    if (!payload && REPORT_RE.test(body)) {
+      const ir = await db(`ami_brain?key=eq.lab_index&select=data`);
+      const idx = ir.ok ? ((await ir.json())[0]?.data || []) : [];
+      const last = idx[0];
+      if (!last) return twiml("No Lab jobs yet, Chairman.");
+      const jr = await db(`ami_brain?key=eq.lab_${last.id}&select=data`);
+      const job = jr.ok ? ((await jr.json())[0]?.data || {}) : {};
+      const sum = String(job.final || "").split(/\n---\n/)[0].replace(/\*\*/g, "*").slice(0, 1100);
+      const head = `📑 Latest Lab report: ${last.title}\nStage: ${last.stage}${last.verdict ? " · Board: " + last.verdict : ""}${last.link ? "\n" + last.link : ""}`;
+      return twiml(last.stage === "done" ? `${head}\n\n${sum}` : `${head}\n\nStill working — I'll WhatsApp you when it's done.`);
     }
 
     // "voice status": live check of the voice-note engine

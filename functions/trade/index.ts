@@ -1,4 +1,4 @@
-// AMI `trade` v2.2 (21 Nov 2026: CHAIRMAN'S 3 RULES — (1) orders only on the study's own Monday; (2) a half-share trade (3 YES) is skipped when a NO vote cites a price level / support / resistance; (3) every seat's record kept (right/wrong per closed trade) in trade_scorecard) — v2.1 (20 Nov 2026) — spending cap on new studies + every AI call logged in ami_usage; v2.0 — TRADING SAFETY: kill switch + app-lock check (ami_gate); "guard" action (run every 15 min by cron):
+// AMI `trade` v2.3 (21 Nov 2026: scorecard also counts trades the broker closes at stop/target) — v2.2 (21 Nov 2026: CHAIRMAN'S 3 RULES — (1) orders only on the study's own Monday; (2) a half-share trade (3 YES) is skipped when a NO vote cites a price level / support / resistance; (3) every seat's record kept (right/wrong per closed trade) in trade_scorecard) — v2.1 (20 Nov 2026) — spending cap on new studies + every AI call logged in ami_usage; v2.0 — TRADING SAFETY: kill switch + app-lock check (ami_gate); "guard" action (run every 15 min by cron):
 //   weekly loss cap enforced in code ($600 from the Monday balance -> every position closed) and Friday close (from 20:00 UTC Friday nothing stays open);
 //   "close" action (one position or all, Chairman only, app unlocked); MetaApi token now read from the Keys store first (ami_settings), env secret as fallback.
 // v1.9.1 (18 Nov 2026; one-time send lock per study (no duplicate orders); whole budget invested across approved trades, risk = share of the $600 weekly cap; retries MetaApi read hiccups and chart fetch; 24h 15-min chart per open position; live account + positions for the trading panel (action account); MT4 success code ERR_NO_ERROR counted as placed; picks the broker's tradable symbol version (e.g. EURUSDs); short MT4 order comment; price retry one-by-one, unpriced trades dropped instead of stopping; live price check by Perplexity before voting, Gemini retries when Google is busy; market tabs: all / fx / metals / energy / indices / stocks; Concur & place orders via MetaApi (OneRoyal MT5), decline; risk-based lot sizing from the broker's symbol spec; + Perplexity voter (5th seat); + Gemini voter, sizing for a board of up to 5; week set in code = next Mon-Fri; research text kept across search rounds, stops if prices are missing; structured answers via the answer tool, research then candidates) — Trading Hub (weekly, Mon open -> Fri close). DEMO: no orders are placed.
@@ -357,6 +357,16 @@ Deno.serve(async (req) => {
     const b = await broker(); if (!b) return json({ ok: true, note: "broker not connected" });
     let ai: any, pos: any[];
     try { [ai, pos] = await Promise.all([b.call("/account-information"), b.call("/positions")]); } catch (e) { return json({ ok: false, error: "Broker: " + (e as Error).message.slice(0, 150) }, 502); }
+    // v2.3: score trades the broker closed by itself (stop or target hit) — positions seen last run but gone now
+    try {
+      const seen: any[] = (await getKey("trade_open_seen")) || [], ids = new Set((pos || []).map((x: any) => String(x.id)));
+      const gone = seen.filter((x: any) => !ids.has(String(x.id))), out: any[] = [];
+      for (const g of gone) { try { const deals: any[] = await b.call(`/history-deals/position/${encodeURIComponent(g.id)}`);
+        const pnl = (deals || []).reduce((a: number, x: any) => a + (+x.profit || 0) + (+x.commission || 0) + (+x.swap || 0), 0);
+        out.push({ id: g.id, symbol: g.symbol, status: "closed", pnl: Math.round(pnl * 100) / 100 }); } catch (_) {} }
+      if (out.length) await score(out);
+      await setKey("trade_open_seen", (pos || []).map((x: any) => ({ id: String(x.id), symbol: String(x.symbol || "").replace(/s$/, "") })));
+    } catch (_) {}
     const now = new Date(), week = mondayOf(now);
     let ws: any = await getKey("trade_week_start");
     if (!ws || ws.week !== week) { ws = { week, balance: +ai.balance || 0, at: now.toISOString() }; await setKey("trade_week_start", ws); }
