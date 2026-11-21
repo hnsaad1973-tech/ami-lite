@@ -1,0 +1,1 @@
+import "https://raw.githubusercontent.com/hnsaad1973-tech/ami-lite/cf16f73989eec6cf62966a7b32b9d4db880be55f/functions/lab/index.ts";

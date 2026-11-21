@@ -1,0 +1,93 @@
+[
+  {
+    "slug": "platagent",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795182268943
+  },
+  {
+    "slug": "plat",
+    "version": 12,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795155323907
+  },
+  {
+    "slug": "platshare",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795184161264
+  },
+  {
+    "slug": "platlib",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795137066004
+  },
+  {
+    "slug": "platteam",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795190159532
+  },
+  {
+    "slug": "platbooks",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795187587374
+  },
+  {
+    "slug": "platre",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795184702922
+  },
+  {
+    "slug": "patchserve",
+    "version": 19,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1794675788917
+  },
+  {
+    "slug": "notify",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794674530626
+  },
+  {
+    "slug": "platcheck",
+    "version": 2,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1795189260072
+  },
+  {
+    "slug": "ask",
+    "version": 13,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1794821792994
+  },
+  {
+    "slug": "assetcopy",
+    "version": 2,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1794675790868
+  },
+  {
+    "slug": "platkyc",
+    "version": 7,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795179281124
+  }
+]

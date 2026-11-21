@@ -1,0 +1,275 @@
+[
+  {
+    "slug": "driveperm",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794849016543
+  },
+  {
+    "slug": "tplmake",
+    "version": 3,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794960226636
+  },
+  {
+    "slug": "authlink",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794860195575
+  },
+  {
+    "slug": "drivesort",
+    "version": 9,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794848488135
+  },
+  {
+    "slug": "sheetbuild",
+    "version": 13,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794404783908
+  },
+  {
+    "slug": "billcheck",
+    "version": 5,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794838049279
+  },
+  {
+    "slug": "leadfs",
+    "version": 2,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795120581744
+  },
+  {
+    "slug": "newsalert",
+    "version": 16,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794345968409
+  },
+  {
+    "slug": "control",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795219444264
+  },
+  {
+    "slug": "saycall",
+    "version": 14,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794413884386
+  },
+  {
+    "slug": "drivefile",
+    "version": 13,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794617587005
+  },
+  {
+    "slug": "secrelay",
+    "version": 10,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794856260248
+  },
+  {
+    "slug": "selftest",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795199558167
+  },
+  {
+    "slug": "lock",
+    "version": 6,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795219442695
+  },
+  {
+    "slug": "whatup",
+    "version": 41,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795222630650
+  },
+  {
+    "slug": "waprofile",
+    "version": 4,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794859076319
+  },
+  {
+    "slug": "leadreminders",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795121221896
+  },
+  {
+    "slug": "pdfsplit",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795023752048
+  },
+  {
+    "slug": "monthlyforms",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795119940961
+  },
+  {
+    "slug": "boarddesign",
+    "version": 5,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795155703141
+  },
+  {
+    "slug": "equity",
+    "version": 3,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794972418176
+  },
+  {
+    "slug": "meetscribe",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795177834023
+  },
+  {
+    "slug": "pricebuild",
+    "version": 16,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794486456709
+  },
+  {
+    "slug": "amisend",
+    "version": 9,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795108325615
+  },
+  {
+    "slug": "followup",
+    "version": 3,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795167444907
+  },
+  {
+    "slug": "todox",
+    "version": 13,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794480720015
+  },
+  {
+    "slug": "drawplan",
+    "version": 9,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794597116170
+  },
+  {
+    "slug": "mailscan",
+    "version": 2,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795168624297
+  },
+  {
+    "slug": "lab",
+    "version": 13,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795255600741
+  },
+  {
+    "slug": "trade",
+    "version": 25,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795222626824
+  },
+  {
+    "slug": "actualforms",
+    "version": 14,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794410806547
+  },
+  {
+    "slug": "contactfind",
+    "version": 3,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794872023530
+  },
+  {
+    "slug": "tplsubmit",
+    "version": 5,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "updated_at": 1794726019623
+  },
+  {
+    "slug": "ziplist",
+    "version": 2,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795035107039
+  },
+  {
+    "slug": "tracksea",
+    "version": 5,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794844662764
+  },
+  {
+    "slug": "wake",
+    "version": 26,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794352092375
+  },
+  {
+    "slug": "drawelev",
+    "version": 5,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1794598638221
+  },
+  {
+    "slug": "ai",
+    "version": 78,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795286983712
+  },
+  {
+    "slug": "panel",
+    "version": 8,
+    "status": "ACTIVE",
+    "verify_jwt": false,
+    "updated_at": 1795198333814
+  }
+]
