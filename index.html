@@ -409,6 +409,13 @@
   .ctwin .hb{margin-left:auto;}
   #ctmsgs{flex:1 1 auto;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;max-width:900px;width:100%;margin:0 auto;}
   #ctmsgs .m{max-width:100%;}
+  /* AMI chat full screen (window 1 only) */
+  body.chat-full .home.pane,body.chat-full .wa.pane,body.chat-full .pdots{display:none!important;}
+  body.chat-full .panes{display:flex!important;overflow:hidden!important;}
+  body.chat-full .chat.pane{flex:1 1 100%!important;width:100%!important;border-left:none!important;grid-row:auto!important;grid-column:auto!important;}
+  body.chat-full .chat .bk{display:none!important;}
+  body.chat-full #cfull{color:#0A0F1A;background:linear-gradient(135deg,var(--gold),var(--gold2));border-color:var(--gold);}
+  #cfull+.hb{margin-left:0;}
 </style>
 </head>
 <body>
@@ -467,7 +474,7 @@
   </div>
 </div>
   <div class="chat pane" id="chat">
-    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI 1</div><button class="clr" onclick="clearPane('chat',this)" title="Clear chat">🗑 Clear</button><button class="hb" onclick="paneHide('chat',true)" aria-label="Hide chat" title="Hide">✕</button></div>
+    <div class="chead"><button class="bk" onclick="closeChat()">‹</button><div class="ct" id="ctitle">AMI 1</div><button class="clr" onclick="clearPane('chat',this)" title="Clear chat">🗑 Clear</button><button class="hb" id="cfull" onclick="chatFull()" aria-label="Full screen chat" title="Full screen">⛶</button><button class="hb" onclick="paneHide('chat',true)" aria-label="Hide chat" title="Hide">✕</button></div>
     <div class="msgs" id="msgs"></div>
     <div class="vbar" id="vbar" onclick="vTap()"><span class="dot" id="vdot"></span><span class="vs" id="vstate">Listening…</span><button class="vx" onclick="event.stopPropagation();stopVoice()">Stop</button></div>
     <div class="stools" id="stools">
@@ -1824,8 +1831,9 @@ async function amiUpdateCheck(){try{const r=await fetch(location.pathname+"?v="+
 amiUpdateCheck();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")amiUpdateCheck();});
 function openAmiChat(){if(section!=="Ask AMI"){openChat("Ask AMI","");}else if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
+function chatFull(on){const b=document.body;on=on===undefined?!b.classList.contains("chat-full"):on;if(on&&b.classList.contains("hide-chat"))paneHide("chat",false);b.classList.toggle("chat-full",on);const c=document.getElementById("cfull");if(c){c.textContent=on?"⤡":"⛶";c.title=on?"Exit full screen":"Full screen";}setTimeout(()=>toEnd("msgs"),100);}
 function paneToggle(w){paneHide(w,!document.body.classList.contains("hide-"+w));}
-function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
+function paneHide(w,h){if(w==="chat"&&h&&document.body.classList.contains("chat-full"))chatFull(false);document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
   if(!h)goPane(w==="chat"?1:2);else goPane(0);}
 try{["chat","wa"].forEach(w=>{if(localStorage.getItem("ami_hide_"+w))document.body.classList.add("hide-"+w);});}catch(_){}
 function goPane(i){if(wide())return;const p=document.getElementById("panes");
