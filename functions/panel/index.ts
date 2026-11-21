@@ -1,4 +1,4 @@
-// AMI `panel` v1.5 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate); "ask" stops at the daily/monthly AI spending cap (ami_spend); every member's answer logged in ami_usage with tokens)
+// AMI `panel` v1.6 (21 Nov 2026: Claude on Sonnet unless the Chairman allows Opus: {opus:true}) — v1.5 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate); "ask" stops at the daily/monthly AI spending cap (ami_spend); every member's answer logged in ami_usage with tokens)
 // v1.4 (18 Nov 2026: longer time limits; Claude gets room for a full answer; "only" = ask chosen members; "merge_last" = add their votes to the last result)
 // v1.3: up to 5 Drive files per question; + Perplexity = 5th seat; + Gemini, majority rule for up to 5 voters — Advisory Panel: a business plan / feasibility study / idea goes to Claude, ChatGPT, Grok, Gemini and Perplexity.
 // Each gives its own opinion and vote (GO / CONDITIONAL / NO-GO, score 1-10, pros, cons, risks, conditions). AMI tallies the votes in code.
@@ -58,10 +58,11 @@ function parse(t: string) {
 const withTimeout = (ms: number) => AbortSignal.timeout(ms);
 const TL = 330000; // per-member time limit (edge functions may run up to 400 s)
 
+let PANEL_OPUS = false;
 async function askClaude(prompt: string) {
   const key = Deno.env.get("ANTHROPIC_API_KEY") || ""; if (!key) throw new Error("not connected");
   let last: Error | null = null;
-  for (const model of ["claude-opus-5-5", "claude-sonnet-5-5"]) {
+  for (const model of (PANEL_OPUS ? ["claude-opus-5-5", "claude-sonnet-5-5"] : ["claude-sonnet-5-5"])) { // v1.6: Opus only with the Chairman's permission
     try {
       const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: withTimeout(model === "claude-opus-5-5" ? 220000 : 100000),
         headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
@@ -146,6 +147,7 @@ function logged(name: string, fn: (q: string) => Promise<any>) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   let p: any = {}; try { p = JSON.parse(await req.text()); } catch (_) {}
+  PANEL_OPUS = p.opus === true;
   const ik = req.headers.get("x-internal-key") || "";
   if (ik) { // AMI's own internal calls (key kept in the locked ami_settings table)
     const k = (await (await fetch(`${SB}/rest/v1/ami_settings?key=eq.wake_key&select=value`, { headers: H })).json())?.[0]?.value;

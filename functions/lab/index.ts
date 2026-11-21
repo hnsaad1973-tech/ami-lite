@@ -1,4 +1,4 @@
-// AMI `lab` v2.1 (21 Nov 2026: routine jobs use Claude Sonnet (cheaper), Opus only for major; empty answers retried on the other model) - v2.0 (21 Nov 2026: CHAIRMAN - AMI assigns only the seats a job needs (or the seats he names); board vote + Devil's Advocate only for MAJOR jobs, routine jobs skip them) - v1.10 (21 Nov 2026: 4-minute limit per seat so a slow seat cannot freeze a job) - v1.9 (21 Nov 2026: voters read the full report) - v1.8 (21 Nov 2026: Mistral answers with thinking parts now read correctly) - v1.7 (21 Nov 2026: Gemini retries — 3 models, 10 s wait on busy errors) - v1.6 (21 Nov 2026: long reports no longer cut off — the lead editor continues past its length limit, up to 4 parts) - v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
+// AMI `lab` v2.2 (21 Nov 2026: CHAIRMAN — Claude Opus only with his permission per job (opus:true); otherwise Sonnet for every Claude seat incl. lead editor and Financial Controller stand-in) - v2.1 (21 Nov 2026: routine jobs use Claude Sonnet (cheaper), Opus only for major; empty answers retried on the other model) - v2.0 (21 Nov 2026: CHAIRMAN - AMI assigns only the seats a job needs (or the seats he names); board vote + Devil's Advocate only for MAJOR jobs, routine jobs skip them) - v1.10 (21 Nov 2026: 4-minute limit per seat so a slow seat cannot freeze a job) - v1.9 (21 Nov 2026: voters read the full report) - v1.8 (21 Nov 2026: Mistral answers with thinking parts now read correctly) - v1.7 (21 Nov 2026: Gemini retries — 3 models, 10 s wait on busy errors) - v1.6 (21 Nov 2026: long reports no longer cut off — the lead editor continues past its length limit, up to 4 parts) - v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
 // v1.2 (20 Nov 2026: every AI call logged to ami_usage — tokens, time, seat, job — for the Control Room cost meter) — v1.1 (20 Nov 2026: opened to the Chairman's AMI 1 sign-in; board VOTE stage after final (9 voting seats, Devil's Advocate excluded); WhatsApp when done; job index for 'Past Lab jobs') — v1.0 (20 Nov 2026) — the AMI Lab: the Chairman sends a job (brief + Drive files); the 10-seat board works on it together.
 // Stages (each runs in the background and starts the next): read -> plan -> work -> merge -> critique -> final.
 //   read     : Drive files to text (Google Docs/Sheets exported; PDFs and images read by Claude vision).
@@ -94,8 +94,8 @@ async function oaiText(base: string, key: string, model: string, sys: string, us
 async function claude(sys: string, user: string, max = 16000) {
   const key = env("ANTHROPIC_API_KEY"); if (!key) throw new Error("not connected");
   let last: Error | null = null;
-  // v2.1: Opus only for MAJOR jobs; routine jobs use Sonnet (about 5x cheaper); Sonnet is also the fallback
-  for (const model of (MAJOR ? ["claude-opus-5-5", "claude-sonnet-5-5"] : ["claude-sonnet-5-5", "claude-opus-5-5"])) {
+  // v2.2: CHAIRMAN — Opus ONLY when he allows it on the job; otherwise Sonnet, and Opus is never used as a fallback
+  for (const model of (OPUS ? ["claude-opus-5-5", "claude-sonnet-5-5"] : ["claude-sonnet-5-5"])) {
     try {
       // v1.6: long answers no longer get cut off — if the model stops at its length limit, ask it to continue (up to 3 times) and join the parts
       const msgs: any[] = [{ role: "user", content: user }]; let text = "", tin = 0, tout = 0;
@@ -117,6 +117,7 @@ async function claude(sys: string, user: string, max = 16000) {
 // ---------- usage log (Control Room) ----------
 let JOB_ID = "";
 let MAJOR = true; // v2.1: set per job in runStage
+let OPUS = false; // v2.2: Opus only with the Chairman's permission (job.opus)
 const PROVIDER: Record<string, string> = { Claude: "Anthropic", "Lead editor": "Anthropic", ChatGPT: "OpenAI", "Chief Actuary": "OpenAI", Grok: "xAI", Gemini: "Google", Perplexity: "Perplexity",
   "General Counsel": "Cohere", "QS / MEP Engineer": "Mistral", "Financial Controller": "Together (Meta Llama)", "Devil's Advocate": "xAI" };
 async function logUse(seatName: string, r: any, ms: number, ok: boolean) {
@@ -159,7 +160,7 @@ async function callRaw(name: string, sys: string, user: string): Promise<{ model
       const k = env("MISTRAL_API_KEY") || await setting("mistral_key");
       if (k) { try { return await oaiText("https://api.mistral.ai/v1", k, "mistral-large-latest", sys, user); } catch (_) { /* fall through to Claude */ } }
       return claude(sys, user, 16000); }
-    case "Financial Controller": { // Meta Llama via Together AI; until that key is added, Claude Opus sits in
+    case "Financial Controller": { // Meta Llama via Together AI; until that key is added, Claude sits in (Sonnet unless Opus is allowed)
       const k = env("TOGETHER_API_KEY") || await setting("together_key");
       if (k) { const m = await pickModel("https://api.together.xyz/v1", k, [/Llama-4-Maverick/i, /Llama-4/i, /Llama-3\.3-70B/i]) || "meta-llama/Llama-3.3-70B-Instruct-Turbo";
         return oaiText("https://api.together.xyz/v1", k, m, sys, user); }
@@ -280,7 +281,7 @@ async function stVote(job: any) {
 const STAGES: Record<string, (j: any) => Promise<string>> = { read: stRead, plan: stPlan, work: stWork, merge: stMerge, critique: stCritique, final: stFinal, vote: stVote };
 
 async function runStage(id: string, stage: string) {
-  const job = await load(id); if (!job || job.stage === "done") return; JOB_ID = "lab: " + (job.title || id); MAJOR = job.major !== false;
+  const job = await load(id); if (!job || job.stage === "done") return; JOB_ID = "lab: " + (job.title || id); MAJOR = job.major !== false; OPUS = job.opus === true;
   // v1.3: pause before the stage if AMI is switched off or the spending cap is reached
   const why = (await gate("", false)) === "killed" ? "AMI is switched off by the kill switch" : await spend().then((sp) => (sp?.over ? capMsg(sp) : ""));
   if (why) {
@@ -330,7 +331,7 @@ Deno.serve(async (req) => {
     const id = String(p.id || Date.now());
     const job = { id, title: String(p.title || brief.slice(0, 60)), brief, level: p.level === "normal" ? "normal" : "sensitive", file_ids: (p.file_ids || []).slice(0, 8), text: String(p.text || "").slice(0, 60000),
       folder_id: p.folder_id || null, seats: Array.isArray(p.seats) ? p.seats.map(String).filter((n: string) => SEATS.some((s) => s.name === n)).slice(0, 9) : [],
-      major_forced: typeof p.major === "boolean" ? p.major : undefined, stage: "queued", created: new Date().toISOString(), log: [] };
+      major_forced: typeof p.major === "boolean" ? p.major : undefined, opus: p.opus === true, stage: "queued", created: new Date().toISOString(), log: [] };
     await save(job);
     // @ts-ignore EdgeRuntime is provided by Supabase
     EdgeRuntime.waitUntil(runStage(id, "read"));
