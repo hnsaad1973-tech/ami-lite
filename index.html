@@ -9,24 +9,24 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
-<meta name="theme-color" content="#0B1322">
+<meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <style>
-  :root{--bg2:#0E1524;--panel:rgba(255,255,255,.035);--panelbd:rgba(199,154,60,.2);
+  :root{--bg2:#0A0A0A;--panel:rgba(255,255,255,.035);--panelbd:rgba(199,154,60,.2);
     --gold:#C79A3C;--gold2:#E4B75A;--ink:#ECEFF5;--muted:#8A94A6;--line:rgba(255,255,255,.07);}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;}
-  html{background:#080c15;}
+  html{background:#000;}
   /* AMI fills whatever screen it opens on (phone, tablet, computer) — nothing cut off */
   body{width:100%;overflow-x:hidden;}
   .mkts,.ticker,.charts,.news,.grid,.bar,.top{min-width:0;max-width:100%;}
   .top>*{min-width:0;}
   .ticker iframe,.cell iframe{max-width:100%!important;}
   body{font-family:"Inter",-apple-system,sans-serif;color:var(--ink);
-    background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
+    background:#000;
     height:100dvh;display:flex;flex-direction:column;
     padding-top:env(safe-area-inset-top);}
 
@@ -199,7 +199,7 @@
     background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A;}
   .login .msg{font-size:12.5px;color:var(--gold2);margin-top:12px;min-height:16px;}
 
-  .chat{position:fixed;inset:0;background:radial-gradient(120% 70% at 50% -10%,#16233d 0%,#0b1322 55%,#080c15 100%);
+  .chat{position:fixed;inset:0;background:#000;
     z-index:50;display:none;flex-direction:column;padding-top:env(safe-area-inset-top);}
   .chat.show{display:flex;}
   .chead{display:flex;align-items:center;gap:12px;padding:14px 16px 10px;border-bottom:1px solid var(--line);}
