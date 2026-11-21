@@ -1,4 +1,4 @@
-// AMI `lab` v1.9 (21 Nov 2026: voters read the full report) - v1.8 (21 Nov 2026: Mistral answers with thinking parts now read correctly) - v1.7 (21 Nov 2026: Gemini retries — 3 models, 10 s wait on busy errors) - v1.6 (21 Nov 2026: long reports no longer cut off — the lead editor continues past its length limit, up to 4 parts) - v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
+// AMI `lab` v1.10 (21 Nov 2026: 4-minute limit per seat so a slow seat cannot freeze a job) - v1.9 (21 Nov 2026: voters read the full report) - v1.8 (21 Nov 2026: Mistral answers with thinking parts now read correctly) - v1.7 (21 Nov 2026: Gemini retries — 3 models, 10 s wait on busy errors) - v1.6 (21 Nov 2026: long reports no longer cut off — the lead editor continues past its length limit, up to 4 parts) - v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
 // v1.2 (20 Nov 2026: every AI call logged to ami_usage — tokens, time, seat, job — for the Control Room cost meter) — v1.1 (20 Nov 2026: opened to the Chairman's AMI 1 sign-in; board VOTE stage after final (9 voting seats, Devil's Advocate excluded); WhatsApp when done; job index for 'Past Lab jobs') — v1.0 (20 Nov 2026) — the AMI Lab: the Chairman sends a job (brief + Drive files); the 10-seat board works on it together.
 // Stages (each runs in the background and starts the next): read -> plan -> work -> merge -> critique -> final.
 //   read     : Drive files to text (Google Docs/Sheets exported; PDFs and images read by Claude vision).
@@ -16,6 +16,9 @@ const H = { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "applicat
 const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "Content-Type": "application/json" } });
 const setting = async (k: string) => { try { return String((await (await fetch(`${SB}/rest/v1/ami_settings?key=eq.${k}&select=value`, { headers: H })).json())?.[0]?.value || "").trim(); } catch (_) { return ""; } };
 const TO = (ms: number) => AbortSignal.timeout(ms);
+// v1.10: a seat that is too slow is dropped after 4 minutes, so one slow seat can no longer freeze a whole job (the server stops a step after ~6.5 min)
+const SEAT_BUDGET = 240000;
+const budget = <T,>(p: Promise<T>, name: string) => Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${name} too slow — skipped after 4 min`)), SEAT_BUDGET))]);
 const env = (k: string) => (Deno.env.get(k) || "").trim();
 const OWNER = "hnsaad1973@gmail.com";
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -200,7 +203,7 @@ async function stWork(job: any) {
     const user = full
       ? `JOB: ${job.title}\nBRIEF: ${job.brief}\nDELIVERABLE: ${job.plan.deliverable}\nYOUR TASK: ${t.task}\n\nMATERIAL:\n${job.material.slice(0, 60000)}\n\nWrite your part now (markdown, max ~900 words, tables welcome).`
       : `GENERAL QUESTION (no client details are shared with you): ${job.plan.general_question}\nYOUR ANGLE: ${t.task.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, "")}\n\nAnswer from general professional knowledge (markdown, max ~600 words). Give benchmarks, formulas, typical ranges and checks.`;
-    return call(t.seat, BASE + s.role, user).then((r) => ({ seat: t.seat, saw_file: full, model: r.model, text: r.text.slice(0, 12000) }));
+    return budget(call(t.seat, BASE + s.role, user), t.seat).then((r) => ({ seat: t.seat, saw_file: full, model: r.model, text: r.text.slice(0, 12000) }));
   }));
   job.parts = runs.map((r, i) => r.status === "fulfilled" ? { ok: true, ...r.value } : { ok: false, seat: job.plan.tasks[i].seat, error: String((r.reason as Error)?.message || r.reason).slice(0, 200) });
   return "merge";
@@ -246,7 +249,7 @@ async function stVote(job: any) {
     const user = full
       ? `The board produced this document for the Chairman. JOB: ${job.title}. BRIEF: ${job.brief}\n\nDOCUMENT:\n${doc}\n\nVote: is it fit to use as it is (yes) or not (no)? ${shape}`
       : `The board produced a document. You see only an anonymised summary:\n${job.anon}\n\nVote from your professional angle: does the approach look sound (yes) or not (no)? ${shape}`;
-    return call(s.name, BASE + s.role, user).then((r) => { const j = parseJSON(r.text);
+    return budget(call(s.name, BASE + s.role, user), s.name).then((r) => { const j = parseJSON(r.text);
       return { seat: s.name, saw_file: full, vote: /^y/i.test(String(j.vote)) ? "yes" : "no", score: Math.max(1, Math.min(10, Number(j.score) || 0)), reason: String(j.reason || "").slice(0, 250), fix: String(j.fix || "").slice(0, 200) }; });
   }));
   job.votes = runs.map((r, i) => r.status === "fulfilled" ? { ok: true, ...r.value } : { ok: false, seat: voters[i].name, error: String((r.reason as Error)?.message || r.reason).slice(0, 160) });
