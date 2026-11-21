@@ -501,7 +501,7 @@
   </div>
   <div class="wa pane" id="wa">
     <div class="chead"><button class="bk" onclick="goPane(0)">‹</button><div class="ct"><span class="wad"></span>WhatsApp</div>
-      <a class="clr myw" href="https://web.whatsapp.com" target="_blank" rel="noopener" title="Open my own WhatsApp">📱 My WhatsApp</a><button class="clr" onclick="clearPane('wa',this)" title="Clear chat">🗑 Clear</button><button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
+      <button class="clr myw" onclick="myWa()" title="Open my own WhatsApp (the app on this device)">📱 My WhatsApp</button><button class="clr" onclick="clearPane('wa',this)" title="Clear chat">🗑 Clear</button><button class="wr" onclick="waLoad(true)" aria-label="Refresh">⟳</button><button class="hb" onclick="paneHide('wa',true)" aria-label="Hide WhatsApp" title="Hide">✕</button></div>
     <div class="msgs" id="wamsgs"><div class="m a">Loading your WhatsApp chat with AMI…</div></div>
     <div class="cbar">
       <input id="waq" placeholder="Message AMI on WhatsApp…" onkeydown="if(event.key==='Enter')waSend()">
@@ -1846,6 +1846,8 @@ amiUpdateCheck();document.addEventListener("visibilitychange",()=>{if(document.v
 function openAmiChat(){if(section!=="Ask AMI"){openChat("Ask AMI","");}else if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
 function chatFull(on){const b=document.body;on=on===undefined?!b.classList.contains("chat-full"):on;if(on&&b.classList.contains("hide-chat"))paneHide("chat",false);b.classList.toggle("chat-full",on);const c=document.getElementById("cfull");if(c){c.textContent=on?"⤡":"⛶";c.title=on?"Exit full screen":"Full screen";}setTimeout(()=>toEnd("msgs"),100);}
+function myWa(){let left=false;const f=()=>{left=true;};window.addEventListener("blur",f,{once:true});document.addEventListener("visibilitychange",f,{once:true});
+  location.href="whatsapp://";setTimeout(()=>{if(!left&&!document.hidden)window.open("https://web.whatsapp.com","_blank","noopener");},1500);}
 function paneToggle(w){paneHide(w,!document.body.classList.contains("hide-"+w));}
 function paneHide(w,h){if(w==="chat"&&h&&document.body.classList.contains("chat-full"))chatFull(false);document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
   if(!h)goPane(w==="chat"?1:2);else goPane(0);}
