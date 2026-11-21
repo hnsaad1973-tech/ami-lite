@@ -1,4 +1,4 @@
-// AMI `lab` v1.10 (21 Nov 2026: 4-minute limit per seat so a slow seat cannot freeze a job) - v1.9 (21 Nov 2026: voters read the full report) - v1.8 (21 Nov 2026: Mistral answers with thinking parts now read correctly) - v1.7 (21 Nov 2026: Gemini retries — 3 models, 10 s wait on busy errors) - v1.6 (21 Nov 2026: long reports no longer cut off — the lead editor continues past its length limit, up to 4 parts) - v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
+// AMI `lab` v2.0 (21 Nov 2026: CHAIRMAN - AMI assigns only the seats a job needs (or the seats he names); board vote + Devil's Advocate only for MAJOR jobs, routine jobs skip them) - v1.10 (21 Nov 2026: 4-minute limit per seat so a slow seat cannot freeze a job) - v1.9 (21 Nov 2026: voters read the full report) - v1.8 (21 Nov 2026: Mistral answers with thinking parts now read correctly) - v1.7 (21 Nov 2026: Gemini retries — 3 models, 10 s wait on busy errors) - v1.6 (21 Nov 2026: long reports no longer cut off — the lead editor continues past its length limit, up to 4 parts) - v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
 // v1.2 (20 Nov 2026: every AI call logged to ami_usage — tokens, time, seat, job — for the Control Room cost meter) — v1.1 (20 Nov 2026: opened to the Chairman's AMI 1 sign-in; board VOTE stage after final (9 voting seats, Devil's Advocate excluded); WhatsApp when done; job index for 'Past Lab jobs') — v1.0 (20 Nov 2026) — the AMI Lab: the Chairman sends a job (brief + Drive files); the 10-seat board works on it together.
 // Stages (each runs in the background and starts the next): read -> plan -> work -> merge -> critique -> final.
 //   read     : Drive files to text (Google Docs/Sheets exported; PDFs and images read by Claude vision).
@@ -190,11 +190,19 @@ async function stPlan(job: any) {
   const avail = SEATS.filter((s) => s.name !== "Devil's Advocate" && s.name !== "Claude").map((s) => `- ${s.name} [${getsFile(s, job.level) ? "sees the material" : "general question only"}]: ${s.role}`).join("\n");
   const r = await lead(BASE + "LEAD EDITOR. You plan the job.",
     `JOB: ${job.title}\nCHAIRMAN'S BRIEF: ${job.brief}\nLEVEL: ${job.level}\n\nSEATS:\n${avail}\n\nMATERIAL:\n${job.material.slice(0, 60000)}\n\n` +
-    `Plan the job. Give each useful seat ONE specific task (skip seats that add nothing). Write one GENERAL QUESTION for seats that cannot see the material: it must contain NO names of people or companies, NO amounts, NO places beyond "West Africa", NO identifying details — only the general technical/financial question. Describe the outline of the final deliverable.\n` +
-    `Answer ONLY JSON: {"deliverable":"what the final document is, 1 line","outline":["section headings"],"tasks":[{"seat":"exact seat name","task":"max 60 words"}],"general_question":"max 120 words"}`, 4000);
+    `Plan the job. ASSIGN ONLY the seats whose expertise is genuinely needed for THIS job (usually 1-3 seats; a drawing check may need only the engineer, a contract only the lawyer) and give each ONE specific task. Do not involve seats just to fill the board.${job.seats?.length ? ` The Chairman has assigned: ${job.seats.join(", ")} — use exactly these seats.` : ""} Decide MAJOR = true only if the result commits money over USD 50,000, leads to signing a contract/treaty/tender, a regulatory filing, or the Chairman asked for a board vote; otherwise MAJOR = false (routine: no Devil's Advocate, no board vote). Write one GENERAL QUESTION for seats that cannot see the material: it must contain NO names of people or companies, NO amounts, NO places beyond "West Africa", NO identifying details — only the general technical/financial question. Describe the outline of the final deliverable.\n` +
+    `Answer ONLY JSON: {"major":true or false,"major_reason":"max 15 words","deliverable":"what the final document is, 1 line","outline":["section headings"],"tasks":[{"seat":"exact seat name","task":"max 60 words"}],"general_question":"max 120 words"}`, 4000);
   const p = parseJSON(r.text);
+  // v2.0: AMI decides who works (only the seats needed) and whether it is MAJOR (board vote) or routine
+  job.major = typeof job.major_forced === "boolean" ? job.major_forced : p.major === true;
+  job.major_reason = String(p.major_reason || (typeof job.major_forced === "boolean" ? "set by the Chairman" : ""));
   job.plan = { deliverable: String(p.deliverable || ""), outline: (p.outline || []).map(String).slice(0, 15), general_question: String(p.general_question || ""),
     tasks: (p.tasks || []).filter((t: any) => SEATS.some((s) => s.name === t.seat) && t.seat !== "Devil's Advocate").map((t: any) => ({ seat: t.seat, task: String(t.task) })) };
+  if (job.seats?.length) { // Chairman-assigned seats only
+    job.plan.tasks = job.plan.tasks.filter((t: any) => job.seats.includes(t.seat));
+    for (const n of job.seats) if (!job.plan.tasks.some((t: any) => t.seat === n) && SEATS.some((s) => s.name === n)) job.plan.tasks.push({ seat: n, task: job.brief.slice(0, 400) });
+  }
+  if (!job.plan.tasks.length) job.plan.tasks = [{ seat: "Claude", task: job.brief.slice(0, 400) }];
   return "work";
 }
 async function stWork(job: any) {
@@ -216,7 +224,7 @@ async function stMerge(job: any) {
     `Then, after a line containing only ===ANON===, write an anonymised 250-word summary of the draft's key claims, numbers as ranges/percentages only, no names, companies or places, for the Devil's Advocate.`, 16000);
   const [doc, anon] = r.text.split(/\n===ANON===\n?/);
   job.draft = doc.trim(); job.anon = (anon || "").trim() || job.plan.general_question;
-  return "critique";
+  return job.major === false ? "final" : "critique";
 }
 async function stCritique(job: any) {
   const ask = `Here is an anonymised summary of a draft the board produced:\n\n${job.anon}\n\nArgue the case AGAINST it. Give: 1) the 5 strongest objections, specific and quantified where possible; 2) a pre-mortem: 3 ways this fails within 12 months, with likely cost; 3) the hidden costs and assumptions to check; 4) what evidence would change your mind. Markdown, max 600 words.`;
@@ -229,14 +237,20 @@ async function stCritique(job: any) {
 async function stFinal(job: any) {
   const who = job.parts.map((p: any) => `- ${p.seat}: ${p.ok ? (p.saw_file ? "worked on the material" : "general question only") + " (" + p.model + ")" : "did not answer — " + p.error}`).join("\n");
   const r = await lead(BASE + "LEAD EDITOR. Final revision.",
-    `DRAFT:\n${job.draft}\n\nDEVIL'S ADVOCATE CRITIQUE:\n${job.critique.text}\n\nRevise the draft: fix every objection that is right; for objections you reject, say why in one line. Then output the FINAL document in markdown starting with this cover sheet:\n` +
-    `# ${job.title}\n**Deliverable:** ...\n**Summary for the Chairman:** 5 bullets\n**Who did what:**\n${who}\n**Open risks (Devil's Advocate):** the objections still open\n**Must be signed by a licensed professional:** list, or "none"\n---\nthen the full document. No labels like Draft.`, 16000);
+    (job.critique ? `DRAFT:\n${job.draft}\n\nDEVIL'S ADVOCATE CRITIQUE:\n${job.critique.text}\n\nRevise the draft: fix every objection that is right; for objections you reject, say why in one line. Then output the FINAL document in markdown starting with this cover sheet:\n`
+      : `DRAFT:\n${job.draft}\n\nThis is a ROUTINE job (no Devil's Advocate, no board vote). Tidy the draft, keep it short. Output the FINAL document in markdown starting with this cover sheet:\n`) +
+    `# ${job.title}\n**Deliverable:** ...\n**Summary for the Chairman:** 5 bullets\n**Who did what:**\n${who}\n${job.critique ? "**Open risks (Devil's Advocate):** the objections still open\n" : ""}**Must be signed by a licensed professional:** list, or "none"\n---\nthen the full document. No labels like Draft.`, 16000);
   job.final = r.text.trim();
   const folder = job.folder_id || await setting("lab_folder");
   if (folder) {
     const d = new Date().toISOString().slice(0, 10);
     const put = await drive({ action: "put_text", folder_id: folder, name: `${d} AMI Lab - ${job.title}.md`, mimeType: "text/markdown", text: job.final });
     job.drive = put.link ? { id: put.id, link: put.link } : { error: put.error };
+  }
+  if (job.major === false) { // routine: no board vote
+    job.verdict = "ROUTINE — no vote";
+    await whatsapp(`AMI Lab: "${job.title}" is ready (routine — ${job.plan.tasks.map((t: any) => t.seat).join(", ")}).${job.drive?.link ? " " + job.drive.link : ""}`);
+    return "done";
   }
   return "vote";
 }
@@ -312,7 +326,8 @@ Deno.serve(async (req) => {
     const brief = String(p.brief || "").trim(); if (brief.length < 5) return out({ error: "brief required" }, 400);
     const id = String(p.id || Date.now());
     const job = { id, title: String(p.title || brief.slice(0, 60)), brief, level: p.level === "normal" ? "normal" : "sensitive", file_ids: (p.file_ids || []).slice(0, 8), text: String(p.text || "").slice(0, 60000),
-      folder_id: p.folder_id || null, stage: "queued", created: new Date().toISOString(), log: [] };
+      folder_id: p.folder_id || null, seats: Array.isArray(p.seats) ? p.seats.map(String).filter((n: string) => SEATS.some((s) => s.name === n)).slice(0, 9) : [],
+      major_forced: typeof p.major === "boolean" ? p.major : undefined, stage: "queued", created: new Date().toISOString(), log: [] };
     await save(job);
     // @ts-ignore EdgeRuntime is provided by Supabase
     EdgeRuntime.waitUntil(runStage(id, "read"));
