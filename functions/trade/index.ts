@@ -1,4 +1,4 @@
-// AMI `trade` v2.1 (20 Nov 2026) — spending cap on new studies + every AI call logged in ami_usage; v2.0 — TRADING SAFETY: kill switch + app-lock check (ami_gate); "guard" action (run every 15 min by cron):
+// AMI `trade` v2.2 (21 Nov 2026: CHAIRMAN'S 3 RULES — (1) orders only on the study's own Monday; (2) a half-share trade (3 YES) is skipped when a NO vote cites a price level / support / resistance; (3) every seat's record kept (right/wrong per closed trade) in trade_scorecard) — v2.1 (20 Nov 2026) — spending cap on new studies + every AI call logged in ami_usage; v2.0 — TRADING SAFETY: kill switch + app-lock check (ami_gate); "guard" action (run every 15 min by cron):
 //   weekly loss cap enforced in code ($600 from the Monday balance -> every position closed) and Friday close (from 20:00 UTC Friday nothing stays open);
 //   "close" action (one position or all, Chairman only, app unlocked); MetaApi token now read from the Keys store first (ami_settings), env secret as fallback.
 // v1.9.1 (18 Nov 2026; one-time send lock per study (no duplicate orders); whole budget invested across approved trades, risk = share of the $600 weekly cap; retries MetaApi read hiccups and chart fetch; 24h 15-min chart per open position; live account + positions for the trading panel (action account); MT4 success code ERR_NO_ERROR counted as placed; picks the broker's tradable symbol version (e.g. EURUSDs); short MT4 order comment; price retry one-by-one, unpriced trades dropped instead of stopping; live price check by Perplexity before voting, Gemini retries when Google is busy; market tabs: all / fx / metals / energy / indices / stocks; Concur & place orders via MetaApi (OneRoyal MT5), decline; risk-based lot sizing from the broker's symbol spec; + Perplexity voter (5th seat); + Gemini voter, sizing for a board of up to 5; week set in code = next Mon-Fri; research text kept across search rounds, stops if prices are missing; structured answers via the answer tool, research then candidates) — Trading Hub (weekly, Mon open -> Fri close). DEMO: no orders are placed.
@@ -168,6 +168,22 @@ async function waSelf(text: string) {
 async function logCloses(out: any[], why: string, by: string) {
   const log = ((await getKey("trade_closes")) || []).slice(0, 49);
   await setKey("trade_closes", [{ at: new Date().toISOString(), why, by, positions: out }, ...log]);
+  try { await score(out); } catch (_) {}
+}
+// v2.2 Rule 3: each seat's record — on every closed position, a YES on a winner or a NO on a loser counts as right
+async function score(out: any[]) {
+  const weeks = (await getKey("trade_weeks")) || [], sc: any = (await getKey("trade_scorecard")) || { seats: {}, trades: [] };
+  const seen = new Set((sc.trades || []).map((t: any) => t.key));
+  const bySym: Record<string, number> = {};
+  for (const o of out) if (o.status === "closed") bySym[o.symbol] = (bySym[o.symbol] || 0) + (+o.pnl || 0);
+  for (const [sym, pnl] of Object.entries(bySym)) {
+    const w = weeks.find((x: any) => x.execution && /placed/.test(x.execution.status) && (x.trades || []).some((t: any) => t.symbol === sym && t.allocation > 0));
+    if (!w) continue; const key = w.id + ":" + sym; if (seen.has(key) || !pnl) continue;
+    const t = w.trades.find((t: any) => t.symbol === sym && t.allocation > 0), win = pnl > 0;
+    for (const v of t.votes || []) { const r = (sc.seats[v.name] ||= { right: 0, wrong: 0 }); ((v.vote === "YES") === win) ? r.right++ : r.wrong++; }
+    sc.trades = [{ key, symbol: sym, pnl: Math.round(pnl * 100) / 100, win, at: new Date().toISOString() }, ...(sc.trades || [])].slice(0, 100);
+  }
+  await setKey("trade_scorecard", sc);
 }
 function mondayOf(d: Date) { const back = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10); }
 function closeText(out: any[]) { return out.map((o) => `${o.symbol} ${o.side || ""} ${o.lots || ""}: ${o.status}${o.pnl ? ` (${o.pnl >= 0 ? "+" : "−"}$${Math.abs(o.pnl).toFixed(2)})` : ""}${o.error ? " — " + o.error : ""}`).join("\n"); }
@@ -244,10 +260,14 @@ async function runWeek(bias: string, budget: number, startedBy: string, market =
       const yes = vs.filter((v: any) => v.vote === "YES").length, voters = vs.length;
       // board of up to 5: 5 or 4 voting -> 4+ YES full, 3 YES half; 3 voting -> 3 full, 2 half; 2 voting -> both YES half
       // v1.9: approval strength -> weight (full = 2, half = 1); the whole budget is later split by weight across approved trades
-      const weight = voters >= 4 ? (yes >= 4 ? 2 : yes === 3 ? 1 : 0) : voters === 3 ? (yes === 3 ? 2 : yes === 2 ? 1 : 0) : (voters === 2 && yes === 2 ? 1 : 0);
+      let weight = voters >= 4 ? (yes >= 4 ? 2 : yes === 3 ? 1 : 0) : voters === 3 ? (yes === 3 ? 2 : yes === 2 ? 1 : 0) : (voters === 2 && yes === 2 ? 1 : 0);
+      // v2.2 Rule 2: a narrow approval (half share) is skipped when a NO vote names a price level the trade must get through
+      const levelNo = vs.find((v: any) => v.vote === "NO" && /\d+\.\d{2,}|\b\d{3,}\b|support|resistance|level|floor|ceiling/i.test(v.reason));
+      let ruleSkip = "";
+      if (weight === 1 && levelNo) { weight = 0; ruleSkip = `Rule 2: ${levelNo.name} voted NO citing a price level ("${levelNo.reason.slice(0, 120)}")`; }
       const dist = Math.abs(c.entry - c.stop);
       const rr = dist ? Math.round(Math.abs(c.target - c.entry) / dist * 10) / 10 : 0;
-      return { ...c, votes: vs, yes, voters, weight, allocation: weight, units_for_150_risk: dist ? Math.round(RISK / dist * 1000) / 1000 : null, reward_risk: rr, conf: vs.reduce((a: number, v: any) => a + (v.vote === "YES" ? v.confidence : 0), 0) };
+      return { ...c, votes: vs, yes, voters, weight, allocation: weight, ...(ruleSkip ? { dropped: ruleSkip } : {}), units_for_150_risk: dist ? Math.round(RISK / dist * 1000) / 1000 : null, reward_risk: rr, conf: vs.reduce((a: number, v: any) => a + (v.vote === "YES" ? v.confidence : 0), 0) };
     });
     // max 2 trades per theme (keep the strongest)
     const byTheme: Record<string, any[]> = {};
@@ -281,7 +301,7 @@ Deno.serve(async (req) => {
     if (gate === "killed" && p.action !== "guard") return json({ error: "AMI is switched off by the kill switch.", killed: true }, 423);
     if (!ik && gate !== "ok") return json({ error: "AMI is locked. Unlock with Face ID or the WhatsApp code.", locked: true }, 423);
   }
-  if (p.action === "get") return json({ run: await getKey("trade_run"), history: ((await getKey("trade_weeks")) || []).map((w: any) => ({ id: w.id, week: w.pack?.week, bias: w.bias, market: w.market || "all", chosen: w.chosen, allocated: w.allocated })) });
+  if (p.action === "get") return json({ run: await getKey("trade_run"), scorecard: await getKey("trade_scorecard"), history: ((await getKey("trade_weeks")) || []).map((w: any) => ({ id: w.id, week: w.pack?.week, bias: w.bias, market: w.market || "all", chosen: w.chosen, allocated: w.allocated })) });
   if (p.action === "week") { const h = (await getKey("trade_weeks")) || []; return json({ run: h.find((w: any) => w.id === p.id) || null }); }
   if (p.action === "start") {
     { const sr = await fetch(`${SB}/rest/v1/rpc/ami_spend`, { method: "POST", headers: H, body: "{}" }); const sp = sr.ok ? await sr.json().catch(() => null) : null;
@@ -301,6 +321,9 @@ Deno.serve(async (req) => {
     const w = h[i]; if (!w.chosen) return json({ error: "The board chose no trades this week." }, 400);
     if (w.execution && /placed/.test(w.execution.status)) return json({ error: "Orders for this week were already sent." }, 409);
     if (Date.now() - Date.parse(w.id) > 9 * 864e5) return json({ error: "This study is more than a week old. Run a new one." }, 400);
+    // v2.2 Rule 1: orders only on the study's own Monday (UTC)
+    { const mon = String(w.pack?.week || "").slice(0, 10), today = new Date().toISOString().slice(0, 10);
+      if (mon && today !== mon) return json({ error: today < mon ? `Rule 1: this study is for the week starting Monday ${mon}. Orders can only be sent on that Monday.` : `Rule 1: this study's Monday (${mon}) has passed. Run a new study for this week.` }, 400); }
     // v2.0: no new orders after the Friday close time or at the weekend (they would be closed at once)
     { const n = new Date(), d = n.getUTCDay(); if (d === 6 || d === 0 || (d === 5 && n.getUTCHours() >= FRIDAY_CLOSE_UTC)) return json({ error: "Markets are closing for the weekend. Orders can be sent from Monday." }, 400); }
     // v1.9.1: one-time lock per study (insert fails if it already exists), so a double tap can never send the orders twice
