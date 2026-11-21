@@ -1822,7 +1822,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 async function amiUpdateCheck(){try{const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const AMI_LEVEL=(\d+);/);
   if(m&&+m[1]>AMI_LEVEL){toast("Updating AMI…",1500);setTimeout(()=>location.replace(location.pathname+"?v="+m[1]),600);}}catch(_){}}
 amiUpdateCheck();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")amiUpdateCheck();});
-function openAmiChat(){if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
+function openAmiChat(){if(section!=="Ask AMI"){openChat("Ask AMI","");}else if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
 function paneToggle(w){paneHide(w,!document.body.classList.contains("hide-"+w));}
 function paneHide(w,h){document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
