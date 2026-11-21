@@ -1846,8 +1846,7 @@ amiUpdateCheck();document.addEventListener("visibilitychange",()=>{if(document.v
 function openAmiChat(){if(section!=="Ask AMI"){openChat("Ask AMI","");}else if(document.body.classList.contains("hide-chat"))paneHide("chat",false);else goPane(1);
   setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus();toEnd("msgs");},350);}
 function chatFull(on){const b=document.body;on=on===undefined?!b.classList.contains("chat-full"):on;if(on&&b.classList.contains("hide-chat"))paneHide("chat",false);b.classList.toggle("chat-full",on);const c=document.getElementById("cfull");if(c){c.textContent=on?"⤡":"⛶";c.title=on?"Exit full screen":"Full screen";}setTimeout(()=>toEnd("msgs"),100);}
-function myWa(){let left=false;const f=()=>{left=true;};window.addEventListener("blur",f,{once:true});document.addEventListener("visibilitychange",f,{once:true});
-  location.href="whatsapp://";setTimeout(()=>{if(!left&&!document.hidden)window.open("https://web.whatsapp.com","_blank","noopener");},1500);}
+function myWa(){location.href="whatsapp://";toast("Opening WhatsApp on this device…",2500);}
 function paneToggle(w){paneHide(w,!document.body.classList.contains("hide-"+w));}
 function paneHide(w,h){if(w==="chat"&&h&&document.body.classList.contains("chat-full"))chatFull(false);document.body.classList.toggle("hide-"+w,h);try{localStorage.setItem("ami_hide_"+w,h?"1":"");}catch(_){}
   if(!h)goPane(w==="chat"?1:2);else goPane(0);}
