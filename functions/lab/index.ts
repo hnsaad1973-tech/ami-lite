@@ -1,4 +1,4 @@
-// AMI `lab` v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
+// AMI `lab` v1.5 (21 Nov 2026: QS / MEP seat - Claude sits in until a working Mistral key is added) - v1.4 (21 Nov 2026: CHAIRMAN - only providers we trust: Financial Controller is now Meta Llama via Together AI (US), with Claude Opus sitting in until that key is added; Devil's Advocate is now Grok (xAI) for good; Qwen and DeepSeek removed; Financial Controller moved to the standard tier, so it sees the file on normal jobs) - v1.3 (20 Nov 2026: SECURITY + SPENDING — kill switch and app-lock unlock check (ami_gate) on app calls; "start" refused at the daily/monthly AI spending cap; a running job pauses before its next stage if the kill switch is on or the cap is reached)
 // v1.2 (20 Nov 2026: every AI call logged to ami_usage — tokens, time, seat, job — for the Control Room cost meter) — v1.1 (20 Nov 2026: opened to the Chairman's AMI 1 sign-in; board VOTE stage after final (9 voting seats, Devil's Advocate excluded); WhatsApp when done; job index for 'Past Lab jobs') — v1.0 (20 Nov 2026) — the AMI Lab: the Chairman sends a job (brief + Drive files); the 10-seat board works on it together.
 // Stages (each runs in the background and starts the next): read -> plan -> work -> merge -> critique -> final.
 //   read     : Drive files to text (Google Docs/Sheets exported; PDFs and images read by Claude vision).
@@ -135,8 +135,10 @@ async function callRaw(name: string, sys: string, user: string): Promise<{ model
       throw last || new Error("no answer"); }
     case "General Counsel": { const k = env("COHERE_API_KEY") || await setting("cohere_key"); if (!k) throw new Error("not connected — add COHERE_API_KEY");
       const m = await pickModel("https://api.cohere.ai/compatibility/v1", k, [/^command-a-\d/, /^command-r-plus/]) || "command-a-03-2025"; return oaiText("https://api.cohere.ai/compatibility/v1", k, m, sys, user); }
-    case "QS / MEP Engineer": { const k = env("MISTRAL_API_KEY") || await setting("mistral_key"); if (!k) throw new Error("not connected — add MISTRAL_API_KEY");
-      return oaiText("https://api.mistral.ai/v1", k, "mistral-large-latest", sys, user); }
+    case "QS / MEP Engineer": { // Mistral; until that key works, Claude sits in
+      const k = env("MISTRAL_API_KEY") || await setting("mistral_key");
+      if (k) { try { return await oaiText("https://api.mistral.ai/v1", k, "mistral-large-latest", sys, user); } catch (_) { /* fall through to Claude */ } }
+      return claude(sys, user, 8000); }
     case "Financial Controller": { // Meta Llama via Together AI; until that key is added, Claude Opus sits in
       const k = env("TOGETHER_API_KEY") || await setting("together_key");
       if (k) { const m = await pickModel("https://api.together.xyz/v1", k, [/Llama-4-Maverick/i, /Llama-4/i, /Llama-3\.3-70B/i]) || "meta-llama/Llama-3.3-70B-Instruct-Turbo";
