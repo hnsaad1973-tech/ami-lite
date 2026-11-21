@@ -1632,26 +1632,31 @@ let LABT=null;
 function openLab(){openChat("AMI Lab","");clearTimeout(LABT);document.querySelectorAll("#bdtr,#pnbox,#bdmem,#pnFile,#pnList,#pnQ,#pnTitle,#pnText").forEach(e=>e.removeAttribute("id"));PNFILE=null;PNFILES=[];PNPATH=[];
   const st='width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);padding:10px;font-size:14px;margin:6px 0;font-family:inherit';
   const w=bubble("a",'<div class="gp"><div class="card" id="pnbox"><div class="lbl">🧪 AMI Lab — send work to the board</div>'+
-    '<div class="note">Write one line of what you need and attach up to 5 Drive files. The lead editor splits the job, the seats work in parallel, the Devil\'s Advocate attacks the draft, it is fixed, then the 9 voting seats vote. About 8–12 minutes — AMI WhatsApps you when it is ready.</div>'+
+    '<div class="note">Write one line of what you need and attach up to 5 Drive files. Only the seats needed work on it; big jobs (over $50,000, contracts, filings) also get the Devil\'s Advocate and a board vote. A few minutes — AMI WhatsApps you when it is ready.</div>'+
     '<input id="pnTitle" style="'+st+'" placeholder="Title (e.g. CBL tender — price the BOQ)">'+
     '<textarea id="pnText" rows="4" style="'+st+'" placeholder="What do you need? (e.g. Check this lease and list the risks for Leone)"></textarea>'+
     '<div class="note"><b>Who may see the files</b></div><div style="display:flex;gap:6px;margin:4px 0">'+
       '<button id="labS" onclick="labLvl(\'sensitive\')" style="flex:1;border:none;border-radius:10px;padding:9px;font-weight:700;cursor:pointer">🔒 Sensitive</button>'+
       '<button id="labN" onclick="labLvl(\'normal\')" style="flex:1;border:none;border-radius:10px;padding:9px;font-weight:700;cursor:pointer">📂 Normal</button></div>'+
     '<div class="note" id="labLvlNote"></div>'+
+    '<div class="note" style="margin-top:6px"><b>Who works on it</b> — tap seats to choose. None picked = AMI picks only the 1–3 it needs. Fewer seats = lower cost.</div><div id="labSeatsPick" style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0"></div>'+
     '<div id="pnFile" class="note"></div>'+
     '<div style="display:flex;gap:6px;margin:4px 0"><input id="pnQ" style="'+st+';margin:0" placeholder="Find a Drive file by name"><button style="border:none;border-radius:10px;padding:0 14px;font-weight:600;background:var(--line);color:var(--ink)" onclick="pnFind()">Find</button></div>'+
     pnCoBtns()+'<div id="pnList"></div>'+pnBtn("🧪 Send to the Lab","labSend()",1)+pnBtn("🗂 Past Lab jobs","labHist()")+pnBtn("👥 Seats","labSeats()")+'</div></div>');
-  w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});labLvl("sensitive");}
+  w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});labLvl("sensitive");LABPICK=[];labPickDraw();}
 let LABLVL="sensitive";
+const LABSEATS=["ChatGPT","Grok","Gemini","Perplexity","General Counsel","Chief Actuary","QS / MEP Engineer","Financial Controller"];let LABPICK=[];
+function labPickDraw(){const b=document.getElementById("labSeatsPick");if(!b)return;const on="background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A",off="background:var(--line);color:var(--ink)";
+  b.innerHTML='<button onclick="LABPICK=[];labPickDraw()" style="border:none;border-radius:16px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer;'+(LABPICK.length?off:on)+'">✨ Auto</button>'+LABSEATS.map((n,i)=>'<button onclick="labPick('+i+')" style="border:none;border-radius:16px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer;'+(LABPICK.includes(n)?on:off)+'">'+esc(n)+'</button>').join("")+'<span class="note" style="align-self:center">'+(LABPICK.length?LABPICK.length+' seat'+(LABPICK.length>1?'s':'')+' + Claude as editor':'AMI decides')+'</span>';}
+function labPick(i){const n=LABSEATS[i];LABPICK=LABPICK.includes(n)?LABPICK.filter(x=>x!==n):[...LABPICK,n];labPickDraw();}
 function labLvl(l){LABLVL=l;const on="background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A0F1A",off="background:var(--line);color:var(--ink)";
   const a=document.getElementById("labS"),b=document.getElementById("labN"),n=document.getElementById("labLvlNote");if(!a)return;
   a.style.cssText+=";"+(l==="sensitive"?on:off);b.style.cssText+=";"+(l==="normal"?on:off);
-  n.textContent=l==="sensitive"?"Files go only to Claude, ChatGPT, Grok, Gemini, Perplexity and General Counsel. Every other seat gets an anonymised general question — no names, no figures.":"Files also go to the Chief Actuary and the QS/MEP Engineer. Qwen and DeepSeek still never see files.";}
+  n.textContent=l==="sensitive"?"Files go only to Claude, ChatGPT, Grok, Gemini, Perplexity and General Counsel. Every other seat gets an anonymised general question — no names, no figures.":"Files also go to the Chief Actuary, the QS/MEP Engineer and the Financial Controller. The Devil's Advocate never sees files.";}
 async function labSend(){const text=document.getElementById("pnText").value.trim(),title=document.getElementById("pnTitle").value.trim();
   if(text.length<5){toast("Write what you need first.",3000);return;}
   const w=bubble("a",'⏳ Sending to the Lab…');w.style.maxWidth="100%";w.style.width="100%";w.scrollIntoView({block:"start"});
-  try{const r=await labApi({action:"start",title:title||text.slice(0,60),brief:text,level:LABLVL,file_ids:PNFILES.map(f=>f.id)});labPoll(r.id,w);}
+  try{const r=await labApi({action:"start",title:title||text.slice(0,60),brief:text,level:LABLVL,file_ids:PNFILES.map(f=>f.id),seats:LABPICK});labPoll(r.id,w);}
   catch(e){w.innerHTML="⚠️ The Lab couldn't start: "+esc(e.message);}}
 async function labPoll(id,w){clearTimeout(LABT);try{const j=await labApi({action:"get",id});w.innerHTML=labRender(j);if(j.stage!=="done"&&j.stage!=="error")LABT=setTimeout(()=>labPoll(id,w),15000);}
   catch(e){w.innerHTML+='<div class="note">Checking again… ('+esc(e.message)+')</div>';LABT=setTimeout(()=>labPoll(id,w),20000);}}
