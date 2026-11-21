@@ -1,4 +1,4 @@
-// AMI `ai` edge function — v4.9.3 (20 Nov 2026) — SPENDING CAP (daily/monthly, ami_spend) + every Claude call logged in ami_usage; v4.9.2 — SECURITY: kill switch (LOCK AMI on WhatsApp) + app-lock unlock token required for app calls; v4.9.1 (18 Nov 2026) — BRAIN UPGRADE: Sonnet 5.5 main, Haiku 5.5 fast, Opus 5.5 for Think Tank (with fallbacks); fewer false "not sent" warnings; link-limit errors hidden; Google Calendar events without alerts; v4.9 (16 Nov 2026) — PDF DOCUMENTS (make_pdf: HTML → Google Doc + PDF in Drive) and email attachments (file_id); v4.8 — SEND EMAIL (send_email from his Gmail after his YES; to himself directly); v4.7 — TO-DO TOOL (todo_list: open to-do items + today's/tomorrow's reminders), apps switch on for to-do/today/plan/status questions, NO-NARRATION GUARD (a reply that only says "checking… one moment" without using a tool is sent back to do the work); v4.6 — Studio: upload any file / pick from Drive; v4.5.1 — images direct from OpenAI (image_make) with Zapier fallback until OpenAI credit is added; Zapier otherwise only for Pinterest; v4.4.2 — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
+// AMI `ai` edge function — v5.0 (21 Nov 2026) — MUSCLES: print_file (sends a Drive file to his own HP printer by HP ePrint email; printer address in ami_settings.printer_email; no YES needed — his own printer) and claude_job (queues work for Claude in table ami_claude_jobs; the next Claude session picks it up first and reports back); v4.9.3 (20 Nov 2026) — SPENDING CAP (daily/monthly, ami_spend) + every Claude call logged in ami_usage; v4.9.2 — SECURITY: kill switch (LOCK AMI on WhatsApp) + app-lock unlock token required for app calls; v4.9.1 (18 Nov 2026) — BRAIN UPGRADE: Sonnet 5.5 main, Haiku 5.5 fast, Opus 5.5 for Think Tank (with fallbacks); fewer false "not sent" warnings; link-limit errors hidden; Google Calendar events without alerts; v4.9 (16 Nov 2026) — PDF DOCUMENTS (make_pdf: HTML → Google Doc + PDF in Drive) and email attachments (file_id); v4.8 — SEND EMAIL (send_email from his Gmail after his YES; to himself directly); v4.7 — TO-DO TOOL (todo_list: open to-do items + today's/tomorrow's reminders), apps switch on for to-do/today/plan/status questions, NO-NARRATION GUARD (a reply that only says "checking… one moment" without using a tool is sent back to do the work); v4.6 — Studio: upload any file / pick from Drive; v4.5.1 — images direct from OpenAI (image_make) with Zapier fallback until OpenAI credit is added; Zapier otherwise only for Pinterest; v4.4.2 — invented links removed, studio buttons act at once; v4.4.1 — no false drawing claims; v4.4 — ELEVATIONS/SECTIONS/3D (draw_elevations); v4.3 — DRAWING (draw_plan: floor/partition plans as PDF + AutoCAD DXF in Drive); v4.2 — PRICING DATABASE (price_lookup tool); v4.1 — DIRECT GOOGLE (Gmail, Drive, Sheets, Calendar without Zapier; brain refresh in code); v4.0 — ask inside a company (its lines + its Drive documents); ✓ Done on each to-do item (todo_done); WhatsApp orders keep their own thread (YES approvals work); confirmed orders go to To-do list + Calendar reminders (not executed); Master Brain sheet refresh (Group Position from Drive sheet); inbox Action to-dos into To-do list; Design Studio makes images itself (no prompts); Gmail actions hard-wired (faster brief); brief must really read Gmail (no answers from old chat); Calendar & Events (events, medication, birthdays + WhatsApp reminders); Inbox tile Check now; background jobs (no 150s cut-off); — inbox brief with Noted/Action buttons (empties inbox by archiving); faster: apps only when needed, cached instructions; company brain, To-do, call me, camera, voice
 import { GOOGLE_TOOLS, GOOGLE_NAMES, runGoogleTool, gmailSend, googleReady, sheetTabs, brainImportReady, driveSearch, driveThumb, driveUploadB64 } from "./google.ts";
 // Includes: "clear chat", "ami status", server-checked send claims,
 // direct WhatsApp via Twilio (delivery check + template fallback), YES required before messaging others,
@@ -164,6 +164,8 @@ HIS DETAILS:
 - His email: hnsaad1973@gmail.com.
 
 SENDING RULE: Before sending any email, WhatsApp or message to ANYONE other than himself, show the exact draft and recipient, and wait for his YES. Only call the send tool in the turn where he has replied YES. Messages to himself may be sent directly.
+PRINTING: when he says print / print it / print the X, find the file (drive_search, or the pdf_id you just made with make_pdf) and call print_file with its file_id. It goes to his own HP printer, so no YES is needed. Google Docs/Sheets are printed as PDF. Tell him what was sent to the printer.
+CLAUDE JOBS: when he says "work with Claude on …", "give this to Claude", "ask Claude to …" or the job needs his computer, a long build, code changes, or work you cannot do with your tools, call claude_job with a clear task and all details (files, people, figures, what "done" looks like). Then tell him it is queued and that Claude will pick it up at the start of his next Claude session and report back.
 WHATSAPP NOTE: WhatsApp only allows free-text to someone who messaged AMI's number in the last 24 hours. Otherwise an approved template is needed. If a send fails for that reason, tell him plainly.
 CONTACTS: Use the phone numbers in your saved memory. If you don't have someone's WhatsApp number, ask him for it and save it with save_memory.
 
@@ -605,6 +607,10 @@ Deno.serve(async (req) => {
     ];
     if (GOOGLE_READY_FOR_SEND) tools.push({ name: "send_email", description: "SEND an email from the Chairman's Gmail (hnsaad1973@gmail.com). Only in the turn where he has replied YES to the exact draft you showed him (emails to himself can go directly). For a reply give thread_id. Signed 'Hussein Saad'.",
       input_schema: { type: "object", properties: { to: { type: "string", description: "recipient email(s), comma separated" }, cc: { type: "string" }, subject: { type: "string" }, body: { type: "string" }, thread_id: { type: "string" }, file_id: { type: "string", description: "Drive file id to attach (e.g. the pdf_id from make_pdf)" } }, required: ["body"] } });
+    if (GOOGLE_READY_FOR_SEND) tools.push({ name: "print_file", description: "PRINT a Drive file on the Chairman's own HP OfficeJet printer (HP ePrint by email). Give the Drive file_id (Google Docs/Sheets print as PDF; PDF, Word and images print as they are). No YES needed — it is his own printer.",
+      input_schema: { type: "object", properties: { file_id: { type: "string" }, note: { type: "string", description: "optional short note, e.g. number of copies wanted" } }, required: ["file_id"] } });
+    tools.push({ name: "claude_job", description: "QUEUE a job for Claude (the developer/assistant that works on his computer, code, Drive and long tasks). Use when he says 'work with Claude on …' or the job is beyond your tools. Claude picks it up at the start of the next session and reports back.",
+      input_schema: { type: "object", properties: { task: { type: "string", description: "one-line title" }, details: { type: "string", description: "everything Claude needs: what to do, files, people, figures, deadline, what done looks like" }, urgent: { type: "boolean" } }, required: ["task"] } });
     // Direct WhatsApp only when Twilio keys are saved; otherwise AMI uses Zapier's Twilio action.
     if (TW_SID && TW_TOKEN) tools.push({ name: "send_whatsapp", description: "Send a WhatsApp message from AMI's number. To the Chairman himself: send directly. To anyone else: only after he has replied YES to the exact draft. Phone in international format, e.g. +231777123456.",
       input_schema: { type: "object", properties: { to: { type: "string", description: "Recipient phone, international format" }, message: { type: "string" } }, required: ["to", "message"] } });
@@ -677,7 +683,7 @@ Deno.serve(async (req) => {
       if (internalKey) console.log("ai round", i, data.stop_reason, "tools so far:", toolsUsed.join(","), "usage:", JSON.stringify(data.usage || {}));
       if (data.stop_reason === "pause_turn") { msgs.push({ role: "assistant", content: data.content }); continue; }
       if (data.stop_reason === "tool_use") {
-        const uses = (data.content || []).filter((b: any) => b.type === "tool_use" && (b.name === "save_memory" || b.name === "send_whatsapp" || b.name === "send_email" || b.name === "todo_list" || GOOGLE_NAMES.has(b.name)));
+        const uses = (data.content || []).filter((b: any) => b.type === "tool_use" && (b.name === "save_memory" || b.name === "send_whatsapp" || b.name === "send_email" || b.name === "todo_list" || b.name === "print_file" || b.name === "claude_job" || GOOGLE_NAMES.has(b.name)));
         if (!uses.length) break;
         const results: any[] = [];
         // Google tools run in parallel
@@ -700,6 +706,29 @@ Deno.serve(async (req) => {
             sendAttempted = true;
             try { const out = await gmailSend(u.input || {}); confirmed.push(`Email sent from Gmail to ${out.to} — "${out.subject}" (id ${out.message_id}).`); results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify(out) }); }
             catch (e) { const m = (e as Error).message; toolErrors.push("send_email: " + m.slice(0, 200)); results.push({ type: "tool_result", tool_use_id: u.id, content: "NOT SENT: " + m, is_error: true }); }
+            continue;
+          }
+          if (u.name === "print_file") {
+            toolsUsed.push("print_file");
+            try {
+              const pr = await db("ami_settings?key=eq.printer_email&select=value");
+              const printer = pr.ok ? String((await pr.json())[0]?.value || "").replace(/^"|"$/g, "").trim() : "";
+              if (!printer) throw new Error("No printer address saved yet. Ask the Chairman for his HP ePrint address (HP Smart app > printer > Print Anywhere / ePrint, it ends @hpeprint.com) — Claude saves it as ami_settings.printer_email.");
+              const fid = String(u.input?.file_id || "").trim(); if (!fid) throw new Error("No file_id given.");
+              const out = await gmailSend({ to: printer, subject: "Print " + new Date().toISOString().slice(0, 16).replace("T", " "), body: String(u.input?.note || "Print job from AMI."), file_id: fid });
+              sendAttempted = true;
+              confirmed.push(`Sent to the printer: ${out.attachment || "file"}.`);
+              results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify({ printed: true, file: out.attachment, printer }) });
+            } catch (e) { const m = (e as Error).message; toolErrors.push("print_file: " + m.slice(0, 200)); results.push({ type: "tool_result", tool_use_id: u.id, content: "NOT PRINTED: " + m, is_error: true }); }
+            continue;
+          }
+          if (u.name === "claude_job") {
+            toolsUsed.push("claude_job");
+            const task = String(u.input?.task || "").trim();
+            if (!task) { results.push({ type: "tool_result", tool_use_id: u.id, content: "No task given.", is_error: true }); continue; }
+            const w = await db("ami_claude_jobs", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ task, details: String(u.input?.details || ""), urgent: !!u.input?.urgent, source: (internalKey && deliver === "whatsapp") ? "whatsapp" : (internalKey ? "internal" : "app") }) });
+            if (w.ok) { const row = (await w.json())[0] || {}; confirmed.push(`Queued for Claude (job #${row.id}): ${task}`); results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify({ queued: true, job: row.id }) }); }
+            else { toolErrors.push(`claude_job: database error ${w.status}`); results.push({ type: "tool_result", tool_use_id: u.id, content: `Not queued (database error ${w.status}).`, is_error: true }); }
             continue;
           }
           if (u.name === "todo_list") {
